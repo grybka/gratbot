@@ -10,6 +10,13 @@ from hardware import GratbotMotor
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
+#last result
+#100 was fast
+#80 was fine
+#60 was slow
+#40 barely moved
+#20 did not move
+
 #This is where our main function begins
 if __name__ == "__main__":
     logging.info("Initiating Script")
@@ -18,7 +25,6 @@ if __name__ == "__main__":
     config_data=yaml.safe_load(config_file)
     config_file.close()
     robot=hardware.create_hardware(config_data["hardware"])
-    exit(0)
     robot["wheel_motor"].stop()
     speeds=[100,80,60,40,20,0]
     for s in speeds:

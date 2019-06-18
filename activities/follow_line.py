@@ -30,8 +30,8 @@ if __name__ == "__main__":
     last_ir_read=read_ir_sensors(robot)
     robot["wheel_turn_servo"].setpos_fraction(0)
     time.sleep(0.5)
-    max_speed=50
-    slow_speed=50
+    max_speed=100
+    slow_speed=65
     try:
         while True:
             time.sleep(0.5)
@@ -41,8 +41,9 @@ if __name__ == "__main__":
             current_ir=ir_sensor_to_binary(current_ir_array)
             if current_ir==0b000:
                 logging.info("I'm lost, 000")
-                robot["wheel_motor"].stop()
+                #robot["wheel_motor"].stop()
                 robot["wheel_turn_servo"].setpos_fraction(0)
+                robot["wheel_motor"].go(GratbotMotor.backward,max_speed)
             if current_ir==0b101:
                 logging.info("I'm lost, 101")
                 robot["wheel_motor"].stop()
