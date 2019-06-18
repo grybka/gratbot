@@ -7,9 +7,11 @@ class GratbotServo:
 
     def __init__(self,datastruct):
         self.max_right=datastruct["max_right_steps"]
-        self.max_left=datastruct["max_right_steps"]
+        self.max_left=datastruct["max_left_steps"]
         self.servo_number=datastruct["servo_number"]
         self.pwm.set_pwm_freq(60)
+        #print("servo  {} max_left {}".format(self.servo_number,self.max_left))
+        #print("servo {} max_right {}".format(self.servo_number,self.max_right))
 #self.max_right=280
 #self.middle=370
 #self.max_left=500
@@ -26,7 +28,9 @@ class GratbotServo:
     def setpos_fraction(self,fraction):
         #set the servo by fraction of full turning
         #so fraction is in [-1,1] with 0 being center
-        my_steps=int(self.max_right+fraction*(self.max_left-self.max_right)/2)
+        center=0.5*(self.max_left+self.max_right)
+        halfspan=0.5*abs(self.max_left-self.max_right)
+        my_steps=int(center+fraction*halfspan)
         self.setpos_steps(my_steps)
 
 class GratbotLED:
@@ -40,23 +44,23 @@ class GratbotLED:
     off=[0,0,0]
 
     def __init__(self,datastruct):
-        self.red_pin=datstruct["red_pin"]
-        self.green_pin=datstruct["green_pin"]
-        self.blue_pin=datstruct["blue_pin"]
+        self.red_pin=datastruct["red_pin"]
+        self.green_pin=datastruct["green_pin"]
+        self.blue_pin=datastruct["blue_pin"]
         GPIO.setup(self.red_pin, GPIO.OUT)
         GPIO.setup(self.green_pin, GPIO.OUT)
         GPIO.setup(self.blue_pin, GPIO.OUT)
 
     def set_color(self,rgb_array):
-        if values[0]==0:
+        if rgb_array[0]==0:
             GPIO.output(self.red_pin,GPIO.LOW)
         else:
             GPIO.output(self.red_pin,GPIO.HIGH)
-        if values[1]==0:
+        if rgb_array[1]==0:
             GPIO.output(self.green_pin,GPIO.LOW)
         else:
             GPIO.output(self.green_pin,GPIO.HIGH)
-        if values[2]==0:
+        if rgb_array[2]==0:
             GPIO.output(self.blue_pin,GPIO.LOW)
         else:
             GPIO.output(self.blue_pin,GPIO.HIGH)
@@ -83,16 +87,16 @@ class GratbotMotor:
 
     def go(self,direction,speed):
         #direction is either forward or backward, speed is fraction of 1.0
-        if direction==forward:
+        if direction==GratbotMotor.backward:
             GPIO.output(self.motorpin1, GPIO.HIGH)
             GPIO.output(self.motorpin2, GPIO.LOW)
-            pwm.start(100)
-            pwm.ChangeDutyCycle(speed)
-        elif direction==backward:
+            self.pwm.start(100)
+            self.pwm.ChangeDutyCycle(speed)
+        elif direction==GratbotMotor.forward:
             GPIO.output(self.motorpin1, GPIO.LOW)
             GPIO.output(self.motorpin2, GPIO.HIGH)
-            pwm.start(0)
-            pwm.ChangeDutyCycle(speed)
+            self.pwm.start(0)
+            self.pwm.ChangeDutyCycle(speed)
         else:
             raise Exception("invalid direction for motor")
 
@@ -101,8 +105,8 @@ class GratbotIRSensor:
         self.my_pin=datastruct["pin"]
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.line_pin_right,GPIO.IN)
-    def get_status():
+        GPIO.setup(self.my_pin,GPIO.IN)
+    def get_status(self):
         return GPIO.input(self.my_pin)
 
         
