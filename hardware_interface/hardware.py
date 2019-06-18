@@ -78,7 +78,9 @@ class GratbotMotor:
         GPIO.setup(self.motorpinen, GPIO.OUT)
         GPIO.setup(self.motorpin1, GPIO.OUT)
         GPIO.setup(self.motorpin2, GPIO.OUT)
-        self.pwm=GPIO.PWM(self.motorpinen, 1000)
+        #pwm_frequency=1000 from adeept
+        pwm_frequency=50 #this seems pretty solid
+        self.pwm=GPIO.PWM(self.motorpinen, pwm_frequency)
 
     def stop(self):
         GPIO.output(self.motorpin1,GPIO.LOW)
@@ -95,7 +97,7 @@ class GratbotMotor:
         elif direction==GratbotMotor.forward:
             GPIO.output(self.motorpin1, GPIO.LOW)
             GPIO.output(self.motorpin2, GPIO.HIGH)
-            self.pwm.start(0)
+            self.pwm.start(100)
             self.pwm.ChangeDutyCycle(speed)
         else:
             raise Exception("invalid direction for motor")

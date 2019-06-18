@@ -26,7 +26,7 @@ if __name__ == "__main__":
     config_file.close()
     robot=hardware.create_hardware(config_data["hardware"])
     robot["wheel_motor"].stop()
-    speeds=[100,80,60,40,20,0]
+    speeds=[80,60,40,20,0]
     for s in speeds:
         logging.info("Forward {}".format(s))
         robot["wheel_motor"].go(GratbotMotor.forward,s)
