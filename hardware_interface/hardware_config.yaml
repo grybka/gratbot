@@ -38,4 +38,6 @@ hardware:
     right_ir_sensor:
         type: GratbotIRSensor
         pin: 35
+    led_strip:
+        type: GratbotLEDStrip
 
