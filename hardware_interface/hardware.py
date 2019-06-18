@@ -112,7 +112,7 @@ class GratbotIRSensor:
     def get_status(self):
         return GPIO.input(self.my_pin)
 
-class GratBotLEDStrip:
+class GratbotLEDStrip:
     def __init__(self,datastruct):
         LED_COUNT      = 12      # Number of LED pixels.
         LED_PIN        = 12      # GPIO pin connected to the pixels (18 uses PWM!).
@@ -125,13 +125,11 @@ class GratBotLEDStrip:
         self.strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
         self.strip.begin()
 
-    def set_all_color(color):
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i,color)
-        strip.show()
+    def set_all_color(self,color):
+        for i in range(self.strip.numPixels()):
+            self.strip.setPixelColor(i,Color(color[0],color[1],color[2]))
+        self.strip.show()
 
-    def set_pixel_color(p,color):
-        
 def create_hardware(datastruct):
     hardware_dat={}
     for x in datastruct.keys():

@@ -30,15 +30,18 @@ if __name__ == "__main__":
     last_ir_read=read_ir_sensors(robot)
     robot["wheel_turn_servo"].setpos_fraction(0)
     time.sleep(0.5)
-    max_speed=60
-    slow_speed=50
+    max_speed=45
+    slow_speed=35
     try:
         while True:
             time.sleep(0.5)
             current_ir_array=read_ir_sensors(robot)
+            print("{}".format(current_ir_array))
             robot["left_front_led"].set_color(current_ir_array)
             robot["right_front_led"].set_color(current_ir_array)
             current_ir=ir_sensor_to_binary(current_ir_array)
+            hard_turn=0.8
+            gentle_turn=0.4
             if current_ir==0b000:
                 logging.info("I'm lost, 000")
                 #robot["wheel_motor"].stop()
@@ -50,11 +53,11 @@ if __name__ == "__main__":
                 robot["wheel_turn_servo"].setpos_fraction(0)
             elif current_ir==0b001:
                 logging.info("Hard Right!")
-                robot["wheel_turn_servo"].setpos_fraction(-1)
+                robot["wheel_turn_servo"].setpos_fraction(-hard_turn)
                 robot["wheel_motor"].go(GratbotMotor.forward,slow_speed)
             elif current_ir==0b100:
                 logging.info("Hard Left!")
-                robot["wheel_turn_servo"].setpos_fraction(1)
+                robot["wheel_turn_servo"].setpos_fraction(hard_turn)
                 robot["wheel_motor"].go(GratbotMotor.forward,slow_speed)
             elif current_ir==0b010:
                 logging.info("Straight ahead!")
@@ -62,11 +65,11 @@ if __name__ == "__main__":
                 robot["wheel_motor"].go(GratbotMotor.forward,max_speed)
             elif current_ir==0b110:
                 logging.info("Gentle Left!")
-                robot["wheel_turn_servo"].setpos_fraction(0.5)
+                robot["wheel_turn_servo"].setpos_fraction(gentle_turn)
                 robot["wheel_motor"].go(GratbotMotor.forward,max_speed)
             elif current_ir==0b011:
                 logging.info("Gentle Right!")
-                robot["wheel_turn_servo"].setpos_fraction(-0.5)
+                robot["wheel_turn_servo"].setpos_fraction(-gentle_turn)
                 robot["wheel_motor"].go(GratbotMotor.forward,max_speed)
             elif current_ir==0b111:
                 logging.info("Straight ahead slow!")
