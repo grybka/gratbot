@@ -18,13 +18,14 @@ if __name__ == "__main__":
     config_data=yaml.safe_load(config_file)
     config_file.close()
     robot=hardware.create_hardware(config_data["hardware"])
+    exit(0)
     robot["wheel_motor"].stop()
     speeds=[100,80,60,40,20,0]
     for s in speeds:
-        logging.info("Forward {}".format(s)
+        logging.info("Forward {}".format(s))
         robot["wheel_motor"].go(GratbotMotor.forward,s)
         time.sleep(2)
-        logging.info("Backward {}".format(s)
+        logging.info("Backward {}".format(s))
         robot["wheel_motor"].go(GratbotMotor.backward,s)
         time.sleep(2)
     robot["wheel_motor"].stop()

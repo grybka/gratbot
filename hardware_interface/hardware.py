@@ -35,12 +35,12 @@ class GratbotServo:
 
 class GratbotLED:
     red=[1,0,0]
-    blue=[0,1,0]
-    green=[0,0,1]
+    green=[0,1,0]
+    blue=[0,0,1]
     pink=[1,0,1]
-    cyan=[1,1,0]
-    white=[1,1,0]
-    yellow=[0,1,1]
+    cyan=[0,1,1]
+    white=[1,1,1]
+    yellow=[1,1,0]
     off=[0,0,0]
 
     def __init__(self,datastruct):
@@ -53,17 +53,17 @@ class GratbotLED:
 
     def set_color(self,rgb_array):
         if rgb_array[0]==0:
-            GPIO.output(self.red_pin,GPIO.LOW)
-        else:
             GPIO.output(self.red_pin,GPIO.HIGH)
+        else:
+            GPIO.output(self.red_pin,GPIO.LOW)
         if rgb_array[1]==0:
-            GPIO.output(self.green_pin,GPIO.LOW)
-        else:
             GPIO.output(self.green_pin,GPIO.HIGH)
-        if rgb_array[2]==0:
-            GPIO.output(self.blue_pin,GPIO.LOW)
         else:
+            GPIO.output(self.green_pin,GPIO.LOW)
+        if rgb_array[2]==0:
             GPIO.output(self.blue_pin,GPIO.HIGH)
+        else:
+            GPIO.output(self.blue_pin,GPIO.LOW)
 
 
 class GratbotMotor:
