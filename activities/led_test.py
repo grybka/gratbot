@@ -38,7 +38,8 @@ if __name__ == "__main__":
         print("color {}".format(names[i]))
         x=colors[i]
         robot["left_front_led"].set_color(x)
-        robot["led_strip"].set_all_color([255,0,0])
+        robot["led_strip"].colorwipe([255,0,0])
+#robot["led_strip"].set_all_color([255,0,0])
         time.sleep(1)
 
 

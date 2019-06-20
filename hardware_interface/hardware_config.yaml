@@ -38,6 +38,11 @@ hardware:
     right_ir_sensor:
         type: GratbotIRSensor
         pin: 35
+    ultrasonic_sensor:
+        type: GratbotUltrasonicSensor
+        trigger_pin: 23
+        echo_pin: 24
+        sound_speed: 343.0
 #    led_strip:
 #        type: GratbotLEDStrip
 

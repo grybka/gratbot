@@ -113,6 +113,7 @@ class GratbotIRSensor:
         return GPIO.input(self.my_pin)
 
 class GratbotLEDStrip:
+#this doesn't seem to work.  Why?
     def __init__(self,datastruct):
         LED_COUNT      = 12      # Number of LED pixels.
         LED_PIN        = 12      # GPIO pin connected to the pixels (18 uses PWM!).
@@ -130,6 +131,47 @@ class GratbotLEDStrip:
             self.strip.setPixelColor(i,Color(color[0],color[1],color[2]))
         self.strip.show()
 
+     def colorwipe(self,color,wait_ms=50):
+        mycolor=Color(color[0],color[1],color[2])
+        for i in range(self.strip.numPixels()):
+            self.strip.setPixelColor(i,mycolor)
+            self.strip.show()
+            time.sleep(wait_ms/1000.0)
+
+class GratbotUltrasonicSensor:
+    def __init__(self,datastruct):
+        self.trigger_pin=datastruct["trigger_pin"]
+        self.echo_pin=datastruct["echo_pin"]
+        self.sound_speed=datastruct["sound_speed"]
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.trigger_pin,GPIO.OUT,initial=GPIO.LOW)
+        GPIO.setup(self.echo_pin,GPIO.IN)
+
+    def measure_distance(self):
+        #returns distance in meters
+        GPIO.output(self.trigger_pin,GPIO.HIGH)
+        time.sleep(0.000015)
+        GPIO.output(self.trigger_pin,GPIO.LOW)
+        while not GPIO.input(self.echo_pin):
+            pass
+        t1=time.time()
+        while GPIO.input(self.echo_pin)a:
+            pass
+        t2=time.time()
+        return (t2-t1)*self.sound_speed/2
+
+    def average_distance(self,n_averages):
+        #returns average and standard deviation of n_averages distance measurements
+        x_sum=0
+        xx_sum=0
+        for i in range(n_averages):
+            x=self.measure_distance()
+            x_sum+=x
+            xx_sum+=x*x
+        avg=x_sum/n_averages
+        stdev=np.sqrt(xx_sum/n_averages-avg*avg)
+        return avg,stdev
+
 def create_hardware(datastruct):
     hardware_dat={}
     for x in datastruct.keys():
@@ -145,6 +187,8 @@ def create_hardware(datastruct):
                 hardware_dat[x]=GratbotIRSensor(datastruct[x])
             elif datastruct[x]["type"]=="GratbotLEDStrip":
                 hardware_dat[x]=GratbotLEDStrip(datastruct[x])
+            elif datastruct[x]["type"]=="GratbotUltrasonicSensor":
+                hardware_dat[x]=GratbotUltrasonicSensor(datastruct[x])
             else:
                 logging.warning("Unrecognized hardware type {}".format(datastruct[x]["type"]))
     return hardware_dat
