@@ -5,11 +5,25 @@ import yaml
 import time
 import logging
 import traceback
+import numpy as np
 sys.path.append('../hardware_interface')
 import hardware
 from hardware import GratbotMotor
 root = logging.getLogger()
 root.setLevel(logging.INFO)
+
+def unicode_sparkline(data_array,minval,maxval):
+    bins=np.linspace(minval,maxval,8,endpoint=False)
+    vals=np.digitize(data_array,bins)
+    ret=""
+    for i in range(len(data_array)):
+        if vals[i]<=1:
+            ret+=' '
+        else:
+            if vals[i]>8:
+                vals[i]=8
+            ret+=chr(9600+vals[i])
+    return ret
 
 def ultra_scan(robot):
 #make an ultrasonic measurement at several angles
@@ -45,11 +59,5 @@ if __name__ == "__main__":
     robot=hardware.create_hardware(config_data["hardware"])
     while True:
         angle,dist,stdev=ultra_scan(robot)
-        out_str1=""
-        out_str2=""
-        for i in range(len(dist)):
-            out_str1+=" {}".format(dist[i])
-            out_str2+=" {}".format(stdev[i])
-            print(out_str1+"  |  "+out_str2)
-        time.sleep(1)
-
+        toprint=unicode_sparkline(dist,0,1.0):
+        print(toprint)
