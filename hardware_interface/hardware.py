@@ -2,6 +2,8 @@ import Adafruit_PCA9685
 import RPi.GPIO as GPIO
 from rpi_ws281x import *
 import logging
+import time
+import math
 
 class GratbotServo:
     pwm=Adafruit_PCA9685.PCA9685()
@@ -131,7 +133,7 @@ class GratbotLEDStrip:
             self.strip.setPixelColor(i,Color(color[0],color[1],color[2]))
         self.strip.show()
 
-     def colorwipe(self,color,wait_ms=50):
+    def colorwipe(self,color,wait_ms=50):
         mycolor=Color(color[0],color[1],color[2])
         for i in range(self.strip.numPixels()):
             self.strip.setPixelColor(i,mycolor)
@@ -155,7 +157,7 @@ class GratbotUltrasonicSensor:
         while not GPIO.input(self.echo_pin):
             pass
         t1=time.time()
-        while GPIO.input(self.echo_pin)a:
+        while GPIO.input(self.echo_pin):
             pass
         t2=time.time()
         return (t2-t1)*self.sound_speed/2
@@ -169,7 +171,7 @@ class GratbotUltrasonicSensor:
             x_sum+=x
             xx_sum+=x*x
         avg=x_sum/n_averages
-        stdev=np.sqrt(xx_sum/n_averages-avg*avg)
+        stdev=math.sqrt(xx_sum/n_averages-avg*avg)
         return avg,stdev
 
 def create_hardware(datastruct):

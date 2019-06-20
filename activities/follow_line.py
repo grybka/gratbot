@@ -34,7 +34,7 @@ if __name__ == "__main__":
     slow_speed=35
     try:
         while True:
-            time.sleep(0.5)
+            time.sleep(0.2)
             current_ir_array=read_ir_sensors(robot)
             print("{}".format(current_ir_array))
             robot["left_front_led"].set_color(current_ir_array)
