@@ -149,27 +149,38 @@ class GratbotUltrasonicSensor:
         GPIO.setup(self.trigger_pin,GPIO.OUT,initial=GPIO.LOW)
         GPIO.setup(self.echo_pin,GPIO.IN)
 
-    def measure_distance(self):
+    def measure_distance(self,max_distance=2.0):
         #returns distance in meters
+        timeout=1.0
+        max_wait=2*max_distance/self.sound_speed
         GPIO.output(self.trigger_pin,GPIO.HIGH)
         time.sleep(0.000015)
         GPIO.output(self.trigger_pin,GPIO.LOW)
+        start_time=time.time()
         while not GPIO.input(self.echo_pin):
+            if (time.time()-start_time)>timeout:
+                break
             pass
         t1=time.time()
+        start_time=time.time()
         while GPIO.input(self.echo_pin):
+            if (time.time()-start_time)>timeout:
+                break
             pass
         t2=time.time()
         return (t2-t1)*self.sound_speed/2
 
-    def average_distance(self,n_averages):
+    def average_distance(self,time_budget):
         #returns average and standard deviation of n_averages distance measurements
+        t1=time.time()
         x_sum=0
         xx_sum=0
-        for i in range(n_averages):
+        n_averages=0
+        while (time.time()-t1)<time_budget:
             x=self.measure_distance()
             x_sum+=x
             xx_sum+=x*x
+            n_averages+=1
         avg=x_sum/n_averages
         stdev=math.sqrt(xx_sum/n_averages-avg*avg)
         return avg,stdev

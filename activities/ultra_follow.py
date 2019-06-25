@@ -22,14 +22,18 @@ def unicode_sparkline(data_array,minval,maxval):
         else:
             if vals[i]>8:
                 vals[i]=8
-            ret+=chr(9600+vals[i])
+            ret+=unichr(9600+vals[i])
     return ret
 
-def ultra_scan(robot):
+def ultra_scan(robot,forward=True):
 #make an ultrasonic measurement at several angles
 #returns distance at each angle
     ultra_yaw_servo=robot["camera_yaw_servo"]
-    angles=[-0.2,-0.1,0,0.1,0.2]
+    #angles=[-0.4,-0.2,-0.1,0,0.1,0.2]
+    angles=np.linspace(-0.75,0.75,8)
+    if not forward:
+        angles=angles[::-1]
+
     response_dist=[]
     response_stdev=[]
     response_angle=[]
@@ -39,11 +43,11 @@ def ultra_scan(robot):
         #let it settle
         time.sleep(0.1)
         #measure distance
-        dist,stdev=robot["ultrasonic_sensor"].average_distance(10)
+        dist,stdev=robot["ultrasonic_sensor"].average_distance(0.2)
         response_angle.append(angle)
         response_dist.append(dist)
         response_stdev.append(stdev)
-    ultra_yaw_servo.setpos_fraction(0);
+    #ultra_yaw_servo.setpos_fraction(0);
     return response_angle,response_dist,response_stdev
 
         
@@ -57,7 +61,9 @@ if __name__ == "__main__":
     config_data=yaml.safe_load(config_file)
     config_file.close()
     robot=hardware.create_hardware(config_data["hardware"])
+    scan_dir=True
     while True:
-        angle,dist,stdev=ultra_scan(robot)
-        toprint=unicode_sparkline(dist,0,1.0):
+        angle,dist,stdev=ultra_scan(robot,scan_dir)
+        toprint=unicode_sparkline(dist,0,1.0)
         print(toprint)
+        scan_dir=not scan_dir
