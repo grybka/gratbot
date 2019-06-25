@@ -14,10 +14,11 @@ root.setLevel(logging.INFO)
 
 def forward_until_wall(robot):
 #move forward until you see a wall nearby
-    motor_speed=0.6
+    motor_speed=60
     #point straight ahead
     robot["wheel_turn_servo"].setpos_fraction(0)
     #turn on motor
+    logging.info("Ahead full")
     robot["wheel_motor"].go(GratbotMotor.forward,motor_speed)
     #poll ultrasonics until wall is close
     while True:
@@ -27,9 +28,10 @@ def forward_until_wall(robot):
             return
 
 def reverse_turn(left_not_right,time_seconds):
-#turn and reverse 
-    motor_speed=0.6
+#turn and reverse
+    motor_speed=50
     #turn wheels to the right
+    logging.info("Reverse Turn")
     robot["wheel_turn_servo"].setpos_fraction(0.8)
     #turn on motor
     robot["wheel_motor"].go(GratbotMotor.backward,motor_speed)
@@ -50,11 +52,12 @@ if __name__ == "__main__":
             #move forward until I hit something
             forward_until_wall(robot)
             #turn and try again
-            reverse_turn(True,0.5):
+            reverse_turn(True,4.0)
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended, exiting")
         robot["wheel_motor"].stop()
         robot["wheel_turn_servo"].setpos_fraction(0)
+        print("all done")
 
     except Exception as e:
         logging.warning("Exception: {}".format(str(e)))
