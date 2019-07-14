@@ -1,6 +1,7 @@
 import picamera
 import numpy as np
 import cv2
+import time
 
 camera = picamera.PiCamera()              #Camera initialization
 #xres=640
