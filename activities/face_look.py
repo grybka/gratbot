@@ -26,7 +26,8 @@ camera_hpos=0
 desired_face_xpos=320
 desired_face_ypos=240
 pixel_slop=10
-servo_step=0.05
+max_servo_step=0.20
+servo_ratio=0.005
 
 def acquire_camera_image(robot):
     #returns opencv camera image, in grayscale? TODO
@@ -46,11 +47,11 @@ def clip_servo_fraction(x):
         return -1.0
     return x
 
-def move_servo_to_target(x,delta,slop,servo_step):
+def move_servo_to_target(x,delta,slop,max_servo_step):
     if delta<-slop:
-        x+=servo_step
+        x+=min(abs(delta)*servo_ratio,max_servo_step)
     elif delta>slop:
-        x-=servo_step
+        x-=min(abs(delta)*servo_ratio,max_servo_step)
     return clip_servo_fraction(x)
 
 def highlight_face(facearray,img,num):
@@ -85,20 +86,21 @@ if __name__ == "__main__":
             #identify where a face is
             faces = face_cascade.detectMultiScale(img, 1.3, 5)
             if len(faces)>0:
-                highlight_face(faces,img,loopnumber)
+                #highlight_face(faces,img,loopnumber)
                 loopnumber=loopnumber+1
                 (x,y,w,h)=faces[0]
                 target_x=x+w/2
                 target_y=y+w/2
+                logging.info("Target Pos ({},{})".format(target_x,target_y))
                 deltax=target_x-desired_face_xpos
                 deltay=target_y-desired_face_ypos
                 logging.info("Face Delta ({},{})".format(deltax,deltay))
-                camera_hpos=move_servo_to_target(camera_hpos,deltax,pixel_slop,servo_step)
-                camera_vpos=move_servo_to_target(camera_vpos,deltay,pixel_slop,servo_step)
-                move_camera_to(robot,camera_hpos,camera_vpos)
+                camera_hpos=move_servo_to_target(camera_hpos,deltax,pixel_slop,max_servo_step)
+                camera_vpos=move_servo_to_target(camera_vpos,deltay,pixel_slop,max_servo_step)
+                move_camera_to(robot,camera_vpos,camera_hpos)
             else:
                 logging.info("No faces found")
-            time.sleep(2)
+            #time.sleep(1.0)
                 
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended, exiting")
