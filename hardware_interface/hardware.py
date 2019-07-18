@@ -5,7 +5,16 @@ import logging
 import time
 import math
 
-class GratbotServo:
+class GratBotSpimescape:
+    def set(self,endpoint,value):
+        raise Exception("set unhandled")
+    def get(self,endpoint):
+        raise Exception("get unhandled")
+    def expose_endpoints(self,endpoint):
+        #return a list of viable get and set endpoints
+        return [ [],[] ]
+
+class GratbotServo(GratBotSpimescape):
     pwm=Adafruit_PCA9685.PCA9685()
 
     def __init__(self,datastruct):
@@ -36,7 +45,16 @@ class GratbotServo:
         my_steps=int(center+fraction*halfspan)
         self.setpos_steps(my_steps)
 
-class GratbotLED:
+
+    def expose_endpoints(self,endpoint):
+        return [ [], ["position"] ]
+    def set(self,endpoint,value):
+        if endpoint=="position":
+            setpos_fraction(self,value)
+        else:
+            raise Exception("No endpoint {}".format(endpoint))
+
+class GratbotLED(GratbotSpimescape):
     red=[1,0,0]
     green=[0,1,0]
     blue=[0,0,1]
@@ -68,8 +86,17 @@ class GratbotLED:
         else:
             GPIO.output(self.blue_pin,GPIO.LOW)
 
+    def expose_endpoints(self,endpoint):
+        return [ [], ["color"] ]
+    def set(self,endpoint,value):
+        if endpoint=="color": #TODO handle an easy string to vector conversion here
+            set_color(self,value)
+        else:
+            raise Exception("No endpoint {}".format(endpoint))
 
-class GratbotMotor:
+
+
+class GratbotMotor(GratbotSpimescape):
     forward=0
     backward=1
     def __init__(self,datastruct):
@@ -105,7 +132,7 @@ class GratbotMotor:
         else:
             raise Exception("invalid direction for motor")
 
-class GratbotIRSensor:
+class GratbotIRSensor(GratbotSpimescape):
     def __init__(self,datastruct):
         self.my_pin=datastruct["pin"]
         GPIO.setwarnings(False)
@@ -114,7 +141,7 @@ class GratbotIRSensor:
     def get_status(self):
         return GPIO.input(self.my_pin)
 
-class GratbotLEDStrip:
+class GratbotLEDStrip(GratbotSpimescape):
 #this doesn't seem to work.  Why?
     def __init__(self,datastruct):
         LED_COUNT      = 12      # Number of LED pixels.
@@ -140,7 +167,7 @@ class GratbotLEDStrip:
             self.strip.show()
             time.sleep(wait_ms/1000.0)
 
-class GratbotUltrasonicSensor:
+class GratbotUltrasonicSensor(GratbotSpimescape):
     def __init__(self,datastruct):
         self.trigger_pin=datastruct["trigger_pin"]
         self.echo_pin=datastruct["echo_pin"]
