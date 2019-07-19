@@ -1,8 +1,9 @@
 #A server that allows the bot to be controlled over tcp
-import socketserver
+import SocketServer
 import yaml
 import time
 import logging
+import sys
 
 sys.path.append('../hardware_interface')
 import hardware
@@ -11,7 +12,7 @@ root = logging.getLogger()
 root.setLevel(logging.INFO)
 
 
-class GratbotServer(socketserver.StreamRequestHandler):
+class GratbotServer(SocketServer.StreamRequestHandler):
     robot = None
 
     def handle(self):
@@ -54,15 +55,16 @@ if __name__ == "__main__":
 
     # Create the server, binding to localhost on port 9999
     try:
-        with socketserver.TCPServer((HOST, PORT), GratbotServer) as server:
-            # Activate the server; this will keep running until you
-            # interrupt the program with Ctrl-C
-            server.serve_forever()
+        #with SocketServer.TCPServer((HOST, PORT), GratbotServer) as server:
+        server=SocketServer.TCPServer((HOST, PORT), GratbotServer)
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl-C
+        server.serve_forever()
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended, exiting")
     finally:
         #return robot to safe state
-        robot["wheel_motor"].stop()
-        robot["wheel_turn_servo"].setpos_fraction(0)
+        GratbotServer.robot["wheel_motor"].stop()
+        GratbotServer.robot["wheel_turn_servo"].setpos_fraction(0)
 
 

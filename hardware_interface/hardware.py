@@ -5,7 +5,7 @@ import logging
 import time
 import math
 
-class GratBotSpimescape:
+class GratbotSpimescape:
     def set(self,endpoint,value):
         raise Exception("set unhandled")
     def get(self,endpoint):
@@ -14,7 +14,7 @@ class GratBotSpimescape:
         #return a list of viable get and set endpoints
         return [ [],[] ]
 
-class GratbotServo(GratBotSpimescape):
+class GratbotServo(GratbotSpimescape):
     pwm=Adafruit_PCA9685.PCA9685()
 
     def __init__(self,datastruct):
