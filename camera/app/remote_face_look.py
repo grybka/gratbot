@@ -25,7 +25,7 @@ class GratbotClient:
 
     def connect(self):
         #connect to server
-        sock = socket.socket(socket.AP_INET,socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         return sock.connect((self.host,self.port))
     
     def disconnect(self):
@@ -44,7 +44,7 @@ class GratbotClient:
     def __del__(self):
         self.disconnect()
 
-GratbotClient gratbot("10.0.0.5",9999)
+gratbot=GratbotClient("10.0.0.5",9999)
 gratbot.connect()
 
 cv.namedWindow("preview")
