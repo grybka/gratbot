@@ -11,6 +11,10 @@ import hardware
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
+#message format
+#in json, all on one line
+#{ address: ["subsystem","endpoint"], command: "SET", arguments: "blah" }
+
 
 class GratbotServer(SocketServer.StreamRequestHandler):
     robot = None
@@ -18,29 +22,19 @@ class GratbotServer(SocketServer.StreamRequestHandler):
     def handle(self):
         self.data = self.rfile.readline().strip()
         print("{} wrote:".format(self.client_address[0]))
-        tokens=self.data.split(" ")
         try:
-            if len(tokens)<1:
-                raise Exception("only {} tokens found".format(len(tokens)))
-            if tokens[0]=="GET":
-                address=tokens[1].split(":")
-                response=self.robot[address[0]].get(address[1])
-                self.wfile.write(response)
-            if tokens[0]=="SET":
-                address=tokens[1].split(":")
-                self.robot[address[0]].set(address[1],tokens[2])
-                self.wfile.write("OK")
+            datastructure=yaml.safe_load(self.data)
+            if datastructure["command"]=="SET":
+                self.robot[datastructure["address"][0]].set(datastructure["address"][1],datastructure["arguments"])
+                self.wfile.write(yaml.safe_dump({ "response": "OK"}))
+            elif datastructure["command"]=="GET":
+                ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
+                self.wfile.write(yaml.safe_dump({ "response": ret}))
             else:
-                #unhandeled thing
                 raise Exception("initial token not set or get")
         except Exception as error:
             logger.error(error)
-            self.wfile.write("ERROR")
-#print(self.data)
-        # Likewise, self.wfile is a file-like object used to write back
-        # to the client
-#self.wfile.write(self.data.upper())
-
+            self.wfile.write(yaml.safe_dump({ "error": error}))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 9999
