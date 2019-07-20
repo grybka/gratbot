@@ -9,8 +9,6 @@ import json
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
-camera_vpos=0
-camera_hpos=0
 desired_face_xpos=160
 desired_face_ypos=120
 pixel_slop=10
@@ -63,7 +61,6 @@ face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 if not vc.isOpened():
     print("could not open video")
-   
 
 
 def move_camera_to(pitch,yaw):
@@ -90,8 +87,8 @@ def move_servo_to_target(x,delta,slop,max_servo_step):
         x-=min(abs(delta)*servo_ratio,max_servo_step)
     return clip_servo_fraction(x)
 
-
-
+camera_vpos=300
+camera_hpos=300
 
 try:
 #sock.connect((HOST,PORT))
@@ -106,25 +103,53 @@ try:
             logging.info("FPS: {}".format(fps))
             lasttime=thistime
         rval,frame=vc.read()
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-        for (x,y,w,h) in faces:
-            cv.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+    
         #----do face tracking here
-        if len(faces)>0:
-                (x,y,w,h)=faces[0]
-                target_x=x+w/2
-                target_y=y+w/2
-                logging.info("Target Pos ({},{})".format(target_x,target_y))
-                deltax=target_x-desired_face_xpos
-                deltay=target_y-desired_face_ypos
-                logging.info("Face Delta ({},{})".format(deltax,deltay))
-                camera_hpos=move_servo_to_target(camera_hpos,deltax,pixel_slop,max_servo_step)
-                camera_vpos=move_servo_to_target(camera_vpos,deltay,pixel_slop,max_servo_step)
-                move_camera_to(camera_vpos,camera_hpos)
+        dothing=False
+        dothing=True
+        if dothing:
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+            for (x,y,w,h) in faces:
+                cv.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+            if len(faces)>0:
+                    (x,y,w,h)=faces[0]
+                    target_x=x+w/2
+                    target_y=y+w/2
+                    logging.info("Target Pos ({},{})".format(target_x,target_y))
+                    deltax=target_x-desired_face_xpos
+                    deltay=target_y-desired_face_ypos
+                    logging.info("Face Delta ({},{})".format(deltax,deltay))
         #--------
         cv.imshow("preview",frame)
-        key=cv.waitKey(30)
+        key=cv.waitKey(10)
+        step_size=10
+        if key!=-1:
+            logging.info("key pressed {}".format(key))
+        #420 is about neutral in pitch
+        #340 is about minimal
+        #500 is max
+        #270 is far right
+        #370 is neutral
+        #510 is max
+            
+        if key==82: #Up
+            camera_vpos+=step_size
+            print("Pitch {}".format(camera_vpos))
+            response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(camera_vpos))
+        if key==84: #Down
+            camera_vpos-=step_size
+            print("Pitch {}".format(camera_vpos))
+            response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(camera_vpos))
+        if key==81: #Left
+            camera_hpos+=step_size
+            print("Yaw {}".format(camera_hpos))
+            response=gratbot.send_message(["camera_yaw_servo","position_steps"],"SET",int(camera_hpos))
+        if key==83: #Left
+            camera_hpos-=step_size
+            print("Yaw {}".format(camera_hpos))
+            response=gratbot.send_message(["camera_yaw_servo","position_steps"],"SET",int(camera_hpos))
+
 except KeyboardInterrupt:
     logging.warning("Keyboard Exception Program Ended, exiting")
 finally:        
