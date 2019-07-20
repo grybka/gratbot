@@ -20,7 +20,9 @@ class GratbotServo(GratbotSpimescape):
     def __init__(self,datastruct):
         self.max_right=datastruct["max_right_steps"]
         self.max_left=datastruct["max_left_steps"]
+        self.neutral_steps=datastruct["neutral_steps"]
         self.servo_number=datastruct["servo_number"]
+        self.full_span=min( abs(self.max_right-self.neutral_steps) , abs(self.max_left-self.neutral_steps) )
         self.pwm.set_pwm_freq(60)
         #print("servo  {} max_left {}".format(self.servo_number,self.max_left))
         #print("servo {} max_right {}".format(self.servo_number,self.max_right))
@@ -41,9 +43,7 @@ class GratbotServo(GratbotSpimescape):
     def setpos_fraction(self,fraction):
         #set the servo by fraction of full turning
         #so fraction is in [-1,1] with 0 being center
-        center=0.5*(self.max_left+self.max_right)
-        halfspan=0.5*abs(self.max_left-self.max_right)
-        my_steps=int(center+fraction*halfspan)
+        my_steps=int(self.neutral_steps+fraction*self.full_span)
         self.setpos_steps(my_steps)
 
 
