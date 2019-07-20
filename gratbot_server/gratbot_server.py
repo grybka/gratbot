@@ -56,6 +56,8 @@ if __name__ == "__main__":
     config_data=yaml.safe_load(config_file)
     config_file.close()
     GratbotServer.robot=hardware.create_hardware(config_data["hardware"])
+    GratbotServer.robot["camera_pitch_servo"].setpos_steps(420)
+    GratbotServer.robot["camera_yaw_servo"].setpos_steps(370)
 
 
     # Create the server, binding to localhost on port 9999

@@ -30,6 +30,7 @@ class GratbotServo(GratbotSpimescape):
 #self.servo_number=1
 
     def setpos_steps(self,steps):
+        steps=int(steps)
         #set the servo position by number of steps
         if steps>self.max_left:
             steps=self.max_left
