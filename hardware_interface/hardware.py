@@ -50,7 +50,9 @@ class GratbotServo(GratbotSpimescape):
         return [ [], ["position"] ]
     def set(self,endpoint,value):
         if endpoint=="position":
-            setpos_fraction(self,value)
+            self.setpos_fraction(value)
+        if endpoint=="position_steps":
+            self.setpos_steps(value)
         else:
             raise Exception("No endpoint {}".format(endpoint))
 

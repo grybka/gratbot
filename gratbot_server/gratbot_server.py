@@ -4,6 +4,7 @@ import yaml
 import time
 import logging
 import sys
+import json
 
 sys.path.append('../hardware_interface')
 import hardware
@@ -20,24 +21,34 @@ class GratbotServer(SocketServer.StreamRequestHandler):
     robot = None
 
     def handle(self):
-        self.data = self.rfile.readline().strip()
-        print("{} wrote:".format(self.client_address[0]))
-        try:
-            datastructure=yaml.safe_load(self.data)
-            if datastructure["command"]=="SET":
-                self.robot[datastructure["address"][0]].set(datastructure["address"][1],datastructure["arguments"])
-                self.wfile.write(yaml.safe_dump({ "response": "OK"}))
-            elif datastructure["command"]=="GET":
-                ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
-                self.wfile.write(yaml.safe_dump({ "response": ret}))
-            else:
-                raise Exception("initial token not set or get")
-        except Exception as error:
-            logger.error(error)
-            self.wfile.write(yaml.safe_dump({ "error": error}))
+        while True: #TODO I should probably disconnect after timeout
+            self.data = self.rfile.readline().strip()
+            if not self.data:
+                logging.info("Closing connection to ".format(self.client_address[0]))
+                break
+        #print("{} wrote:".format(self.client_address[0]))
+            try:
+                logging.info("received {}".format(self.data))
+                datastructure=json.loads(self.data)
+                logging.info("interpered as {}".format(json.dumps(datastructure)))
+                if datastructure["command"]=="SET":
+                    self.robot[datastructure["address"][0]].set(datastructure["address"][1],datastructure["arguments"])
+                    self.wfile.write(json.dumps({ "response": "OK"})+"\n")
+                elif datastructure["command"]=="GET":
+                    ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
+                    self.wfile.write(json.dumps({ "response": ret}))
+                else:
+                    raise Exception("initial token not set or get")
+            except Exception as error:
+                logging.error(error)
+                error_response={}
+                error_response["error"]="{}".format(error)
+                self.wfile.write((json.dumps(error_response)+"\n").encode())
+                #self.wfile.write(yaml.safe_dump({ "error": error}))
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
+    #HOST, PORT = "localhost", 9999
+    HOST, PORT = "10.0.0.5", 9999
 
     logging.info("Initiating Script")
     #initialize hardware
@@ -48,16 +59,21 @@ if __name__ == "__main__":
 
 
     # Create the server, binding to localhost on port 9999
+    server=None
     try:
         #with SocketServer.TCPServer((HOST, PORT), GratbotServer) as server:
         server=SocketServer.TCPServer((HOST, PORT), GratbotServer)
+        logging.info("starting server")
         # Activate the server; this will keep running until you
         # interrupt the program with Ctrl-C
         server.serve_forever()
+        logging.error("this should be unreachable")
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended, exiting")
     finally:
         #return robot to safe state
+        if server is not None:
+            server.server_close()
         GratbotServer.robot["wheel_motor"].stop()
         GratbotServer.robot["wheel_turn_servo"].setpos_fraction(0)
 
