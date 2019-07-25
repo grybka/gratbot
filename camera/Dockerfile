@@ -22,6 +22,7 @@ RUN apt-get update \
 
 RUN pip install numpy
 
+#This part installs opencv
 WORKDIR /
 ENV OPENCV_VERSION="4.1.0"
 RUN wget https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip \
@@ -53,8 +54,15 @@ RUN ln -s \
   /usr/local/python/cv2/python-3.7/cv2.cpython-37m-x86_64-linux-gnu.so \
   /usr/local/lib/python3.7/site-packages/cv2.so
 
+#this part installs pytorch
 
-RUN pip install pyyaml
+RUN pip install torch torchvision
+
+RUN pip install pyyaml scipy
+
+#kalman filtering library
+RUN pip install filterpy
+
 COPY bashrc /bashrc
 
 CMD ["/bin/bash"]

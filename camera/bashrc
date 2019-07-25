@@ -1,0 +1,2 @@
+echo "entering virtual environtment"
+workon OpenCV-master-py3
