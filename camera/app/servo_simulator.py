@@ -54,7 +54,7 @@ class PIDControl:
 class PIDControlFixed(PIDControl):
     def __init__(self):
         self.integral_length=5
-        self.P=2.0
+        self.P=1.94
         self.I=0.1
         self.D=0
 
@@ -96,8 +96,8 @@ class PIDControlTrainable(PIDControl):
             actual_vec=data_array[i+1]-data_array[i]
             target_vec=0-data_array[i]
             desired_change=target_vec-actual_vec
-            print("trying to change by {}".format(target_vec))
-            print("actually changed by {}".format(actual_vec))
+            #print("trying to change by {}".format(target_vec))
+            #print("actually changed by {}".format(actual_vec))
             #output=myp*P+...
             #doutput/dP=myp
             dP=desired_change*myp
@@ -106,6 +106,37 @@ class PIDControlTrainable(PIDControl):
         self.P-=clamp_max(dPsum,self.training_rate)
         self.I-=clamp_max(dIsum,self.training_rate)
         self.D-=clamp_max(dDsum,self.training_rate)
+
+#---Neural Network Here
+
+class ControlsPredictor(nn.Module):
+    #one dimensional, for experimentation
+
+    def __init__(self):
+        super(ControlsPredictor,self).__init__() 
+        self.past_size=3
+        self.middle=nn.Linear(self.past_size+1,1)
+
+    def forward(self,x):
+        x=self.middle(x)
+        return x
+
+    def predict(self,input_array,control_signal):
+        #given an array of previous measurements and a proposed control signal
+        #predict what the next measurement will be
+
+        #TODO crash if past size too small
+        x=torch.zeros(self.past_size+1)
+        x[0]=control_signal
+        for i in range(self.past_size):
+            x[i+1]=input_array[-(i+1)]
+        return self.forward(x)
+
+    def train(self,input_arrays,control_signals):
+        training_vectors=torch.zeros(self.past_size+1,len(input_arrays)-1)
+        for i in range(len(input_arrays)):
+        
+
 
 #-----test here-----
 
@@ -118,15 +149,16 @@ test_flip=20
 target_pos=np.zeros(test_size)
 pos=0
 initial_pos=0
-#while pos+test_flip<test_size:
-#    for i in range(pos,pos+test_flip):
-#        target_pos[i]=90
-#    pos=pos+2*test_flip
-for i in range(test_size):
-    target_pos[i]=test_flip*math.sin(i/100)
+while pos+test_flip<test_size:
+    for i in range(pos,pos+test_flip):
+        target_pos[i]=90
+    pos=pos+2*test_flip
+#for i in range(test_size):
+#    target_pos[i]=test_flip*math.sin(i/100)
     
-#controls=PIDControlFixed()
-controls=PIDControlTrainable()
+controls=PIDControlFixed()
+#controls=PIDControlTrainable()
+predictor=ControlsPredictor()
 
 #create controls
 #controls=NNServoControl()
@@ -138,20 +170,22 @@ pos_record=np.zeros(len(target_pos))
 desire_record=np.zeros(len(target_pos))
 constant_record=np.zeros(len(target_pos))
 sigma_record=np.zeros(len(target_pos))
+prediction_record=np.zeros(len(target_pos))
 pos_record[0]=initial_pos
 for i in range(1,len(target_pos)):
     if i>3:
 #desired_motion=controls.calculate_control_signal(pos_record[i-3:i],target_pos[i])
         errors=target_pos[i]*np.ones(3)-pos_record[i-3:i]
         desired_motion=controls.calculate_control(errors)
+        prediction_record[i]=predictor.predict(pos_record[i-3:i],desired_motion)
 #print("signals {} {}".format(pos_record[i-1],target_pos[i]))
 #desired_motion=controls.calculate_control_signal(pos_record[i-1],target_pos[i])
     else:
         desired_motion=0
     desire_record[i]=desired_motion
     pos_record[i]=sim.apply_motion(desired_motion,pos_record[i-1])
-    if i>0 and i%10==0:
-        controls.train(pos_record[i-10:i])
+#    if i>0 and i%10==0:
+#        controls.train(pos_record[i-10:i])
 #print("first 10 is {}".format(pos_record[0:10]))
 #print("i {} i-1 {}".format(i,i-1))
 #print("pos record i {} {} dm {}".format(pos_record[i-1],pos_record[i],desired_motion))
@@ -166,9 +200,10 @@ for i in range(1,len(target_pos)):
 
 #Print out result
 print("#element target_pos actual_pos")
-for i in range(len(target_pos)):
+for i in range(1,len(target_pos)):
 #print("{} {} {} {} {} {}".format(i,target_pos[i],pos_record[i],desire_record[i],constant_record[i],sigma_record[i]))
-    print("{} {} {} {} {} {}".format(i,target_pos[i],pos_record[i],desire_record[i],constant_record[i],sigma_record[i]))
+    #print("{} {} {} {} {} {}".format(i,target_pos[i],pos_record[i],desire_record[i],constant_record[i],sigma_record[i]))
+    print("{} {} {} {} {}".format(i,target_pos[i],pos_record[i],prediction_record[i],prediction_record[i]-pos_record[i-1]))
 
 
 
