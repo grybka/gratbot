@@ -17,7 +17,6 @@ pixel_slop=10
 max_servo_step=0.20
 servo_ratio=0.005
 
-
 class GratbotClient:
     def __init__(self,host,port):
         self.host=host
