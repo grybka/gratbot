@@ -3,15 +3,18 @@ import cv2 as cv
 import time
 
 import logging
+import socket
+import json
 #import filterpy
 #from filterpy.kalman import KalmanFilter
 #from filterpy.common import Q_discrete_white_noise
 from VisualTracker import VisualTracker
-from NNServorControl import ControlsPredictor
+from NNServoControl import ControlsPredictor
+import h5py
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
-max_servo_delta=10
+max_servo_delta=5
 
 class GratbotClient:
     def __init__(self,host,port):
@@ -31,16 +34,16 @@ class GratbotClient:
 
     def send_message(self,address,command,arguments):
         message={"address": address,"command": command,"arguments": arguments}
-        logging.info("sending {}".format(json.dumps(message)))
+#logging.info("sending {}".format(json.dumps(message)))
         self.sock.sendall((json.dumps(message)+"\n").encode())
         data=self.sock.recv(1024)
 #logging.info("received: {}".format(data))
         while len(data)==0 or data[-1]!=10:
-            if len(data)>0:
-                logging.info("received: {}".format(data))
-                logging.info("last elem |{}|".format(data[-1]))
+#            if len(data)>0:
+#logging.info("received: {}".format(data))
+#logging.info("last elem |{}|".format(data[-1]))
             data+=self.sock.recv(1024)
-        logging.info("received: {}".format(data))
+#logging.info("received: {}".format(data))
         return json.loads(data)
  
     def __del__(self):
@@ -62,11 +65,17 @@ gratbot.connect()
 
 cv.namedWindow("preview")
 vc=cv.VideoCapture("http://10.0.0.5:8080/stream/video.mjpeg")
+img_array=[]
+xpos_array=[]
+ypos_array=[]
+xcontrol_array=[]
+ycontrol_array=[]
+max_array_size=10
 #vc.set(3,320) #x res?
 #vc.set(4,240) #y res
 
-frame_width=vc.get(CAP_PROP_FRAME_WIDTH)
-frame_height=vc.get(CAP_PROP_FRAME_HEIGHT)
+frame_width=vc.get(cv.CAP_PROP_FRAME_WIDTH)
+frame_height=vc.get(cv.CAP_PROP_FRAME_HEIGHT)
 print("video resolution: {} x {} ".format(frame_width,frame_height))
 
 x_servo=ControlsPredictor()
@@ -83,8 +92,10 @@ x_history=[]
 y_history=[]
 x_control_history=[]
 y_control_history=[]
-camera_vpos=300
-camera_hpos=300
+camera_vpos=420
+camera_hpos=370
+response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(camera_vpos))
+response=gratbot.send_message(["camera_yaw_servo","position_steps"],"SET",int(camera_hpos))
 
 
 
@@ -101,6 +112,7 @@ try:
             logging.info("FPS: {}".format(fps))
             lasttime=thistime
         rval,frame=vc.read()
+        print("frame type {}".format(type(frame[0][0][0])))
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         tracker.handle_next_frame(gray)
         tracker.highlight_frame(frame)
@@ -114,6 +126,7 @@ try:
                 y_control=y_servo.predict(y_history,xpos)
                 x_control=int(clamp_max(x_control,max_servo_delta))
                 y_control=int(clamp_max(x_control,max_servo_delta))
+                logging.info("x control y control {} {}".format(x_control,y_control))
                 camera_hpos+=x_control
                 camera_vpos+=y_control
                 response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(camera_vpos))
@@ -121,6 +134,14 @@ try:
             else:
                 x_control=0
                 y_control=0
+            if len(xpos_array)<max_array_size:
+                xcontrol_array.append(x_control)
+                ycontrol_array.append(y_control)
+                xpos_array.append(camera_hpos)
+                ypos_array.append(camera_vpos)
+                img_array.append(frame)
+
+
             x_control_history.append(x_control)
             y_control_history.append(y_control)
             train_counter+=1
@@ -128,6 +149,7 @@ try:
                 logging.info("Training")
                 x_servo.train(x_history,x_control_history)
                 y_servo.train(y_history,y_control_history)
+                logging.info("Parameters {}".format(x_servo.parameters()))
                 
         else:
             #erase history of tracks
@@ -176,6 +198,20 @@ try:
             logging.info("key pressed {}".format(key))
 except KeyboardInterrupt:
     logging.warning("Keyboard Exception Program Ended, exiting")
+    hdf5_file=h5py.File("face_frames.h5",mode="w")
+    hdf5_file.create_dataset("xpos_array",(len(xpos_array),),np.int32)
+    hdf5_file["xpos_array"][...]=xpos_array
+    hdf5_file.create_dataset("ypos_array",(len(ypos_array),),np.int32)
+    hdf5_file["ypos_array"][...]=ypos_array
+    hdf5_file.create_dataset("xcontrol_array",(len(xcontrol_array),),np.int32)
+    hdf5_file["xcontrol_array"][...]=xcontrol_array
+    hdf5_file.create_dataset("ycontrol_array",(len(ycontrol_array),),np.int32)
+    hdf5_file["ycontrol_array"][...]=ycontrol_array
+    imgshape=(len(img_array),480,640,3)
+    hdf5_file.create_dataset("frames",imgshape,np.uint8)
+    hdf5_file["frames"][...]=img_array
+    hdf5_file.close()
+
 finally:        
     logging.warning("Releasing videocapture")
     vc.release()

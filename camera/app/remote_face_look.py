@@ -66,11 +66,11 @@ if not vc.isOpened():
 
 
 def move_camera_to(pitch,yaw):
-    response=gratbot.send_message(["camera_pitch_servo","position"],"SET",float(pitch))
+    response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(pitch))
     logging.info("I recevied {}".format(response))
     if "error" in response:
         raise Exception("Error sending command: "+response["error"])
-    response=gratbot.send_message(["camera_yaw_servo","position"],"SET",float(yaw))
+    response=gratbot.send_message(["camera_yaw_servo","position_steps"],"SET",int(yaw))
     logging.info("I recevied {}".format(response))
     if "error" in response:
         raise Exception("Error sending command: "+response["error"])

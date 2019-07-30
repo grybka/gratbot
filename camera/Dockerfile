@@ -63,6 +63,9 @@ RUN pip install pyyaml scipy
 #kalman filtering library
 RUN pip install filterpy
 
+#hdf5 file handling
+RUN pip install h5py
+
 COPY bashrc /bashrc
 
 CMD ["/bin/bash"]

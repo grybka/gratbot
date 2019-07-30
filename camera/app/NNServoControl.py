@@ -26,7 +26,7 @@ class ControlsPredictor(nn.Module):
         x=torch.zeros(self.past_size+1)
         x[0]=control_signal
         for i in range(self.past_size):
-            if i>len(input_array)
+            if i>len(input_array):
                 x[i+1]=0
             else:
                 x[i+1]=input_array[-(i+1)]
