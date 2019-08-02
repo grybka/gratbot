@@ -66,6 +66,8 @@ RUN pip install filterpy
 #hdf5 file handling
 RUN pip install h5py
 
+RUN pip3 install -U xbox360controller
+
 COPY bashrc /bashrc
 
 CMD ["/bin/bash"]
