@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import time
-
+import queue, threading, time
 import logging
 import socket
 import json
@@ -10,44 +10,12 @@ import json
 #from filterpy.common import Q_discrete_white_noise
 from VisualTracker import VisualTracker
 from NNServoControl import ControlsPredictor
+from GratbotClient import GratbotClient
 import h5py
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
 max_servo_delta=5
-
-class GratbotClient:
-    def __init__(self,host,port):
-        self.host=host
-        self.port=port
-        self.sock=None
-
-    def connect(self):
-        #connect to server
-        self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        return self.sock.connect((self.host,self.port))
-    
-    def disconnect(self):
-        if not (self.sock is None):
-            self.sock.close()
-            self.sock=None
-
-    def send_message(self,address,command,arguments):
-        message={"address": address,"command": command,"arguments": arguments}
-#logging.info("sending {}".format(json.dumps(message)))
-        self.sock.sendall((json.dumps(message)+"\n").encode())
-        data=self.sock.recv(1024)
-#logging.info("received: {}".format(data))
-        while len(data)==0 or data[-1]!=10:
-#            if len(data)>0:
-#logging.info("received: {}".format(data))
-#logging.info("last elem |{}|".format(data[-1]))
-            data+=self.sock.recv(1024)
-#logging.info("received: {}".format(data))
-        return json.loads(data)
- 
-    def __del__(self):
-        self.disconnect()
 
 def clamp_max(x,mx):
     if x>mx:
@@ -61,10 +29,36 @@ def clamp_max(x,mx):
 gratbot=GratbotClient("10.0.0.5",9999)
 gratbot.connect()
 
+# bufferless VideoCapture
+class VideoCapture:
+  def __init__(self, name):
+    self.cap = cv.VideoCapture(name)
+    self.q = queue.Queue()
+    t = threading.Thread(target=self._reader)
+    t.daemon = True
+    t.start()
+
+  # read frames as soon as they are available, keeping only most recent one
+  def _reader(self):
+    while True:
+      ret, frame = self.cap.read()
+      if not ret:
+        break
+      if not self.q.empty():
+        try:
+          self.q.get_nowait()   # discard previous (unprocessed) frame
+        except queue.Empty:
+          pass
+      self.q.put(frame)
+
+  def read(self):
+    return self.q.get()
 
 
 cv.namedWindow("preview")
-vc=cv.VideoCapture("http://10.0.0.5:8080/stream/video.mjpeg")
+#vc=cv.VideoCapture("http://10.0.0.5:8080/stream/video.mjpeg")
+vc=VideoCapture("http://10.0.0.5:8080/stream/video.mjpeg")
+
 img_array=[]
 xpos_array=[]
 ypos_array=[]
@@ -74,17 +68,31 @@ max_array_size=10
 #vc.set(3,320) #x res?
 #vc.set(4,240) #y res
 
-frame_width=vc.get(cv.CAP_PROP_FRAME_WIDTH)
-frame_height=vc.get(cv.CAP_PROP_FRAME_HEIGHT)
+frame_width=vc.cap.get(cv.CAP_PROP_FRAME_WIDTH)
+frame_height=vc.cap.get(cv.CAP_PROP_FRAME_HEIGHT)
 print("video resolution: {} x {} ".format(frame_width,frame_height))
 
 x_servo=ControlsPredictor()
 y_servo=ControlsPredictor()
 
+#pretrain the controls predictior
+input_arrays=[]
+control_signals=[]
+for i in range(200,500,5):
+    input_arrays.append(float(i))
+    control_signals.append(-5)
+for i in range(500,200,-5):
+    input_arrays.append(float(i))
+    control_signals.append(5)
+x_servo.train(input_arrays,control_signals)
+y_servo.train(input_arrays,control_signals)
+
+
+
 #face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
 
-if not vc.isOpened():
-    print("could not open video")
+#if not vc.isOpened():
+#    print("could not open video")
 
 tracker=VisualTracker('haarcascade_frontalface_default.xml')
 
@@ -96,8 +104,7 @@ camera_vpos=420
 camera_hpos=370
 response=gratbot.send_message(["camera_pitch_servo","position_steps"],"SET",int(camera_vpos))
 response=gratbot.send_message(["camera_yaw_servo","position_steps"],"SET",int(camera_hpos))
-
-
+#print("attempting to {}".format(vc.set(cv.CAP_PROP_BUFFERSIZE, 0)))
 
 min_training_size=10
 try:
@@ -111,8 +118,10 @@ try:
             fps=60/timedelta
             logging.info("FPS: {}".format(fps))
             lasttime=thistime
-        rval,frame=vc.read()
-        print("frame type {}".format(type(frame[0][0][0])))
+
+#rval,frame=vc.read()
+        frame=vc.read()
+#print("frame type {}".format(type(frame[0][0][0])))
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         tracker.handle_next_frame(gray)
         tracker.highlight_frame(frame)
@@ -126,6 +135,7 @@ try:
                 y_control=y_servo.predict(y_history,xpos)
                 x_control=int(clamp_max(x_control,max_servo_delta))
                 y_control=int(clamp_max(x_control,max_servo_delta))
+                logging.info("xpos ypos {} {}".format(xpos,ypos))
                 logging.info("x control y control {} {}".format(x_control,y_control))
                 camera_hpos+=x_control
                 camera_vpos+=y_control
@@ -191,11 +201,12 @@ try:
 #deltay=target_y-desired_face_ypos
 #logging.info("Face Delta ({},{})".format(deltax,deltay))
         #--------
-        cv.imshow("preview",frame)
-        key=cv.waitKey(10)
+        if onframe%2==0:
+            cv.imshow("preview",frame)
+            key=cv.waitKey(10)
+            if key!=-1:
+                logging.info("key pressed {}".format(key))
         step_size=10
-        if key!=-1:
-            logging.info("key pressed {}".format(key))
 except KeyboardInterrupt:
     logging.warning("Keyboard Exception Program Ended, exiting")
     hdf5_file=h5py.File("face_frames.h5",mode="w")
@@ -214,5 +225,5 @@ except KeyboardInterrupt:
 
 finally:        
     logging.warning("Releasing videocapture")
-    vc.release()
+    vc.cap.release()
 
