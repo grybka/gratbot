@@ -135,6 +135,23 @@ class GratbotMotor(GratbotSpimescape):
         else:
             raise Exception("invalid direction for motor")
 
+    def set(self,endpoint,value):
+        if endpoint=="stop":
+            self.stop()
+        if endpoint=="speed":
+            if value>=0: #forward
+                if value>100.0:
+                    value=100.0
+                self.go(GratbotMotor.forward,value)
+            else:
+                value=-value
+                if value>100.0:
+                    value=100.0
+                self.go(GratbotMotor.backward,value)
+        else:
+            raise Exception("No endpoint {}".format(endpoint))
+
+
 class GratbotIRSensor(GratbotSpimescape):
     def __init__(self,datastruct):
         self.my_pin=datastruct["pin"]

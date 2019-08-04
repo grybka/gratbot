@@ -14,16 +14,17 @@ hardware:
     wheel_turn_servo:
         type: GratbotServo
         max_right_steps: 280
+        neutral_steps: 370
         max_left_steps: 500
         servo_number: 2
 #set properties:   position
-    camera_pitch_servo:
+    camera_yaw_servo:
         type: GratbotServo
         max_right_steps: 340
         neutral_steps: 420
         max_left_steps: 500
         servo_number: 0
-    camera_yaw_servo:
+    camera_pitch_servo:
         type: GratbotServo
         max_right_steps: 280
         neutral_steps: 370
