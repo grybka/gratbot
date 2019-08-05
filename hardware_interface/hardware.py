@@ -93,7 +93,7 @@ class GratbotLED(GratbotSpimescape):
         return [ [], ["color"] ]
     def set(self,endpoint,value):
         if endpoint=="color": #TODO handle an easy string to vector conversion here
-            set_color(self,value)
+            self.set_color(value)
         else:
             raise Exception("No endpoint {}".format(endpoint))
 
