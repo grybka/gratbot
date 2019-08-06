@@ -7,6 +7,7 @@ from xbox360controller import Xbox360Controller
 
 from GratbotClient import GratbotClient
 from GratbotVideoConnectionUV4L import GratbotVideoConnectionUV4L
+from GratbotObjectFinder import GratbotObjectFinder
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
@@ -196,6 +197,10 @@ controller.axis_r.when_moved=on_axis_r_moved
 controller.button_a.when_pressed = on_button_a_pressed
 controller.button_b.when_pressed = on_button_b_pressed
 
+#start the image finder 
+imagefinder=GratbotObjectFinder(video)
+cv2.namedWindow("object_finder")
+
 #actuator loop here
 try:
     cycle_counter=0
@@ -204,6 +209,9 @@ try:
         myframe=video.read()
         myframe=cv.resize(myframe,None,fx=4,fy=4)
         cv.imshow("preview",myframe)
+        objframe=imagefinder.get_processed_frame()
+        objframe=cv.resize(objframe,None,fx=4,fy=4)
+        cv.imshow("object_finder",objframe)
         key=cv.waitKey(10)
         #send commands (could be different thread)
         
