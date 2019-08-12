@@ -28,15 +28,15 @@ class GratbotServer(SocketServer.StreamRequestHandler):
                 break
         #print("{} wrote:".format(self.client_address[0]))
             try:
-                logging.info("received {}".format(self.data))
+                logging.debug("received {}".format(self.data))
                 datastructure=json.loads(self.data)
-                logging.info("interpered as {}".format(json.dumps(datastructure)))
+                logging.debug("interpered as {}".format(json.dumps(datastructure)))
                 if datastructure["command"]=="SET":
                     self.robot[datastructure["address"][0]].set(datastructure["address"][1],datastructure["arguments"])
                     self.wfile.write(json.dumps({ "response": "OK"})+"\n")
                 elif datastructure["command"]=="GET":
                     ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
-                    self.wfile.write(json.dumps({ "response": ret}))
+                    self.wfile.write(json.dumps({ "response": ret})+"\n")
                 else:
                     raise Exception("initial token not set or get")
             except Exception as error:

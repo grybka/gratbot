@@ -235,11 +235,13 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         stdev=math.sqrt(xx_sum/n_averages-avg*avg)
         return avg,stdev
 
-    def get(self,endpoint,value):
+    def get(self,endpoint):
         time_budget=0.05
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }
+        #avg=self.measure_distance()
+        #return {"average_distance": avg}
 
 
 def create_hardware(datastruct):
