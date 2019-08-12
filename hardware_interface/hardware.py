@@ -160,6 +160,9 @@ class GratbotIRSensor(GratbotSpimescape):
         GPIO.setup(self.my_pin,GPIO.IN)
     def get_status(self):
         return GPIO.input(self.my_pin)
+    def get(self,endpoint):
+        #I assume the endpoint is somethnig like "irsenso"
+        return get_status()
 
 class GratbotLEDStrip(GratbotSpimescape):
 #this doesn't seem to work.  Why?
@@ -231,6 +234,13 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         avg=x_sum/n_averages
         stdev=math.sqrt(xx_sum/n_averages-avg*avg)
         return avg,stdev
+
+    def get(self,endpoint,value):
+        time_budget=0.05
+        avg,stdev=self.average_distance(time_budget)
+        #I assume the endpoint is something like "distance"
+        return { "average_distance": avg, "stdev_distance": stdev }
+
 
 def create_hardware(datastruct):
     hardware_dat={}
