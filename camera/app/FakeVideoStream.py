@@ -1,7 +1,8 @@
 import cv2
 import logging
 import time
-from GratbotObjectFinder import GratbotObjectFinder
+#from GratbotObjectFinder import GratbotObjectFinder
+from GratbotObjectFinderTorch import GratbotObjectFinderTorch as GratbotObjectFinder
 
 class FakeVideoStream:
     def __init__(self,thefile):

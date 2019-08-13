@@ -3,6 +3,7 @@ import cv2
 import time
 import logging
 
+    #classNames = {0: 'background', 1: 'Green Light', 2: 'Lego Person', 3: 'Red Light',4: 'Speed Limit 25', 5: 'Speed Limit 40', 6: 'Stop Sign'}
 class GratbotObjectFinder:
     classNames = {0: 'background',
               1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 5: 'airplane', 6: 'bus',
@@ -27,6 +28,7 @@ class GratbotObjectFinder:
         self.should_quit=False
         #https://github.com/rdeepc/ExploreOpencvDnn?source=post_page---------------------------
         self.model = cv2.dnn.readNetFromTensorflow('models/frozen_inference_graph.pb', 'models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
+        #self.model = cv2.dnn.readNetFromTensorflow('models/mine/target_model.pb', 'models/mine/label_map.pbtxt')
         self.output_frame=[]
         self.output_frame_lock=threading.Lock()
         self.fps=0
@@ -47,9 +49,11 @@ class GratbotObjectFinder:
             counter+=1
             frame=self.videostream.read()
             image_height, image_width, _ = frame.shape
-            logging.info("frame shape {}".format(frame.shape))
+            #logging.info("frame shape {}".format(frame.shape))
             self.model.setInput(cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True))
+            #logging.info("blobbed")
             output=self.model.forward()
+            #logging.info("forwarded")
             for detection in output[0,0,:,:]:
                 confidence = detection[2]
                 if confidence > .5:
@@ -60,7 +64,8 @@ class GratbotObjectFinder:
                     box_width = detection[5] * image_width
                     box_height = detection[6] * image_height
                     cv2.rectangle(frame, (int(box_x), int(box_y)), (int(box_width), int(box_height)), (23, 230, 210), thickness=1)
-                    cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.005*image_width),(0, 0, 255))
+                    #cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.005*image_width),(0, 0, 255))
+                    cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,1.5,(0, 0, 255))
             self.output_frame_lock.acquire()
             self.output_frame=frame
             self.output_frame_lock.release()

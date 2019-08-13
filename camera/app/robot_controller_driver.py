@@ -39,6 +39,7 @@ class GratbotComms:
         self.blink_r_led=False
         self.l_led_on=True
         self.r_led_on=True
+        self.ultra=0
 
         self.should_quit=False
         self.thread=threading.Thread(target=self._loop)
@@ -130,6 +131,11 @@ class GratbotComms:
                 else:
                     self.r_led_on=True
                     self.client.send_message(["right_front_led","color"],"SET",[1,1,1])
+            response=self.client.send_message(["ultrasonic_sensor","distance"],"GET",[])
+            self.ultra=response["response"]["average_distance"]
+            #print("ultra response {}".format(response))
+
+            
  
                 
 
@@ -199,7 +205,7 @@ controller.button_b.when_pressed = on_button_b_pressed
 
 #start the image finder 
 imagefinder=GratbotObjectFinder(video)
-cv2.namedWindow("object_finder")
+cv.namedWindow("object_finder")
 
 #actuator loop here
 try:
@@ -210,9 +216,13 @@ try:
         myframe=cv.resize(myframe,None,fx=4,fy=4)
         cv.imshow("preview",myframe)
         objframe=imagefinder.get_processed_frame()
-        objframe=cv.resize(objframe,None,fx=4,fy=4)
-        cv.imshow("object_finder",objframe)
+        if len(objframe)>0:
+            objframe=cv.resize(objframe,None,fx=4,fy=4)
+            cv.putText(objframe,"Dist: {0:.3g} cm".format(gratbot_comms.ultra),(320,200),cv.FONT_HERSHEY_SIMPLEX,1.5,(0,255,0))
+            cv.imshow("object_finder",objframe)
         key=cv.waitKey(10)
+        if cycle_counter%30==0:
+            print("object fps {}".format(imagefinder.get_fps()))
         #send commands (could be different thread)
         
 except KeyboardInterrupt:

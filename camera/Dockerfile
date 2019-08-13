@@ -68,6 +68,8 @@ RUN pip install h5py
 
 RUN pip3 install -U xbox360controller
 
+RUN pip install tqdm
+
 COPY bashrc /bashrc
 
 CMD ["/bin/bash"]
