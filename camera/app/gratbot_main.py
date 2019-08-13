@@ -74,9 +74,9 @@ hunting=GratbotBehaviorHunt(gratbot_comms,image_finder)
 #behaviour loop
 def behavior_loop():
     while not behaviour_thread_should_quit:
-        time.sleep(0.1)
         if controller_enabled==False:
             hunting.act()
+        time.sleep(0.1)
             
 
 behavior_thread_should_quit=False
@@ -105,6 +105,8 @@ try:
         
 except KeyboardInterrupt:
     mainlogger.warning("Keyboard Exception Program Ended, exiting")
+    behavior_thread_should_quit=True
+    hunting.save_state()
 finally:        
     video.stop()
     controller.close()

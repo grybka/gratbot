@@ -46,6 +46,18 @@ class GratbotComms:
         self.intentions[endpoint]=value
         self.intentions_lock.release()
 
+    def get_state(endpoint):
+        response={}
+        self.hardware_state_lock.acquire()
+        try:
+            if endpoint in self.hardware_state:
+                response=self.hardware_state[endpoint]
+        except Exception as e:
+            logging.warning("Exception in get state {}".format(e))
+        finally:
+            self.hardware_state_lock.release()
+        return response
+
     def stop(self):
         self.should_quit=True
         if self.thread.is_alive():
