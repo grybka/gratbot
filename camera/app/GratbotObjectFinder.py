@@ -33,6 +33,8 @@ class GratbotObjectFinder:
         self.output_frame_lock=threading.Lock()
         self.fps=0
         self.fps_lock=threading.Lock()
+        self.detection_array=[] #array of (classname,x,y,w,h,confidence)
+        self.detection_array_lock=threading.Lock()
         self._my_thread=threading.Thread(target=self._loop,daemon=True)
         self._my_thread.start()
 
@@ -53,6 +55,7 @@ class GratbotObjectFinder:
             self.model.setInput(cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True))
             #logging.info("blobbed")
             output=self.model.forward()
+            new_detection_array=[]
             #logging.info("forwarded")
             for detection in output[0,0,:,:]:
                 confidence = detection[2]
@@ -66,6 +69,7 @@ class GratbotObjectFinder:
                     cv2.rectangle(frame, (int(box_x), int(box_y)), (int(box_width), int(box_height)), (23, 230, 210), thickness=1)
                     #cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.005*image_width),(0, 0, 255))
                     cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,1.5,(0, 0, 255))
+                    new_detection_array.append( [class_name,detection[3],detection[4],detection[5],detection[6],detection[2] )
             self.output_frame_lock.acquire()
             self.output_frame=frame
             self.output_frame_lock.release()
@@ -75,6 +79,16 @@ class GratbotObjectFinder:
                 self.fps=fps_count/(now_time-start_time)
                 self.fps_lock.release()
                 start_time=now_time
+            self.detection_array_lock.acquire()
+            self.detection_array=new_detection_array
+            self.detection_array_lock.release()
+
+    def get_detection_array(self):
+            self.detection_array_lock.acquire()
+            ret=self.detection_array
+            self.detection_array_lock.release()
+            return ret
+
                 
 
     def get_processed_frame(self):
