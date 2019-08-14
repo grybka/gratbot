@@ -1,6 +1,8 @@
 #a class to keep track of the remote information about the hardware
 import threading
+import time
 from GratbotClient import GratbotClient
+import logging
 
 class GratbotComms:
     def __init__(self,ip,port):
@@ -29,24 +31,31 @@ class GratbotComms:
             self.intentions_lock.acquire()
             try:
                 for endpoint in self.intentions:
-                    logging.debug("Sending: {} {} {}".format(endpoint[0],endpoint[1],self.intentions[endpoint])
-                    response=self.client.send_message(endpoint[0],endpoint[1],self.intentions[endpoint])
+                    splitpoint=endpoint.split('/')
+                    address=splitpoint[:-1]
+                    command=splitpoint[-1]
+                    logging.debug("Sending: {} {} {}".format(address,command,self.intentions[endpoint]))
+                    response=self.client.send_message(address,command,self.intentions[endpoint])
                     logging.debug("Response: {}".format(response))
-                    if endpoint[1]=="GET":
+                    if command=="GET":
                         self.hardware_state_lock.acquire()
-                        self.hardware_state[endpoint[0]]=response["response"]
+                        self.hardware_state[endpoint]=response["response"]
                         self.hardware_state_lock.release()
             except Exception as err:
                 logging.warning("Exception: {}".format(err))
             finally:
                 self.intentions_lock.release()
 
-    def set_intention(endpoint,value):
+    def set_intention(self,endpoint,value):
+        if isinstance(endpoint,list):
+            endpoint='/'.join(endpoint)
         self.intentions_lock.acquire()
         self.intentions[endpoint]=value
         self.intentions_lock.release()
 
-    def get_state(endpoint):
+    def get_state(self,endpoint):
+        if isinstance(endpoint,list):
+            endpoint='/'.join(endpoint)
         response={}
         self.hardware_state_lock.acquire()
         try:

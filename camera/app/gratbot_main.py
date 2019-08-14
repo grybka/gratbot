@@ -11,11 +11,18 @@ from GratbotObjectFinder import GratbotObjectFinder
 from GratbotComms import GratbotComms
 from GratbotBehavior import GratbotBehaviorHunt
 
-mainlogger=logging.getLogger("main")
+
+#connect to bot controls
+gratbot_comms=GratbotComms("10.0.0.5",9999)
+
+
 
 #------- controller callbacks -------
+class controller_info:
+    def __init__(self):
+        self.enabled=True
 
-controller_enabled=True
+cinfo=controller_info()
 
 def dead_zoneify(point):
     vx=point[0]
@@ -28,21 +35,23 @@ def dead_zoneify(point):
    
 
 def on_axis_l_moved(axis):
-    if controller_enabled:
+    if cinfo.enabled:
         vx,vy=dead_zoneify( [axis.x,axis.y] )
         wheel_yaw_neutral=370
         wheel_yaw_spread=130
         toset=wheel_yaw_neutral+wheel_yaw_spread*vx
-        gratbot_comms.set_intent( [ ["wheel_turn_servo","position_steps"], "SET" ], toset )
-        gratbot_comms.set_intent( [ ["wheel_motor","speed"], "SET" ], 100*vy)
+        gratbot_comms.set_intention( [ "wheel_turn_servo","position_steps", "SET" ], toset )
+        gratbot_comms.set_intention( [ "wheel_motor","speed", "SET" ], 100*vy)
 
+logging.info("logger test")
+logging.warning("this is a warning")
 def on_button_a_pressed(button):
-    if controller_enabled:
-        mainlogger.info("Controller Disabled")
-        controller_enabled=False
+    if cinfo.enabled:
+        logging.info("Controller Disabled")
+        cinfo.enabled=False
     else:
-        mainlogger.info("Controller Enabled")
-        controller_enabled=True
+        logging.info("Controller Enabled")
+        cinfo.enabled=True
 
 
 
@@ -53,8 +62,6 @@ controller.button_a.when_pressed = on_button_a_pressed
 
 #---------------------------
 
-#connect to bot controls
-gratbot_comms=GratbotComms("10.0.0.5",9999)
 
 #connect to camera
 cv.namedWindow("preview")
@@ -70,17 +77,17 @@ cv.namedWindow("object_finder")
 cv.moveWindow("object_finder",320,0)
 
 #instatiate behaviors
-hunting=GratbotBehaviorHunt(gratbot_comms,image_finder)
+hunting=GratbotBehaviorHunt(gratbot_comms,imagefinder)
 #behaviour loop
 def behavior_loop():
-    while not behaviour_thread_should_quit:
-        if controller_enabled==False:
+    while not behavior_thread_should_quit:
+        if not cinfo.enabled:
             hunting.act()
         time.sleep(0.1)
             
 
 behavior_thread_should_quit=False
-behavior_thread=threading.Thread(target=behaviour_loop)
+behavior_thread=threading.Thread(target=behavior_loop)
 behavior_thread.daemon=True
 behavior_thread.start()
 
@@ -104,7 +111,7 @@ try:
         #send commands (could be different thread)
         
 except KeyboardInterrupt:
-    mainlogger.warning("Keyboard Exception Program Ended, exiting")
+    logging.warning("Keyboard Exception Program Ended, exiting")
     behavior_thread_should_quit=True
     hunting.save_state()
 finally:        

@@ -69,7 +69,7 @@ class GratbotObjectFinder:
                     cv2.rectangle(frame, (int(box_x), int(box_y)), (int(box_width), int(box_height)), (23, 230, 210), thickness=1)
                     #cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.005*image_width),(0, 0, 255))
                     cv2.putText(frame,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,1.5,(0, 0, 255))
-                    new_detection_array.append( [class_name,detection[3],detection[4],detection[5],detection[6],detection[2] )
+                    new_detection_array.append( [class_name,detection[3],detection[4],detection[5],detection[6],detection[2] ] )
             self.output_frame_lock.acquire()
             self.output_frame=frame
             self.output_frame_lock.release()
