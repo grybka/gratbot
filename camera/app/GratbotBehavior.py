@@ -14,7 +14,9 @@ class GratbotBehaviorHunt:
         detection_array=self.eyeballs.get_detection_array()
         #output decisions into comms
         wheel_yaw_neutral=370
-        wheel_yaw_spread=130
+        #wheel_yaw_spread=130
+        #wheel_yaw_spread=60
+        wheel_yaw_spread=30
         #behavior is move towards first person it sees
         detection_made=False
         wheel_speed=0
@@ -28,9 +30,10 @@ class GratbotBehaviorHunt:
                    
                 target_x=detection[1]
                 target_y=detection[2]
+                logging.info("Target at: {} , {}".format(target_x,target_y))
                 #if x is <0.5, turn left, if x>0.5 turn right
-                wheel_yaw=wheel_yaw_neutral-wheel_yaw_spread+2*wheel_yaw_spread*target_x
-                wheel_speed=80
+                wheel_yaw=wheel_yaw_neutral+wheel_yaw_spread-2*wheel_yaw_spread*target_x
+                wheel_speed=40
                 self.comms.set_intention(["wheel_turn_servo","position_steps","SET"],wheel_yaw)
                 self.comms.set_intention(["wheel_motor","speed","SET"],wheel_speed)
                 break
@@ -54,7 +57,7 @@ class GratbotBehaviorHunt:
                 self.comms.set_intention(["wheel_motor","speed","SET"],0)
         self.behavior_log.append( {"wheel_speed": wheel_speed,"wheel_yaw": wheel_yaw,"target_x": target_x,"target_y":target_y} )
         #so it doesn't run away
-        self.comms.set_intention(["wheel_motor","speed","SET"],0)
+        #self.comms.set_intention(["wheel_motor","speed","SET"],0)
 
     def save_state(self):
         f=open("behavior_log_{}.txt".format(datetime.now().isoformat()),"w")
