@@ -34,6 +34,7 @@ class GratbotObjectFinder:
         self.fps=0
         self.fps_lock=threading.Lock()
         self.detection_array=[] #array of (classname,x,y,w,h,confidence)
+        self.detection_array_timestamp=time.time()
         self.detection_array_lock=threading.Lock()
         self._my_thread=threading.Thread(target=self._loop,daemon=True)
         self._my_thread.start()
@@ -49,7 +50,7 @@ class GratbotObjectFinder:
         start_time=time.time()
         while not self.should_quit:
             counter+=1
-            frame=self.videostream.read()
+            frame,frame_timestamp=self.videostream.read()
             image_height, image_width, _ = frame.shape
             #logging.info("frame shape {}".format(frame.shape))
             self.model.setInput(cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True))
@@ -72,6 +73,7 @@ class GratbotObjectFinder:
                     new_detection_array.append( [class_name,detection[3],detection[4],detection[5],detection[6],detection[2] ] )
             self.output_frame_lock.acquire()
             self.output_frame=frame
+
             self.output_frame_lock.release()
             if counter%fps_count:
                 now_time=time.time()
@@ -81,15 +83,18 @@ class GratbotObjectFinder:
                 start_time=now_time
             self.detection_array_lock.acquire()
             self.detection_array=new_detection_array
+            self.detection_array_timestamp=frame_timestamp
             self.detection_array_lock.release()
 
     def get_detection_array(self):
+            #returns array of detected things of structure
+            #[ classname, x,y,width,height,confidence ]
+            #and the time the frame was captured
             self.detection_array_lock.acquire()
-            ret=self.detection_array
+            ret_array=self.detection_array
+            ret_timestamp=self.detection_array_timestamp
             self.detection_array_lock.release()
-            return ret
-
-                
+            return ret_array,ret_timestamp
 
     def get_processed_frame(self):
             self.output_frame_lock.acquire()

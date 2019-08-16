@@ -10,6 +10,7 @@ class GratbotVideoConnectionUV4L:
         self.cap = cv.VideoCapture(name)
         ret, frame = self.cap.read()
         self.frame=frame
+        self.frame_timestamp=time.time()
         self._lock=threading.Lock()
         self.end_called=False
         self.thread = threading.Thread(target=self._reader)
@@ -25,13 +26,16 @@ class GratbotVideoConnectionUV4L:
                 break
             self._lock.acquire()
             self.frame=frame
+            self.frame_timestamp=time.time()
             self._lock.release()
            
     def read(self):
+        #returns the most recently read frame and its associated timestamp
         self._lock.acquire()
-        toret=self.frame
+        toret_frame=self.frame
+        toret_timestamp=self.frame_timestamp
         self._lock.release()
-        return toret
+        return toret_frame,toret_timestamp
 
     def stop(self):
         self.end_called=True

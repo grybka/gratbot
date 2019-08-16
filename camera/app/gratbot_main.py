@@ -97,7 +97,7 @@ try:
     cycle_counter=0
     while True:
         cycle_counter+=1
-        myframe=video.read()
+        myframe,mytime=video.read()
         myframe=cv.resize(myframe,None,fx=4,fy=4)
         cv.imshow("preview",myframe)
         objframe=imagefinder.get_processed_frame()

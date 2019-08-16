@@ -1,22 +1,26 @@
 import logging
+import time
 from datetime import datetime
 
 class GratbotBehaviorHunt:
     def __init__(self,comms,eyeballs):
         self.comms=comms
         self.eyeballs=eyeballs
+        self.last_eyeball_time=time.time()
         self.after_someone=False
-
         self.behavior_log=[]
 
     def act(self):
         #get info from comms and eyeballs
-        detection_array=self.eyeballs.get_detection_array()
+        detection_array,detection_timestamp=self.eyeballs.get_detection_array()
+        if detection_timestamp==self.last_eyeball_time:
+            return #I've already made a decision on this image, now to wait
+        self.last_eyeball_time=detection_timestamp
         #output decisions into comms
         wheel_yaw_neutral=370
         #wheel_yaw_spread=130
-        #wheel_yaw_spread=60
-        wheel_yaw_spread=30
+        wheel_yaw_spread=60
+        #wheel_yaw_spread=30
         #behavior is move towards first person it sees
         detection_made=False
         wheel_speed=0
