@@ -5,7 +5,7 @@ import threading
 import time
 import logging
 import base64
-import copy
+import Queue
 
 class GratbotAudio(GratbotSpimescape):
     #microphone, saves the last few seconds of audio when enabled
@@ -18,7 +18,7 @@ class GratbotAudio(GratbotSpimescape):
         self.dev_index=1 
         self.chans=1
         self.chunks_to_record=int((self.sample_rate/self.chunk)*self.save_audio_seconds)
-        self.data_queue=threading.Queue(maxsize=self.chunks_to_record)
+        self.data_queue=Queue.Queue(maxsize=self.chunks_to_record)
 
         #find device index with this
         self.paudio=pyaudio.PyAudio()
@@ -72,7 +72,8 @@ class GratbotAudio(GratbotSpimescape):
             while not self.data_queue.empty():
                 #so they are in reverse chronological order here
                 toret.append(base64.b64encode(b''.join(self.data_queue.get())))
-            return { "sound_data": toret.reverse() } #reversed to put them in right order here
+            toret.reverse()
+            return { "sound_data": toret } #reversed to put them in right order here
         else:
             raise Exception("No endpoint {}".format(endpoint))
         
