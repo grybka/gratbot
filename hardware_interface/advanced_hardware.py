@@ -14,18 +14,18 @@ class GratbotAudio(GratbotSpimescape):
         self.num_past_buffers=datastruct["num_past_buffers"]
         self.format=pyaudio.paInt16
         self.sample_rate=44100
-        #self.chunk=4096
-        self.chunk=4096*4
+        self.chunk=4096
         self.dev_index=1 
         self.chans=1
+        self.chunks_to_record=int((self.sample_rate/self.chunk)*self.save_audio_seconds)
+        self.data_queue=threading.Queue(maxsize=self.chunks_to_record)
+
         #find device index with this
         self.paudio=pyaudio.PyAudio()
         #for ii in range(self.paudio.get_device_count()):
         #   print("device {} is {}".format(ii,self.paudio.get_device_info_by_index(ii).get('name')))
         #   print("device {} has a sample rate of {}".format(ii,self.paudio.get_device_info_by_index(ii)))
 
-        self.past_buffers=[]
-        self.past_buffers_lock=threading.Lock()
         self.is_recording=False
         self.started_recording=False
         self.thread_should_quit=False
@@ -43,15 +43,10 @@ class GratbotAudio(GratbotSpimescape):
 
     def record_for_time(self):
         chunks_to_record=int((self.sample_rate/self.chunk)*self.save_audio_seconds)
-        recording=[]
-        for i in range(chunks_to_record):
-            recording.extend(self.stream.read(self.chunk))
-        #TODO any processing on this recording?
-        self.past_buffers_lock.acquire()
-        self.past_buffers.insert(0,recording)
-        if len(self.past_buffers)>self.num_past_buffers:
-            self.past_buffers.pop()
-        self.past_buffers_lock.release()
+        rec=self.stream.read(self.chunk)
+        if self.data_queue.full():
+            self.data_queue.get() #clear out old data if necessary
+        self.data_queue.put(rec)
             
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -73,14 +68,11 @@ class GratbotAudio(GratbotSpimescape):
 
     def get(self,endpoint):
         if endpoint=="sound_data":
-            buffer_copy=[]
-            self.past_buffers_lock.acquire()
-            buffer_copy=copy.deepcopy(self.past_buffers)
-            self.past_buffers_lock.release()
-            ret=[]
-            for i in range(len(self.past_buffers)):
-                ret.append(base64.b64encode(b''.join(buffer_copy[-(i+1)])))
-            return { "sound_data": ret }
+            toret=[]
+            while not self.data_queue.empty():
+                #so they are in reverse chronological order here
+                toret.append(base64.b64encode(b''.join(self.data_queue.get())))
+            return { "sound_data": toret.reverse() } #reversed to put them in right order here
         else:
             raise Exception("No endpoint {}".format(endpoint))
         
