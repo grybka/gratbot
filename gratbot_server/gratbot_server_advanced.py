@@ -52,10 +52,10 @@ if __name__ == "__main__":
 
     logging.info("Initiating Script")
     #initialize hardware
-    config_file=open("../hardware_interface/hardware_config.yaml","r")
+    config_file=open("../hardware_interface/hardware_config_with_sound.yaml","r")
     config_data=yaml.safe_load(config_file)
     config_file.close()
-    GratbotServer.robot=advanced_hardware.create_hardware(config_data["hardware"])
+    GratbotServer.robot=advanced_hardware.create_advanced_hardware(config_data["hardware"])
     GratbotServer.robot["camera_pitch_servo"].setpos_steps(420)
     GratbotServer.robot["camera_yaw_servo"].setpos_steps(370)
 

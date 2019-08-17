@@ -245,19 +245,18 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
 
 def create_hardware_item(datastruct):
     if "type" in datastruct:
-        logging.info("hardware creating {}".format(x))
         if datastruct["type"]=="GratbotLED":
-            return GratbotLED(datastruct[x])
+            return GratbotLED(datastruct)
         elif datastruct["type"]=="GratbotServo":
-            return GratbotServo(datastruct[x])
+            return GratbotServo(datastruct)
         elif datastruct["type"]=="GratbotMotor":
-            return GratbotMotor(datastruct[x])
+            return GratbotMotor(datastruct)
         elif datastruct["type"]=="GratbotIRSensor":
-            return GratbotIRSensor(datastruct[x])
+            return GratbotIRSensor(datastruct)
         elif datastruct["type"]=="GratbotLEDStrip":
-            return GratbotLEDStrip(datastruct[x])
+            return GratbotLEDStrip(datastruct)
         elif datastruct["type"]=="GratbotUltrasonicSensor":
-            return GratbotUltrasonicSensor(datastruct[x])
+            return GratbotUltrasonicSensor(datastruct)
         else:
             logging.warning("Unrecognized hardware type {}".format(datastruct["type"]))
             return []
@@ -269,6 +268,7 @@ def create_hardware_item(datastruct):
 def create_hardware(datastruct):
     hardware_dat={}
     for x in datastruct.keys():
+        logging.info("hardware creating {}".format(x))
         hardware_dat[x]=create_hardware_item(datastruct[x])
     return hardware_dat
 
