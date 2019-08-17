@@ -1,0 +1,58 @@
+hardware:
+    left_front_led:
+        type: GratbotLED
+        red_pin:   15
+        green_pin: 16
+        blue_pin:  18
+#set properties:   red, blue, green
+    right_front_led:
+        type: GratbotLED
+        red_pin:   19
+        green_pin: 21
+        blue_pin:  22
+#set properties:   red, blue, green
+    wheel_turn_servo:
+        type: GratbotServo
+        max_right_steps: 280
+        neutral_steps: 370
+        max_left_steps: 500
+        servo_number: 2
+#set properties:   position
+    camera_yaw_servo:
+        type: GratbotServo
+        max_right_steps: 340
+        neutral_steps: 420
+        max_left_steps: 500
+        servo_number: 0
+    camera_pitch_servo:
+        type: GratbotServo
+        max_right_steps: 280
+        neutral_steps: 370
+        max_left_steps: 510
+        servo_number: 1
+    wheel_motor:
+#set properties:   motion +1,0,-1  ,  speed (0 to 100)
+        type: GratbotMotor
+        motor_pin_en: 11
+        motor_pin_1: 13
+        motor_pin_2: 12
+    left_ir_sensor:
+        type: GratbotIRSensor
+        pin: 38
+    middle_ir_sensor:
+        type: GratbotIRSensor
+        pin: 36
+    right_ir_sensor:
+        type: GratbotIRSensor
+        pin: 35
+    ultrasonic_sensor:
+        type: GratbotUltrasonicSensor
+        trigger_pin: 23
+        echo_pin: 24
+        sound_speed: 343.0
+        #    led_strip:
+        #type: GratbotLEDStrip
+    audio:
+        type: GratbotAudio
+        save_audio_seconds: 1
+        num_past_buffers: 2

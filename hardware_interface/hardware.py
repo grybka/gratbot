@@ -243,25 +243,32 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         #avg=self.measure_distance()
         #return {"average_distance": avg}
 
+def create_hardware_item(datastruct):
+    if "type" in datastruct:
+        logging.info("hardware creating {}".format(x))
+        if datastruct["type"]=="GratbotLED":
+            return GratbotLED(datastruct[x])
+        elif datastruct["type"]=="GratbotServo":
+            return GratbotServo(datastruct[x])
+        elif datastruct["type"]=="GratbotMotor":
+            return GratbotMotor(datastruct[x])
+        elif datastruct["type"]=="GratbotIRSensor":
+            return GratbotIRSensor(datastruct[x])
+        elif datastruct["type"]=="GratbotLEDStrip":
+            return GratbotLEDStrip(datastruct[x])
+        elif datastruct["type"]=="GratbotUltrasonicSensor":
+            return GratbotUltrasonicSensor(datastruct[x])
+        else:
+            logging.warning("Unrecognized hardware type {}".format(datastruct["type"]))
+            return []
+    else:
+        logging.warning("No type for hardware {}".format(datastruct["type"]))
+        return []
+
 
 def create_hardware(datastruct):
     hardware_dat={}
     for x in datastruct.keys():
-        if "type" in datastruct[x]:
-            logging.info("hardware creating {}".format(x))
-            if datastruct[x]["type"]=="GratbotLED":
-                hardware_dat[x]=GratbotLED(datastruct[x])
-            elif datastruct[x]["type"]=="GratbotServo":
-                hardware_dat[x]=GratbotServo(datastruct[x])
-            elif datastruct[x]["type"]=="GratbotMotor":
-                hardware_dat[x]=GratbotMotor(datastruct[x])
-            elif datastruct[x]["type"]=="GratbotIRSensor":
-                hardware_dat[x]=GratbotIRSensor(datastruct[x])
-            elif datastruct[x]["type"]=="GratbotLEDStrip":
-                hardware_dat[x]=GratbotLEDStrip(datastruct[x])
-            elif datastruct[x]["type"]=="GratbotUltrasonicSensor":
-                hardware_dat[x]=GratbotUltrasonicSensor(datastruct[x])
-            else:
-                logging.warning("Unrecognized hardware type {}".format(datastruct[x]["type"]))
+        hardware_dat[x]=create_hardware_item(datastruct[x])
     return hardware_dat
 
