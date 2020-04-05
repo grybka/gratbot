@@ -1,3 +1,4 @@
+import sys
 sys.path.append('hardware_interface')
 import hardware
 import logging

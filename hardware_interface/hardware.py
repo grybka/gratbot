@@ -23,7 +23,8 @@ class GratbotServo(GratbotSpimescape):
         self.neutral_steps=datastruct["neutral_steps"]
         self.servo_number=datastruct["servo_number"]
         self.full_span=min( abs(self.max_right-self.neutral_steps) , abs(self.max_left-self.neutral_steps) )
-        self.pwm.set_pwm_freq(60)
+        #self.pwm.set_pwm_freq(60)
+        self.pwm.set_pwm_freq(50)
         #print("servo  {} max_left {}".format(self.servo_number,self.max_left))
         #print("servo {} max_right {}".format(self.servo_number,self.max_right))
 #self.max_right=280
