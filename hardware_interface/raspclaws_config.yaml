@@ -1,0 +1,7 @@
+hardware:
+    left_front_knee:
+        type: GratbotServo
+        max_right_steps: 100
+        neutral_steps: 300
+        max_left_steps: 600
+        servo_number: 0
