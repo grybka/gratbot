@@ -30,6 +30,8 @@ class MouseWorld:
         self.turn_radius=0.4
         self.bounds=[100,100]
 
+        self.last_motor_speed=0
+        self.last_turning=0
 
     #inputs are [motor_speed,servo_yaw]
     # motor_speed in is [-1,1]
@@ -39,7 +41,9 @@ class MouseWorld:
     #reward is ???
     def step(self,action_array):
         motor_speed=action_array[0]
+        self.last_motor_speed=motor_speed
         turning_x=action_array[1]
+        self.last_turning=turning_x
         if turning_x==0:
             turning_x=self.angle_eps
         speed=self.mouse_speed*motor_speed
@@ -52,7 +56,13 @@ class MouseWorld:
         new_angle=self.mouse_facing+dtheta
         new_position=self.mouse_pos+displacement
         #find intersections with walls
+        smallest_s=100000
         for wall in self.walls:
+            #first just straight ahead
+            xi, yi, valid, r, s=intersectLines( wall.x0,wall.x1,self.mouse_pos,self.mouse_pos+angle_to_unit_vector(self.mouse_facing))
+            if s>0 and s<smallest_s:
+                smallest_s=s
+            #now intersect with path
             xi, yi, valid, r, s=intersectLines( wall.x0,wall.x1,self.mouse_pos,new_position)
             if valid:
                 hit_pos=self.mouse_pos+(new_position-self.mouse_pos)*(s-self.dist_eps)
@@ -65,8 +75,22 @@ class MouseWorld:
         reward=0
         #TODO calculate vision
         #TODO calculate wall distanc
-        dist_to_wall=0
-        return [ dist_to_wall ],reward
+        dist_to_wall=smallest_s
+        if dist_to_wall>0.5: #this is the maximum distance it can detect a wall, perhaps
+            dist_to_wall=0.5 
+        angle=self.cheese_detection()
+        #step 0, don't hit walls.  negative reward for being too close to a wall
+        if dist_to_wall<0.1:
+            reward-=0.1
+        #step 1, if you can see the cheese, some reward
+        reward+=0.05*angle[0]+0.1*angle[1]+0.2*angle[2]+0.1*angle[3]+0.05*angle[4]
+
+        observation=np.append(angle,smallest_s)
+        #find markers
+        marks=self.object_detection("marker")
+        observation=np.append(observation,marks)
+        return observation,reward
+#return [ dist_to_wall ],reward
     
         
 
@@ -85,6 +109,13 @@ class MouseWorld:
         loc=np.array([ random.uniform(-self.bounds[0]/2,self.bounds[0]/2),random.uniform(-self.bounds[1]/2,self.bounds[1]/2) ])
         self.objects.append(MouseWorldObject("cheese",loc))
 
+    def add_corner_markers(self,width,height):
+        self.objects.append(MouseWorldObject("marker",np.array([-width/2,-height/2])))
+        self.objects.append(MouseWorldObject("marker",np.array([-width/2,height/2])))
+        self.objects.append(MouseWorldObject("marker",np.array([width/2,height/2])))
+        self.objects.append(MouseWorldObject("marker",np.array([width/2,-height/2])))
+
+
     def angle_to_position(self,position):
 #angle between mouse facing and position
         vtobj=position-self.mouse_pos
@@ -100,7 +131,10 @@ class MouseWorld:
             cv2.line(image,x,y,(255,0,0),2)
         for i in range(len(self.objects)):
             x=point_to_int_tuple(scale*self.objects[i].position+offset)
-            cv2.circle(image,x,10,(0,255,0),2)
+            if self.objects[i].name=="cheese":
+                cv2.circle(image,x,10,(0,255,0),2)
+            else:
+                cv2.circle(image,x,5,(100,100,100),2)
 
         mouse_size=0.1
         center=point_to_int_tuple(scale*self.mouse_pos+offset)
@@ -111,7 +145,45 @@ class MouseWorld:
         cv2.line(image,tip,rpoint,(0,0,255),2)
         cv2.line(image,center,lpoint,(0,0,255),2)
         cv2.line(image,center,rpoint,(0,0,255),2)
+
+#print(self.mouse_speed)
+
+
+        indicator_origin=np.array([320,400])
+        indicator_scale=60
+        indicator_tip=indicator_origin+np.array([0,indicator_scale*self.last_motor_speed])
+        turn_indicator_tip=indicator_origin+np.array([indicator_scale*self.last_turning,0])
+
+        cv2.line(image,point_to_int_tuple(indicator_origin),point_to_int_tuple(indicator_tip),(255,0,0),2)
+        cv2.line(image,point_to_int_tuple(indicator_tip),point_to_int_tuple(indicator_tip-np.array([10,10])),(255,0,0),2)
+        cv2.line(image,point_to_int_tuple(indicator_tip),point_to_int_tuple(indicator_tip-np.array([-10,10])),(255,0,0),2)
+        cv2.line(image,point_to_int_tuple(indicator_origin),point_to_int_tuple(turn_indicator_tip),(255,0,0),2)
+
             
         cv2.imshow('image',image)
 
 
+    def cheese_detection(self):
+        return self.object_detection("cheese")
+
+    def object_detection(self,name):
+        n_detectors=5
+        fov=np.pi/2
+        sigma=fov/n_detectors
+        detector_centers=np.linspace(-fov/2,fov/2,n_detectors)
+        detections=np.zeros(n_detectors)
+        for i in range(len(self.objects)):
+            if self.objects[i].name!=name:
+                continue
+            vtobj=self.objects[i].position-self.mouse_pos
+            angle=(np.arctan2(vtobj[0],vtobj[1]))-self.mouse_facing
+            while angle<(-np.pi):
+                angle=angle+2*np.pi
+            if angle>(-fov/2) and angle<(fov/2):
+                for j in range(n_detectors):
+                    x=(angle-detector_centers[j])/sigma
+                    excite=0.5*np.exp(-x*x/2)/(np.sqrt(2*np.pi)*sigma)
+                    detections[j]+=excite
+        for j in range(n_detectors):
+            detections[j]=min(detections[j],1.0)
+        return detections
