@@ -1,5 +1,5 @@
 import sys
-sys.path.append('hardware_interface')
+sys.path.append('../hardware_interface')
 import hardware
 import logging
 import yaml
@@ -10,7 +10,7 @@ root.setLevel(logging.INFO)
 
 if __name__ == "__main__":
     logging.info("Initiating Script")
-    config_file=open("hardware_interface/raspclaws_config.yaml","r")
+    config_file=open("../hardware_interface/raspclaws_config.yaml","r")
     config_data=yaml.safe_load(config_file)
     config_file.close()
     robot=hardware.create_hardware(config_data["hardware"])
