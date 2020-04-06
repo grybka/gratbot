@@ -5,6 +5,8 @@ import logging
 import time
 import math
 
+_all_gratbot_spimescapes={}
+
 class GratbotSpimescape:
     def set(self,endpoint,value):
         raise Exception("set unhandled")
@@ -17,36 +19,31 @@ class GratbotSpimescape:
 class GratbotServo(GratbotSpimescape):
     pwm=Adafruit_PCA9685.PCA9685()
 
-    def __init__(self,datastruct):
-        self.max_right=datastruct["max_right_steps"]
-        self.max_left=datastruct["max_left_steps"]
+    def __init__(self,datastruct,hardware):
+        self.max_steps=datastruct["max_steps"]
+        self.min_steps=datastruct["min_steps"]
         self.neutral_steps=datastruct["neutral_steps"]
+        self.scale_ratio=datastruct["scale_ratio"]
         self.servo_number=datastruct["servo_number"]
-        self.full_span=min( abs(self.max_right-self.neutral_steps) , abs(self.max_left-self.neutral_steps) )
-        #self.pwm.set_pwm_freq(60)
-        self.pwm.set_pwm_freq(50)
-        #print("servo  {} max_left {}".format(self.servo_number,self.max_left))
-        #print("servo {} max_right {}".format(self.servo_number,self.max_right))
-#self.max_right=280
-#self.middle=370
-#self.max_left=500
-#self.servo_number=1
+        self.pwm_freq=50
+        if "pwm_freq" in datastruct:
+            self.pwm_freq=datastruct["pwm_freq"]
+        self.pwm.set_pwm_freq(self.pwm_freq)
 
     def setpos_steps(self,steps):
         steps=int(steps)
         #set the servo position by number of steps
-        if steps>self.max_left:
-            steps=self.max_left
-        if steps<self.max_right:
-            steps=self.max_right
+        if steps>self.max_steps:
+            steps=self.max_steps
+        if steps<self.min_steps:
+            steps=self.min_steps
         self.pwm.set_pwm(self.servo_number,0,steps)
 
     def setpos_fraction(self,fraction):
         #set the servo by fraction of full turning
         #so fraction is in [-1,1] with 0 being center
-        my_steps=int(self.neutral_steps+fraction*self.full_span)
+        my_steps=int(self.neutral_steps+fraction*self.scale_ratio)
         self.setpos_steps(my_steps)
-
 
     def expose_endpoints(self,endpoint):
         return [ [], ["position"] ]
@@ -57,6 +54,7 @@ class GratbotServo(GratbotSpimescape):
             self.setpos_steps(value)
         else:
             raise Exception("No endpoint {}".format(endpoint))
+_all_gratbot_spimescapes["GratbotServo"]=GratbotServo
 
 class GratbotLED(GratbotSpimescape):
     red=[1,0,0]
@@ -270,6 +268,10 @@ def create_hardware(datastruct):
     hardware_dat={}
     for x in datastruct.keys():
         logging.info("hardware creating {}".format(x))
-        hardware_dat[x]=create_hardware_item(datastruct[x])
+        if datastruct[x]["type"] in _all_gratbot_spimescapes:
+            hardware_dat[x]=_all_gratbot_spimescapes[datastruct[x]["type"]](datastruct[x],hardware_dat)
+        else:
+            logging.warning("Unrecognized hardware {}".format(x))
+        #hardware_dat[x]=create_hardware_item(datastruct[x])
     return hardware_dat
 

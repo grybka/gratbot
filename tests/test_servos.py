@@ -25,7 +25,8 @@ if __name__ == "__main__":
             if elem["type"]=="GratbotServo" and elem["servo_number"]==snum:
                 sname=x
                 print("moving servo {} to {}".format(sname,steppos))
-                robot[x].setpos_steps(steppos)
+                #robot[x].setpos_steps(steppos)
+                robot[x].setpos_fraction(steppos)
                 
                 success=True
 

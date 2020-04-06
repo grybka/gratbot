@@ -19,8 +19,8 @@ class LegControl(GratbotSpimescape):
     def __init__(self, datastruct, hardware):
         self.cadences = datastruct["cadences"]
         self.hardware = hardware
-        self.on_candence = "none"
-        self.period_seconds = datastruct["cadences"]
+        self.on_cadence = "none"
+        self.period_seconds = datastruct["period_seconds"]
         self.time_offset = time.time()
         self.thread = threading.Thread(target=self._daemon_loop)
         self.thread.daemon = True
@@ -29,20 +29,21 @@ class LegControl(GratbotSpimescape):
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
-            time.sleep(0.1)  # check ten times a second
+            time.sleep(0.02)  # check fifty times a second
             self.update_servo_positions()
 
     def update_servo_positions(self):
         now = time.time()
         t = now-self.time_offset
-        t_cycle = t % self.period_seconds
+        t_cycle = (t % self.period_seconds)/self.period_seconds
+        #logging.info("time {}".format(t_cycle))
         if self.on_cadence not in self.cadences:
             return  # do nothing
         cad = self.cadences[self.on_cadence]
         for motor in cad:
-            new_pos = np.interp(t_cycle, cad["times"], cad["positions"])
-            self.hardware[motor].setpos_steps(new_pos)
-            logging.info("moving {} to {}".format(motor,new_pos))
+            new_pos = np.interp(t_cycle, cad[motor]["times"], cad[motor]["positions"])
+            self.hardware[motor].setpos_fraction(new_pos)
+            #logging.info("moving {} to {}".format(motor,new_pos))
 
     def set(self, endpoint,value):
         raise Exception("set unhandled")
