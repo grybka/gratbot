@@ -29,7 +29,8 @@ class LegControl(GratbotSpimescape):
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
-            time.sleep(0.02)  # check fifty times a second
+		#note, fifty times a second seemed to freeze
+            time.sleep(0.04)  # check twenty-five times a second
             self.update_servo_positions()
 
     def update_servo_positions(self):
@@ -43,6 +44,7 @@ class LegControl(GratbotSpimescape):
         for motor in cad:
             new_pos = np.interp(t_cycle, cad[motor]["times"], cad[motor]["positions"])
             self.hardware[motor].setpos_fraction(new_pos)
+	    time.sleep(0.001)
             #logging.info("moving {} to {}".format(motor,new_pos))
 
     def set(self, endpoint,value):

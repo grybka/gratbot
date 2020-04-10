@@ -1,54 +1,38 @@
 hardware:
-    left_front_hip:
+    left_front_hip: &left_hip_servo
         type: GratbotServo
         min_steps: 200
         neutral_steps: 300
         max_steps: 350
         scale_ratio: 1
         servo_number: 0
-    left_front_knee:
+    left_front_knee: &left_knee_servo
         type: GratbotServo
         min_steps: 200
         neutral_steps: 300
         max_steps: 400
         scale_ratio: 1
         servo_number: 1
-    left_middle_hip:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 350
-        scale_ratio: 1
+    left_middle_hip: 
+        <<: *left_hip_servo
         servo_number: 2
     left_middle_knee:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: 1
+        <<: *left_knee_servo
         servo_number: 3
     left_back_hip:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 350
-        scale_ratio: 1
+        <<: *left_hip_servo
         servo_number: 4
     left_back_knee:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: 1
+        <<: *left_knee_servo
         servo_number: 5
-    right_back_hip:
+    right_back_hip: &right_hip_servo
         type: GratbotServo
         min_steps: 250
         neutral_steps: 300
         max_steps: 400
         scale_ratio: -1
         servo_number: 6
-    right_back_knee:
+    right_back_knee: &right_knee_servo
         type: GratbotServo
         min_steps: 200
         neutral_steps: 300
@@ -56,37 +40,75 @@ hardware:
         scale_ratio: -1
         servo_number: 7
     right_middle_hip:
-        type: GratbotServo
-        min_steps: 250
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: -1
+        <<: *right_hip_servo
         servo_number: 8
     right_middle_knee:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: -1
+        <<: *right_knee_servo
         servo_number: 9
     right_front_hip:
-        type: GratbotServo
-        min_steps: 250
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: -1
+        <<: *right_hip_servo
         servo_number: 10
     right_front_knee:
-        type: GratbotServo
-        min_steps: 200
-        neutral_steps: 300
-        max_steps: 400
-        scale_ratio: -1
+        <<: *right_knee_servo
         servo_number: 11
+#Square Step
+#                         Left Hip    ,    Left Knee  ,   Right Hip,   Right knee
+# Step 1: 0.0 to 0.4     -20 to 20            0            20 to -20     -50
+# Step 2: 0.4 to 0.5        20              0 to -50         -20         -50 to 0
+# Step 3: 0.5 to 0.9    20 to -20             -50          -20 to 20     0
+# Step 4: 0.9 to 1.0       -20             -50 to 0          20          0 to -50
+#Triangle Step
+# Step 1: 0.0 to 0.25    -20 to 0            0
+# Step 1: 0.25 to 0.5    0 to 20             0
+# Step 1: 0.5 to 0.75    20 to 0             0 to -50
+# Step 1: 0.75 to 1.0     0 to -20          -50 to 0
     leg_controller:
         type: LegControl
-        period_seconds: 5
+        period_seconds: 0.5
         cadences:
+          walking:
+            right_front_knee: &tri_walking_gait_knee_1
+              times: [0,0.25,0.5,0.75,1.0]
+              positions: [0,0,0,-50,0]
+            right_front_hip: &tri_walking_gait_hip_1
+              times: [0,0.25,0.5,0.75,1.0]
+              positions: [40,0,-40,0,40]
+            left_middle_knee:  *tri_walking_gait_knee_1
+            left_middle_hip: *tri_walking_gait_hip_1
+            right_back_knee:  *tri_walking_gait_knee_1
+            right_back_hip: *tri_walking_gait_hip_1
+            left_front_knee: &tri_walking_gait_knee_2
+              times: [0,0.25,0.5,0.75,1.0]
+              positions: [0,-50,0,0,0]
+            left_front_hip: &tri_walking_gait_hip_2
+              times: [0,0.25,0.5,0.75,1.0]
+              positions: [-40,0,40,0,-40]
+            right_middle_knee: *tri_walking_gait_knee_2
+            right_middle_hip: *tri_walking_gait_hip_2
+            left_back_knee: *tri_walking_gait_knee_2
+            left_back_hip: *tri_walking_gait_hip_2
+          walking_square:
+            right_front_knee: &walking_gait_knee_1
+              times: [0,0.4,0.5,0.9,1.0]
+              positions: [-50,-50,0,0,-50]
+            right_front_hip: &walking_gait_hip_1
+              times: [0,0.4,0.5,0.9,1.0]
+              positions: [-20,20,20,-20,-20]
+            left_middle_knee:  *walking_gait_knee_1
+            left_middle_hip: *walking_gait_hip_1
+            right_back_knee:  *walking_gait_knee_1
+            right_back_hip: *walking_gait_hip_1
+            left_front_knee: &walking_gait_knee_2
+              times: [0,0.4,0.5,0.9,1.0]
+              positions: [0,0,-50,-50,0]
+            left_front_hip: &walking_gait_hip_2
+              times: [0,0.4,0.5,0.9,1.0]
+              positions: [20,-20,-20,20,20]
+            right_middle_knee: *walking_gait_knee_2
+            right_middle_hip: *walking_gait_hip_2
+            left_back_knee: *walking_gait_knee_2
+            left_back_hip: *walking_gait_hip_2
+
           tapping:
             right_front_knee:
               times: [0,0.5,0.6,0.9,1.0]

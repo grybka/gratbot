@@ -20,7 +20,9 @@ config_file=open("../hardware_interface/raspclaws_config.yaml","r")
 config_data=yaml.safe_load(config_file)
 config_file.close()
 robot=hardware.create_hardware(config_data["hardware"])
-robot["leg_controller"].on_cadence="tapping"
+#robot["leg_controller"].on_cadence="tapping"
+#robot["leg_controller"].on_cadence="walking"
+robot["leg_controller"].on_cadence="walking_turn_left"
 
 while True:
     inp = raw_input("ready to quit?")

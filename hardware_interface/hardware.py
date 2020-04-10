@@ -17,18 +17,17 @@ class GratbotSpimescape:
         return [ [],[] ]
 
 class GratbotServo(GratbotSpimescape):
-    pwm=Adafruit_PCA9685.PCA9685()
+    pwm=None
 
     def __init__(self,datastruct,hardware):
+	if self.pwm==None:
+            self.pwm=Adafruit_PCA9685.PCA9685()
+            self.pwm.set_pwm_freq(50)
         self.max_steps=datastruct["max_steps"]
         self.min_steps=datastruct["min_steps"]
         self.neutral_steps=datastruct["neutral_steps"]
         self.scale_ratio=datastruct["scale_ratio"]
         self.servo_number=datastruct["servo_number"]
-        self.pwm_freq=50
-        if "pwm_freq" in datastruct:
-            self.pwm_freq=datastruct["pwm_freq"]
-        self.pwm.set_pwm_freq(self.pwm_freq)
 
     def setpos_steps(self,steps):
         steps=int(steps)
@@ -270,6 +269,7 @@ def create_hardware(datastruct):
         logging.info("hardware creating {}".format(x))
         if datastruct[x]["type"] in _all_gratbot_spimescapes:
             hardware_dat[x]=_all_gratbot_spimescapes[datastruct[x]["type"]](datastruct[x],hardware_dat)
+	    hardware_dat[x].type=datastruct[x]["type"]
         else:
             logging.warning("Unrecognized hardware {}".format(x))
         #hardware_dat[x]=create_hardware_item(datastruct[x])
