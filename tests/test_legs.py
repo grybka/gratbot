@@ -1,15 +1,9 @@
-
-#A server that allows the bot to be controlled over tcp
-import SocketServer
 import yaml
-import time
 import logging
 import sys
-import json
-
-sys.path.append('../hardware_interface')
 import hardware
 import leg_control
+sys.path.append('../hardware_interface')
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
@@ -25,6 +19,11 @@ robot=hardware.create_hardware(config_data["hardware"])
 robot["leg_controller"].on_cadence="walking_turn_left"
 
 while True:
-    inp = raw_input("ready to quit?")
-    if inp=="y":
+    fb = raw_input("Forward Backward?")
+    if fb=="q":
         break
+    lr = raw_input("Left Right?")
+    if lr=="q":
+        break
+    robot["leg_controller"].set("forward_backward", fb)
+    robot["leg_controller"].set("left_right", lr)
