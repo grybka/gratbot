@@ -22,6 +22,7 @@ class LegControl(GratbotSpimescape):
         self.right_knee_cadence = datastruct["right_knee_cadence"]
         self.period_seconds = datastruct["period_seconds"]
         self.time_offset = time.time()
+	self.turn_on = False
         self.left_speed = 0
         self.right_speed =0
         self.thread = threading.Thread(target=self._daemon_loop)
@@ -39,30 +40,33 @@ class LegControl(GratbotSpimescape):
         while not self.thread_should_quit:
             # note, fifty times a second seemed to freeze
             time.sleep(0.04)  # check twenty-five times a second
-            self.update_servo_positions()
+	    if self.turn_on:
+            	self.update_servo_positions()
 
     def update_servo_positions(self):
         now = time.time()
         t = now-self.time_offset
         phase = (t % self.period_seconds)/self.period_seconds
-        # knees always go up and down
-        # hips are controlled by speed
         for motor in self.left_knee_cadence:
-            next_pos = self.get_motor_pos(phase, self.left_knee_cadence[motor]))
+            next_pos = self.get_motor_pos(phase, self.left_knee_cadence[motor])
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
         for motor in self.right_knee_cadence:
-            next_pos = self.get_motor_pos(phase, self.right_knee_cadence[motor]))
+            next_pos = self.get_motor_pos(phase, self.right_knee_cadence[motor])
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
         for motor in self.right_hip_cadence:
-            next_pos = self.right_speed*self.get_motor_pos(phase, self.right_hip_cadence[motor]))
+            next_pos = self.right_speed*self.get_motor_pos(phase, self.right_hip_cadence[motor])
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
         for motor in self.left_hip_cadence:
-            next_pos=self.left_speed*self.get_motor_pos(phase, self.left_hip_cadence[motor]))
+            next_pos=self.left_speed*self.get_motor_pos(phase, self.left_hip_cadence[motor])
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
+    def get_motor_pos(self,phase,cadence):
+            return np.interp(
+                phase, cadence["times"], cadence["positions"])
+
 
     def set(self, endpoint, value):
         if endpoint == "left_speed":
@@ -70,6 +74,12 @@ class LegControl(GratbotSpimescape):
             return
         if endpoint == "right_speed":
             self.set_right_speed(value)
+            return
+	if endpoint == "on_off":
+            if value:
+                self.turn_on=True
+            else:
+                self.turn_on=False
             return
         raise Exception("unknown endpoint {}".format(endpoint))
 
