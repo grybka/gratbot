@@ -19,11 +19,11 @@ robot=hardware.create_hardware(config_data["hardware"])
 robot["leg_controller"].on_cadence="walking_turn_left"
 
 while True:
-    fb = raw_input("Forward Backward?")
-    if fb=="q":
+    a = raw_input("Left Speed?")
+    if a=="q":
         break
-    lr = raw_input("Left Right?")
-    if lr=="q":
+    b = raw_input("Right Speed?")
+    if b=="q":
         break
-    robot["leg_controller"].set("forward_backward", fb)
-    robot["leg_controller"].set("left_right", lr)
+    robot["leg_controller"].set("left_speed", a)
+    robot["leg_controller"].set("right_speed", b)

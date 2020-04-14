@@ -16,22 +16,24 @@ class LegControl(GratbotSpimescape):
 
     def __init__(self, datastruct, hardware):
         self.hardware = hardware
-        self.left_cadence = datastruct["left_cadence"]
-        self.right_cadence = datastruct["right_cadence"]
+        self.left_hip_cadence = datastruct["left_hip_cadence"]
+        self.left_knee_cadence = datastruct["left_knee_cadence"]
+        self.right_hip_cadence = datastruct["right_hip_cadence"]
+        self.right_knee_cadence = datastruct["right_knee_cadence"]
         self.period_seconds = datastruct["period_seconds"]
         self.time_offset = time.time()
-        self.left_right = 0
-        self.forward_backward = 0
+        self.left_speed = 0
+        self.right_speed =0
         self.thread = threading.Thread(target=self._daemon_loop)
         self.thread.daemon = True
         self.thread_should_quit = False
         self.thread.start()
 
-    def set_forward_backward(self, fb):  # +1 is forward, -1 is backward
-        self.forward_backward = np.clip(fb, -1, 1)
+    def set_left_speed(self, fb):  # +1 is forward, -1 is backward
+        self.left_speed = np.clip(fb, -1, 1)
 
-    def set_left_right(self, lr):  # +1 is right, -1 is left
-        self.left_right = np.clip(fb, -1, 1)
+    def set_right_speed(self, fb):  # +1 is forward, -1 is backward
+        self.right_speed = np.clip(fb, -1, 1)
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -43,34 +45,39 @@ class LegControl(GratbotSpimescape):
         now = time.time()
         t = now-self.time_offset
         phase = (t % self.period_seconds)/self.period_seconds
-        # fb controls magnitude
-        # lr controls relative phase
-        # TODO maybe I need to multiply lr by sign of fb to make sense
-        left_phase = (phase+0.5*self.left_right) % 1.0
-        for motor in self.right_cadence:
-            next_pos = self.forward_backward*self.get_motor_pos(phase, self.right_cadence[motor]))
+        # knees always go up and down
+        # hips are controlled by speed
+        for motor in self.left_knee_cadence:
+            next_pos = self.get_motor_pos(phase, self.left_knee_cadence[motor]))
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
-        for motor in self.left_cadence:
-            next_pos=self.forward_backward*self.get_motor_pos(left_phase, self.left_cadence[motor]))
+        for motor in self.right_knee_cadence:
+            next_pos = self.get_motor_pos(phase, self.right_knee_cadence[motor]))
+            self.hardware[motor].setpos_fraction(next_pos)
+            time.sleep(0.0005)
+        for motor in self.right_hip_cadence:
+            next_pos = self.right_speed*self.get_motor_pos(phase, self.right_hip_cadence[motor]))
+            self.hardware[motor].setpos_fraction(next_pos)
+            time.sleep(0.0005)
+        for motor in self.left_hip_cadence:
+            next_pos=self.left_speed*self.get_motor_pos(phase, self.left_hip_cadence[motor]))
             self.hardware[motor].setpos_fraction(next_pos)
             time.sleep(0.0005)
 
     def set(self, endpoint, value):
-        if endpoint == "left_right":
-            self.set_left_right(value)
+        if endpoint == "left_speed":
+            self.set_left_speed(value)
             return
-        if endpoint == "forward_backward":
-            self.set_forward_backward(value)
+        if endpoint == "right_speed":
+            self.set_right_speed(value)
             return
         raise Exception("unknown endpoint {}".format(endpoint))
 
     def get(self, endpoint):
-        if endpoint == "left_right":
-            return self.set_left_right
-        if endpoint == "forward_backward":
-            self.set_forward_backward(value)
-            return self.set_forward_backward
+        if endpoint == "left_speed":
+            return self.left_speed
+        if endpoint == "right_speed":
+            return self.right_speed
         raise Exception("unknown endpoint {}".format(endpoint))
 
 _all_gratbot_spimescapes["LegControl"]=LegControl

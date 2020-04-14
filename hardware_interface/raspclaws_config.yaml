@@ -54,28 +54,30 @@ hardware:
     leg_controller:
         type: LegControl
         period_seconds: 0.5
-        left_cadence:
+        left_knee_cadence:
             left_front_knee: &tripod_gait_knee_set_1
               times: [0,0.25,0.5,0.75,1.0]
               positions: [0,-50,0,0,0]
-            left_front_hip: &tripod_gait_hip_set_1
-              times: [0,0.25,0.5,0.75,1.0]
-              positions: [-40,0,40,0,-40]
             left_middle_knee:  &tripod_gait_knee_set_2
               times: [0,0.25,0.5,0.75,1.0]
               positions: [0,0,0,-50,0]
+            left_back_knee: *tripod_gait_knee_set_1
+          left_hip_cadence:
+            left_front_hip: &tripod_gait_hip_set_1
+              times: [0,0.25,0.5,0.75,1.0]
+              positions: [-40,0,40,0,-40]
             left_middle_hip: *tripod_gait_hip_set_2
               times: [0,0.25,0.5,0.75,1.0]
               positions: [40,0,-40,0,40]
-            left_back_knee: *tripod_gait_knee_set_1
             left_back_hip: *tripod_gait_knee_set_1
-          right_cadence:
-            right_front_knee: &tripod_gait_knee_set_2
+          right_knee_cadence:
             right_front_hip: &tripod_gait_hip_set_2
-            right_middle_knee: &tripod_gait_knee_set_1
             right_middle_hip: &tripod_gait_hip_set_1
-            right_back_knee: &tripod_gait_knee_set_2
             right_back_hip: &tripod_gait_hip_set_2
+          right_hip_cadence:
+            right_front_knee: &tripod_gait_knee_set_2
+            right_middle_knee: &tripod_gait_knee_set_1
+            right_back_knee: &tripod_gait_knee_set_2
     old_leg_controller:
         type: DefunctLegControl
         period_seconds: 0.5
