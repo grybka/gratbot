@@ -1,4 +1,18 @@
 hardware:
+    camera_x:
+        type: GratbotServo
+        min_steps: 200
+        neutral_steps: 300
+        max_steps: 400
+        scale_ratio: 100
+        servo_number: 12
+    camera_y:
+        type: GratbotServo
+        min_steps: 200
+        neutral_steps: 300
+        max_steps: 400
+        scale_ratio: 100
+        servo_number: 13
     left_front_hip: &left_hip_servo
         type: GratbotServo
         min_steps: 200
@@ -53,7 +67,7 @@ hardware:
         servo_number: 11
     leg_controller:
         type: LegControl
-        period_seconds: 1.0
+        period_seconds: 10.0
         left_knee_cadence:
             left_front_knee: &tripod_gait_knee_set_1
               times: [0,0.25,0.5,0.75,1.0]
