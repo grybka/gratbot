@@ -5,6 +5,7 @@ import logging
 import time
 import math
 import threading
+import numpy
 
 _all_gratbot_spimescapes={}
 
@@ -17,7 +18,7 @@ class GratbotSpimescape:
         #return a list of viable get and set endpoints
         return [ [],[] ]
     def update_loop(self): # called for periodic actions
-        return 
+        return
 
 class GratbotServo(GratbotSpimescape):
     pwm=None
@@ -31,15 +32,19 @@ class GratbotServo(GratbotSpimescape):
         self.neutral_steps=datastruct["neutral_steps"]
         self.scale_ratio=datastruct["scale_ratio"]
         self.servo_number=datastruct["servo_number"]
+        self.last_steps = datastruct["neutral_steps"]
+		self.max_step_per_command = 20
 
     def setpos_steps(self,steps):
         steps=int(steps)
         #set the servo position by number of steps
-        if steps>self.max_steps:
-            steps=self.max_steps
-        if steps<self.min_steps:
-            steps=self.min_steps
+		steps=numpy.clip(steps,min(self.last_steps-self.max_step_per_command,self.min_steps),max(self.last_steps+self.max_step_per_command,self.max_steps))
+        #if steps>self.max_steps:
+        #    steps=self.max_steps
+        #if steps<self.min_steps:
+        #    steps=self.min_steps
         self.pwm.set_pwm(self.servo_number,0,steps)
+		self.last_steps=steps
 
     def setpos_fraction(self,fraction):
         #set the servo by fraction of full turning
