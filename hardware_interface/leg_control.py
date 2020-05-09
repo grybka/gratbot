@@ -25,10 +25,10 @@ class LegControl(GratbotSpimescape):
 	self.turn_on = False
         self.left_speed = 0
         self.right_speed =0
-        self.thread = threading.Thread(target=self._daemon_loop)
-        self.thread.daemon = True
-        self.thread_should_quit = False
-        self.thread.start()
+        #self.thread = threading.Thread(target=self._daemon_loop)
+        #self.thread.daemon = True
+        #self.thread_should_quit = False
+        #self.thread.start()
 
     def set_left_speed(self, fb):  # +1 is forward, -1 is backward
         self.left_speed = np.clip(fb, -1, 1)

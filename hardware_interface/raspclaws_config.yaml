@@ -98,13 +98,13 @@ hardware:
         left_knee_cadence:
             left_front_knee: 
               times: [0,1.0]
-              positions: [0,-50,0,0,0]
+              positions: [-50,-50]
             left_middle_knee: &no_action_set
               times: [0,1.0]
               positions: [0,0]
             left_back_knee: *no_action_set
         left_hip_cadence:
-            left_front_hip: *no_action_set
+            left_front_hip: 
               times: [0,0.5,1.0]
               positions: [-50,50,-50]
             left_middle_hip: *no_action_set

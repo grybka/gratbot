@@ -4,6 +4,7 @@ from rpi_ws281x import *
 import logging
 import time
 import math
+import threading
 
 _all_gratbot_spimescapes={}
 
@@ -287,8 +288,8 @@ class GratbotHardwareThread():
     def _daemon_loop(self):
         while not self.thread_should_quit:
             time.sleep(0.04)
-            for key in hardware:
-                hardware[key].update_loop()
+            for key in self.hardware:
+                self.hardware[key].update_loop()
 
 _gratbot_hardware_thread = 0
 def start_hardware_thread(hardware):
