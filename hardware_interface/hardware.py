@@ -15,6 +15,8 @@ class GratbotSpimescape:
     def expose_endpoints(self,endpoint):
         #return a list of viable get and set endpoints
         return [ [],[] ]
+    def update_loop(self): # called for periodic actions
+        return 
 
 class GratbotServo(GratbotSpimescape):
     pwm=None
@@ -275,3 +277,19 @@ def create_hardware(datastruct):
         #hardware_dat[x]=create_hardware_item(datastruct[x])
     return hardware_dat
 
+class GratbotHardwareThread():
+    def __init__(self,hardware):
+        self.hardware=hardware
+        self.thread=threading.Thread(target=self._daemon_loop)
+        self.thread.daemon = True
+        self.thread_should_quit = False
+        self.thread.start()
+    def _daemon_loop(self):
+        while not self.thread_should_quit:
+            time.sleep(0.04)
+            for key in hardware:
+                hardware[key].update_loop()
+
+_gratbot_hardware_thread = 0
+def start_hardware_thread(hardware):
+    _gratbot_hardware_thread = threading.Thread(target=_gratbot_hardware_loop)

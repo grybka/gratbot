@@ -19,6 +19,7 @@ robot=hardware.create_hardware(config_data["hardware"])
 #robot["leg_controller"].on_cadence="walking"
 #robot["leg_controller"].on_cadence="walking_turn_left"
 robot["leg_controller"].set("on_off",1)
+robot_thread=GratbotHardwareThread(robot)
 
 while True:
     a = raw_input("Left Speed?")

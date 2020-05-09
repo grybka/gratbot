@@ -36,12 +36,17 @@ class LegControl(GratbotSpimescape):
     def set_right_speed(self, fb):  # +1 is forward, -1 is backward
         self.right_speed = np.clip(fb, -1, 1)
 
-    def _daemon_loop(self):
-        while not self.thread_should_quit:
-            # note, fifty times a second seemed to freeze
-            time.sleep(0.04)  # check twenty-five times a second
-	    if self.turn_on:
-            	self.update_servo_positions()
+#    def _daemon_loop(self):
+#        while not self.thread_should_quit:
+#            # note, fifty times a second seemed to freeze
+#            time.sleep(0.04)  # check twenty-five times a second
+#	    if self.turn_on:
+#            	self.update_servo_positions()
+
+    def update_loop(self):
+	if self.turn_on:
+            self.update_servo_positions()
+
 
     def update_servo_positions(self):
         now = time.time()
