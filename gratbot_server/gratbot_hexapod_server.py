@@ -57,7 +57,7 @@ if __name__ == "__main__":
     config_data=yaml.safe_load(config_file)
     config_file.close()
     GratbotServer.robot=hardware.create_hardware(config_data["hardware"])
-    robot_thread=hardware.GratbotHardwareThread(robot)
+    robot_thread=hardware.GratbotHardwareThread(GratbotServer.robot)
 
     # Create the server, binding to localhost on port 9999
     server=None
