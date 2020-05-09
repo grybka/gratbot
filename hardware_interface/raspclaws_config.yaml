@@ -117,4 +117,23 @@ hardware:
             right_front_knee: *no_action_set
             right_middle_knee: *no_action_set
             right_back_knee: *no_action_set
+    legs_idle:
+        type: LegControl
+        period_seconds: 10.0
+        left_knee_cadence:
+            left_front_knee: *no_action_set
+            left_middle_knee: *no_action_set
+            left_back_knee: *no_action_set
+        left_hip_cadence:
+            left_front_hip: *no_action_set
+            left_middle_hip: *no_action_set
+            left_back_hip: *no_action_set
+        right_hip_cadence:
+            right_front_hip: *no_action_set
+            right_middle_hip: *no_action_set
+            right_back_hip: *no_action_set
+        right_knee_cadence:
+            right_front_knee: *no_action_set
+            right_middle_knee: *no_action_set
+            right_back_knee: *no_action_set
 
