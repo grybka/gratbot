@@ -94,7 +94,7 @@ hardware:
             right_back_knee: *tripod_gait_knee_set_2
     wave_paw:
         type: LegControl
-        period_seconds: 10.0
+        period_seconds: 2.0
         left_knee_cadence:
             left_front_knee: 
               times: [0,1.0]
