@@ -22,7 +22,7 @@ hardware:
         servo_number: 0
     left_front_knee: &left_knee_servo
         type: GratbotServo
-        min_steps: 200
+        min_steps: 120
         neutral_steps: 300
         max_steps: 400
         scale_ratio: 1
@@ -48,7 +48,7 @@ hardware:
         servo_number: 6
     right_back_knee: &right_knee_servo
         type: GratbotServo
-        min_steps: 200
+        min_steps: 120
         neutral_steps: 300
         max_steps: 400
         scale_ratio: -1
@@ -97,8 +97,8 @@ hardware:
         period_seconds: 2.0
         left_knee_cadence:
             left_front_knee: 
-              times: [0,1.0]
-              positions: [-50,-50]
+              times: [0,0.5,1.0]
+              positions: [-180,-50,-180]
             left_middle_knee: &no_action_set
               times: [0,1.0]
               positions: [0,0]
@@ -106,7 +106,7 @@ hardware:
         left_hip_cadence:
             left_front_hip: 
               times: [0,0.5,1.0]
-              positions: [-50,50,-50]
+              positions: [+50,+50,+50]
             left_middle_hip: *no_action_set
             left_back_hip: *no_action_set
         right_hip_cadence:
