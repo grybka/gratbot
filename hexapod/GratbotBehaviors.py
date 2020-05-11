@@ -1,5 +1,11 @@
 # Behaviors for hexapod
 
+import numpy as np
+import time
+import filterpy
+from filterpy.kalman import KalmanFilter
+from filterpy.common import Q_discrete_white_noise
+
 
 class GratbotBehavior:
     def __init__(self, comms):
@@ -29,20 +35,42 @@ class WaveAtFace(GratbotBehavior):
 class HeadTrackFace(GratbotBehavior):
     def __init__(self, comms):
         super().__init__(comms)
+        self.filter_y=KalmanFilter(dim_x=2,dim_z=1)
+        self.filter_y.x=np.array([2.,0.]) #pos, vel
+        self.filter_y.F=np.array([[1.0,1.0],[0.,1.]]) #x=x0+vt
+        self.filter_y.P *= 1000. #covariance, not sue
+        self.filter_y.H =np.array([ [1.0,0]])
+        self.filter_y.R = np.array([[10]]) #measurement noise
+        self.filter_y.Q=Q_discrete_white_noise(dim=2,dt=0.1,var=0.13)
+        self.last_time=time.time()
     def act(self, video_objects):
+        now=time.time()
+        if now-self.last_time < 1:
+            return
+        self.last_time=now
         video_height=480
         video_width=640
-        pixel_to_servo=1.0
+        pixel_to_servo=0.1
         if "faces" in video_objects:
             face=video_objects["faces"][0]
-            centerx=face["startx"]+face["endx"]
-            centery=face["starty"]+face["endy"]
-            dx=video_width-centerx #how does it know the size
-            dy=video_height-centery
+            centerx=0.5*(face["startx"]+face["endx"])
+            centery=0.5*(face["starty"]+face["endy"])
+            print("face at {}, {}".format(centerx,centery))
+            dx=video_width/2-centerx #how does it know the size
+            dy=video_height/2-centery
+            print("dy measured {}".format(dy))
+            self.filter_y.predict()
+            self.filter_y.update([dy])
+            #dy=self.filter_y.x[0]
+            print("dy updated {}".format(dy))
             dx_servo=dx*pixel_to_servo
             dy_servo=dy*pixel_to_servo
-            self.comms.set_intention( ["camera_x","position_delta","SET" ], dx_servo )
+            #print("move {},{}".format(dx_servo,dy_servo))
+            print("move {}".format(dy_servo))
+            #self.comms.set_intention( ["camera_x","position_delta","SET" ], dx_servo )
             self.comms.set_intention( ["camera_y","position_delta","SET" ], dy_servo )
-        else
-            self.comms.set_intention( ["camera_x","position","SET" ], 0 )
-            self.comms.set_intention( ["camera_y","position","SET" ], 0 )
+        else:
+            print("no face")
+            self.filter_y.predict()
+            #self.comms.set_intention( ["camera_x","position","SET" ], 0 )
+            #self.comms.set_intention( ["camera_y","position","SET" ], 0 )
