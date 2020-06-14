@@ -42,6 +42,7 @@ try:
         video_objects={}
         if len(faces)>0: #if you see a face, that's the most interesting
             video_objects["faces"]=[]
+            #TODO probably rerank faces by confidence
             for i in range(len(faces)):
                 face=faces[i]
                 video_objects["faces"].append({

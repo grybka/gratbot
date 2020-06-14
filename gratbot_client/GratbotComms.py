@@ -44,6 +44,7 @@ class GratbotComms:
             except Exception as err:
                 logging.warning("Exception: {}".format(err))
             finally:
+                self.intentions={}
                 self.intentions_lock.release()
 
     def set_intention(self,endpoint,value):
