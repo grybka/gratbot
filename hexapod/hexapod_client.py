@@ -10,6 +10,7 @@ sys.path.append('../gratbot_client')
 from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
 from GratbotBehaviors import WaveAtFace
+from GratbotBehaviors import HeadTrackFace
 
 # connect to bot controls
 logging.info("Connecting to Gratbot")
@@ -27,7 +28,8 @@ print("video resolution: {} x {} ".format(frame_width, frame_height))
 
 forward_speed=0.0
 #on_behavior= WaveAtFace(gratbot_comms)
-on_behavior= HeadTrackFace(gratbot_comms)
+on_behavior = HeadTrackFace(gratbot_comms)
+#on_behavior = None
 # Video Display loop here
 try:
     cycle_counter = 0
@@ -40,7 +42,9 @@ try:
         video_objects={}
         if len(faces)>0: #if you see a face, that's the most interesting
             video_objects["faces"]=[]
+            #TODO probably rerank faces by confidence
             for i in range(len(faces)):
+                face=faces[i]
                 video_objects["faces"].append({
                     "confidence": confidences[i],
                     "startx": face[0],
@@ -48,7 +52,6 @@ try:
                     "endx": face[2],
                     "endy": face[3]
                 })
-                face=faces[i]
                 confidence=confidences[i]
                 (startx,starty)=face[0],face[1]
                 (endx,endy)=face[2],face[3]
