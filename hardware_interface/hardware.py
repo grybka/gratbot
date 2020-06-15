@@ -61,10 +61,13 @@ class GratbotServo(GratbotSpimescape):
     def set(self,endpoint,value):
         if endpoint=="position_delta":
             self.setpos_steps(value+self.last_steps)
+            return
         if endpoint=="position":
             self.setpos_fraction(value)
+            return
         if endpoint=="position_steps":
             self.setpos_steps(value)
+            return
         else:
             raise Exception("No endpoint {}".format(endpoint))
 _all_gratbot_spimescapes["GratbotServo"]=GratbotServo

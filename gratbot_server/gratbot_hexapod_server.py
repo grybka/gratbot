@@ -12,6 +12,7 @@ import leg_control
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
+#root.setLevel(logging.DEBUG)
 
 #message format
 #in json, all on one line

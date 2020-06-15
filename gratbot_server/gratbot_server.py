@@ -10,7 +10,8 @@ sys.path.append('../hardware_interface')
 import hardware
 
 root = logging.getLogger()
-root.setLevel(logging.INFO)
+#root.setLevel(logging.INFO)
+root.setLevel(logging.DEBUG)
 
 #message format
 #in json, all on one line
