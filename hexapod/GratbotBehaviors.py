@@ -4,15 +4,115 @@ import numpy as np
 import time
 import filterpy
 import random
+
+import cv2 as cv
+import cvlib
+#from cvlib.object_detection import draw_bbox
+
 #from filterpy.kalman import KalmanFilter
 #from filterpy.common import Q_discrete_white_noise
 
+def get_video_frame_faces(video_frame):
+    video_objects=[]
+    faces,confidences=cvlib.detect_face(video_frame)
+    for i in range(len(faces)):
+        face=faces[i]
+        video_objects.append({
+            "confidence": confidences[i],
+            "label": "face",
+            "startx": face[0],
+            "starty": face[1],
+            "endx": face[2],
+            "endy": face[3]
+        })
+    return video_objects
+#                confidence=confidences[i]
+#                (startx,starty)=face[0],face[1]
+#                (endx,endy)=face[2],face[3]
+#                cv.rectangle(myframe,(startx,starty),(endx,endy),(0,255,0),2)
+#                text = "Face {:.2f}%".format(confidence * 100)
+#                Y = starty - 10 if starty - 10 > 10 else starty + 10
+#                # write confidence percentage on top of face rectangle
+#                cv.putText(myframe, text, (startx,Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
+            #draw_bbox(myframe,bbox,label,conf,write_conf=True)
+
+def get_video_frame_objects(video_frame,video_objects=None):
+    if video_objects==None:
+        video_objects=[]
+    bbox,label,conf=cvlib.detect_common_objects(video_frame,confidence=0.4,model='yolov3-tiny')
+    for i in range(len(label)):
+        box=bbox[i]
+        video_objects.append({
+            "confidence": conf[i],
+            "label": label[i],
+            "startx": box[0],
+            "starty": box[1],
+            "endx": box[2],
+            "endy": box[3]
+        })
+    return video_objects
+
+def draw_object_bboxes(video_frame,video_objects):
+    for i in range(len(video_objects)):
+        startx=video_objects[i]["startx"]
+        starty=video_objects[i]["starty"]
+        endx=video_objects[i]["endx"]
+        endy=video_objects[i]["endy"]
+        confidence=video_objects[i]["confidence"]
+        cv.rectangle(video_frame,(startx,starty),(endx,endy),(0,255,0),2)
+        text = "{} {:.2f}%".format(video_objects[i]["label"],confidence * 100)
+        Y = starty - 10 if starty - 10 > 10 else starty + 10
+        cv.putText(video_frame, text, (startx,Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
 
 class GratbotBehavior:
     def __init__(self, comms):
         self.comms = comms
-    def act(self,video_objects):
+    def act(self,video_frame):
         return
+
+
+class JustSaveObjectPos(GratbotBehavior):
+    def __init__(self,comms):
+        super().__init__(comms)
+        self.move_duration_seconds=1
+        self.wait_duration_seconds=1
+        self.next_action_time=time.time()+self.wait_duration_seconds
+
+    def get_face_loc_width(self,face):
+        centerx=0.5*(face["startx"]+face["endx"])
+        centery=0.5*(face["starty"]+face["endy"])
+        width=(-face["startx"]+face["endx"])
+        height=(-face["starty"]+face["endy"])
+        return np.array([centerx,centery]),np.array([width,height])
+
+    def act(self, video_frame):
+        now=time.time()
+        if now>self.next_action_time:
+            self.next_action_time=now+self.move_duration_seconds
+            video_objects=get_video_frame_faces(video_frame)
+            video_objects=get_video_frame_objects(video_frame,video_objects)
+            for obj in video_objects:
+                if obj["label"]=="face":
+                    loc,ext=self.get_face_loc_width(obj)
+                    print("Face {} {}".format(ext[0],ext[1]))
+                if obj["label"]=="person":
+                    loc,ext=self.get_face_loc_width(obj)
+                    print("Person {} {}".format(ext[0],ext[1]))
+            draw_object_bboxes(video_frame,video_objects)
+            return video_frame
+        return None
+
+
+
+##------ Won't work belowe here----
+
+
+
+#class GratbotBehavior:
+#    def __init__(self, comms):
+#        self.comms = comms
+#    def act(self,video_objects):
+#        return
 
 class WaveAtFace(GratbotBehavior):
     def __init__(self, comms):
@@ -98,30 +198,6 @@ class NondeterministicStateMachine():
         transition_names=self.transitions[self.on_state]["transition_names"]
         transition_weights=self.transitions[self.on_state]["transition_weights"]
         self.on_state=random.choice(transition_names,transition_weights)
-
-class JustSaveObjectPos(GratbotBehavior):
-    def __init__(self,comms):
-        super().__init__(comms)
-        self.move_duration_seconds=1
-        self.wait_duration_seconds=1
-        self.next_action_time=time.time()+self.wait_duration_seconds
-
-    def get_face_loc_width(self,face):
-        centerx=0.5*(face["startx"]+face["endx"])
-        centery=0.5*(face["starty"]+face["endy"])
-        width=(-face["startx"]+face["endx"])
-        height=(-face["starty"]+face["endy"])
-        return np.array([centerx,centery]),np.array([width,height])
-
-    def act(self, video_objects):
-        now=time.time()
-        if now>self.next_action_time:
-            self.next_action_time=now+self.move_duration_seconds
-            for obj in video_objects:
-                if obj["label"]=="face":
-                    loc,ext=self.get_face_loc_width(obj)
-                    print("{} {}".format(ext[0],ext[1]))
-
 
 class MoveAndTrackObjects(GratbotBehavior):
     def __init__(self, comms):
