@@ -7,10 +7,16 @@ import random
 
 import cv2 as cv
 import cvlib
+import imutils
 #from cvlib.object_detection import draw_bbox
 
 #from filterpy.kalman import KalmanFilter
 #from filterpy.common import Q_discrete_white_noise
+#good face width is 50
+#person width is 200
+
+from cv_colorhisto import init_plot
+from cv_colorhisto import update_plot
 
 def get_video_frame_faces(video_frame):
     video_objects=[]
@@ -39,7 +45,8 @@ def get_video_frame_faces(video_frame):
 def get_video_frame_objects(video_frame,video_objects=None):
     if video_objects==None:
         video_objects=[]
-    bbox,label,conf=cvlib.detect_common_objects(video_frame,confidence=0.4,model='yolov3-tiny')
+    #bbox,label,conf=cvlib.detect_common_objects(video_frame,confidence=0.4,model='yolov3-tiny')
+    bbox,label,conf=cvlib.detect_common_objects(video_frame,confidence=0.4,model='yolov3-320')
     for i in range(len(label)):
         box=bbox[i]
         video_objects.append({
@@ -51,6 +58,45 @@ def get_video_frame_objects(video_frame,video_objects=None):
             "endy": box[3]
         })
     return video_objects
+
+def get_video_frame_colored_balls(video_frame,color_rgb,video_objects=None):
+
+        if video_objects==None:
+            video_objects=[]
+        color_rgb = np.uint8([[color_rgb]])
+        color_hsv = cv.cvtColor(color_rgb,cv.COLOR_BGR2HSV)
+        #hue_range=[np.array([color_hsv[0][0][0]-20,50,50]),np.array([color_hsv[0][0][0]+20,255,255])]
+        #hue_range=[np.array([color_hsv[0][0][0]-20,50,50]),np.array([color_hsv[0][0][0]+20,255,255])]
+        hue_range=[np.array([color_hsv[0][0][0]-20,100,100]),np.array([color_hsv[0][0][0]+20,255,255])]
+        blurred=cv.GaussianBlur(video_frame,(11,11),0)
+        hsv=cv.cvtColor(blurred,cv.COLOR_BGR2HSV)
+        mask = cv.inRange(hsv, hue_range[0], hue_range[1])
+        mask = cv.erode(mask, None, iterations=2)
+        mask = cv.dilate(mask, None, iterations=2)
+        cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL,
+            cv.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        center = None
+        #print("len(cnts) {} ".format(len(cnts)))
+        if len(cnts) > 0:
+            c = max(cnts, key=cv.contourArea)
+            ((x, y), radius) = cv.minEnclosingCircle(c)
+            M = cv.moments(c)
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            # only proceed if the radius meets a minimum size
+            if radius > 10:
+                video_objects.append({
+                    "confidence": 1,
+                    "label": "ball",
+                    "startx": int(x-radius),
+                    "starty": int(y-radius),
+                    "endx": int(x+radius),
+                    "endy": int(y+radius)
+                })
+                #cv.circle(video_frame, (int(x), int(y)), int(radius),
+                #    (0, 255, 255), 2)
+                #cv.circle(video_frame, center, 5, (0, 0, 255), -1)
+        return video_objects
 
 def draw_object_bboxes(video_frame,video_objects):
     for i in range(len(video_objects)):
@@ -70,6 +116,67 @@ class GratbotBehavior:
     def act(self,video_frame):
         return
 
+class HighlightColor(GratbotBehavior):
+    def __init__(self,comms):
+        super().__init__(comms)
+        self.move_duration_seconds=1
+        self.wait_duration_seconds=1
+        self.next_action_time=time.time()+self.wait_duration_seconds
+        #self.hue_range=[220,310]
+        self.purple = [128,0,128 ]
+        #purple = np.uint8([[[128,0,128 ]]])
+        #hsv_purple = cv.cvtColor(purple,cv.COLOR_BGR2HSV)
+        #self.hue_range=[np.array([hsv_purple[0][0][0]-20,50,50]),np.array([hsv_purple[0][0][0]+20,255,255])]
+
+    def act(self, video_frame):
+
+        now=time.time()
+        if now>self.next_action_time:
+            self.next_action_time=now+self.move_duration_seconds
+            video_objects=get_video_frame_colored_balls(video_frame,self.purple)
+#            blurred=cv.GaussianBlur(video_frame,(11,11),0)
+#            hsv=cv.cvtColor(blurred,cv.COLOR_BGR2HSV)
+            # construct a mask for the color "green", then perform
+            # a series of dilations and erosions to remove any small
+            # blobs left in the mask
+            #mask = cv.inRange(hsv, greenLower, greenUpper)
+#            mask = cv.inRange(hsv, self.hue_range[0], self.hue_range[1])
+#            mask = cv.erode(mask, None, iterations=2)
+#            mask = cv.dilate(mask, None, iterations=2)
+#            cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL,
+#                cv.CHAIN_APPROX_SIMPLE)
+#            cnts = imutils.grab_contours(cnts)
+#            center = None
+#            print("len(cnts) {} ".format(len(cnts)))
+#            if len(cnts) > 0:
+#                c = max(cnts, key=cv.contourArea)
+#                ((x, y), radius) = cv.minEnclosingCircle(c)
+#                M = cv.moments(c)
+#                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                # only proceed if the radius meets a minimum size
+#                if radius > 10:
+#                    cv.circle(video_frame, (int(x), int(y)), int(radius),
+#                        (0, 255, 255), 2)
+#                    cv.circle(video_frame, center, 5, (0, 0, 255), -1)
+            draw_object_bboxes(video_frame,video_objects)
+            return video_frame
+        return None
+
+class ShowColorHisto(GratbotBehavior):
+    def __init__(self,comms):
+        super().__init__(comms)
+        self.move_duration_seconds=1
+        self.wait_duration_seconds=1
+        self.next_action_time=time.time()+self.wait_duration_seconds
+        self.ax,self.lineR,self.lineG,self.lineB=init_plot()
+
+    def act(self, video_frame):
+        now=time.time()
+        if now>self.next_action_time:
+            self.next_action_time=now+self.move_duration_seconds
+            update_plot(video_frame,self.ax,self.lineR,self.lineG,self.lineB)
+            return video_frame
+        return None
 
 class JustSaveObjectPos(GratbotBehavior):
     def __init__(self,comms):
@@ -77,6 +184,7 @@ class JustSaveObjectPos(GratbotBehavior):
         self.move_duration_seconds=1
         self.wait_duration_seconds=1
         self.next_action_time=time.time()+self.wait_duration_seconds
+        self.purple = [120,12,120 ]
 
     def get_face_loc_width(self,face):
         centerx=0.5*(face["startx"]+face["endx"])
@@ -89,8 +197,9 @@ class JustSaveObjectPos(GratbotBehavior):
         now=time.time()
         if now>self.next_action_time:
             self.next_action_time=now+self.move_duration_seconds
-            video_objects=get_video_frame_faces(video_frame)
-            video_objects=get_video_frame_objects(video_frame,video_objects)
+            #video_objects=get_video_frame_faces(video_frame)
+            #video_objects=get_video_frame_objects(video_frame,video_objects)
+            video_objects=get_video_frame_colored_balls(video_frame,self.purple)
             for obj in video_objects:
                 if obj["label"]=="face":
                     loc,ext=self.get_face_loc_width(obj)
@@ -102,6 +211,91 @@ class JustSaveObjectPos(GratbotBehavior):
             return video_frame
         return None
 
+
+class MoveAndTrackObjects(GratbotBehavior):
+    def __init__(self, comms):
+        super().__init__(comms)
+        self.state="holding_still"
+        self.move_duration_seconds=2
+        self.wait_duration_seconds=1
+        self.next_action_time=time.time()+self.wait_duration_seconds
+        self.old_video_objects=[]
+        self.step_history=[]
+        self.last_move_choice=np.array([0.0,0.0])
+        #self.legs_or_camera="camera"
+        self.legs_or_camera="legs"
+        self.moved_back=True
+        #self.purple = [128,0,128 ]
+        self.my_color = [0,0,128 ]
+        #self.leg_moves=[ [1,1],[-1,-1],[1,-1],[-1,1],[0,1],[0,-1],[1,0],[-1,0],[0,0]]
+        self.leg_moves=[ [1,1],[-0.5,-0.5],[0.5,-0.5],[-0.5,0.5],[0,0.5],[0,-0.5],[0.5,0],[-0.5,0],[0,0]]
+    def get_face_loc_width(self,face):
+        centerx=0.5*(face["startx"]+face["endx"])
+        centery=0.5*(face["starty"]+face["endy"])
+        width=(-face["startx"]+face["endx"])
+        height=(-face["starty"]+face["endy"])
+        return np.array([centerx,centery]),np.array([width,height])
+    def capture(self,video_objects):
+        #for each object in old video video_objects
+        #if exacly one of them exists in new video objects, assume it is the same one
+        #print("old video objects {}".format(self.old_video_objects))
+        #print("video objects {}".format(video_objects))
+        for old_obj in self.old_video_objects:
+            for obj in video_objects:
+                if old_obj["label"]==obj["label"]:
+                    old_loc,old_ext=self.get_face_loc_width(old_obj)
+                    loc,ext=self.get_face_loc_width(obj)
+                    step_desc=np.concatenate([self.last_move_choice,old_loc,old_ext,loc,ext,[obj["label"]]])
+                    self.step_history.append(step_desc)
+                    outfile=open("movelist.txt","a+")
+                    for i in range(len(step_desc)):
+                        outfile.write("{} ".format(step_desc[i]))
+                    outfile.write("\n")
+                    outfile.close()
+                    #print(self.step_history[-1])
+        self.old_video_objects=video_objects
+    def act(self, video_frame):
+        #hold still
+        #record where objects are
+        #choose a combination for walking
+        now=time.time()
+        if now>self.next_action_time:
+            print("state {}".format(self.state))
+            if self.state=="holding_still":
+                #capture a motion
+                video_objects=[]
+                video_objects=get_video_frame_objects(video_frame,video_objects)
+                #video_objects=get_video_frame_colored_balls(video_frame,self.my_color)
+                self.capture(video_objects)
+                #begin a move
+                #decide new random move here
+                if self.moved_back:
+                    #self.last_move_choice=np.array([random.uniform(-1,1),random.uniform(-1,1)])
+                    self.last_move_choice=np.array(random.choice(self.leg_moves))
+                    print("move choice {}".format(self.last_move_choice))
+                    self.moved_back=False
+                else:
+                    self.last_move_choice=-self.last_move_choice
+                    self.moved_back=True
+                print("move {}".format(self.last_move_choice))
+                if self.legs_or_camera=="legs":
+                    self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 1)
+                    self.comms.set_intention( [ "leg_controller","left_speed", "SET" ], float(self.last_move_choice[0]))
+                    self.comms.set_intention( [ "leg_controller","right_speed", "SET" ], float(self.last_move_choice[1]))
+                else:
+                    self.comms.set_intention( ["camera_x","position_delta","SET" ], self.last_move_choice[0]*10)
+                    self.comms.set_intention( ["camera_y","position_delta","SET" ], self.last_move_choice[1]*10)
+                self.state="moving"
+                self.next_action_time=now+self.move_duration_seconds
+                draw_object_bboxes(video_frame,video_objects)
+                return video_frame
+            elif self.state=="moving":
+                if self.legs_or_camera=="legs":
+                    self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
+                    print("stopping")
+                self.state="holding_still"
+                self.next_action_time=now+self.wait_duration_seconds
+        return None
 
 
 ##------ Won't work belowe here----
@@ -198,80 +392,6 @@ class NondeterministicStateMachine():
         transition_names=self.transitions[self.on_state]["transition_names"]
         transition_weights=self.transitions[self.on_state]["transition_weights"]
         self.on_state=random.choice(transition_names,transition_weights)
-
-class MoveAndTrackObjects(GratbotBehavior):
-    def __init__(self, comms):
-        super().__init__(comms)
-        self.state="holding_still"
-        self.move_duration_seconds=1
-        self.wait_duration_seconds=1
-        self.next_action_time=time.time()+self.wait_duration_seconds
-        self.old_video_objects=[]
-        self.step_history=[]
-        self.last_move_choice=np.array([0.0,0.0])
-        #self.legs_or_camera="camera"
-        self.legs_or_camera="legs"
-        self.moved_back=True
-    def get_face_loc_width(self,face):
-        centerx=0.5*(face["startx"]+face["endx"])
-        centery=0.5*(face["starty"]+face["endy"])
-        width=(-face["startx"]+face["endx"])
-        height=(-face["starty"]+face["endy"])
-        return np.array([centerx,centery]),np.array([width,height])
-    def capture(self,video_objects):
-        #for each object in old video video_objects
-        #if exacly one of them exists in new video objects, assume it is the same one
-        #print("old video objects {}".format(self.old_video_objects))
-        #print("video objects {}".format(video_objects))
-        for old_obj in self.old_video_objects:
-            for obj in video_objects:
-                if old_obj["label"]==obj["label"]:
-                    old_loc,old_ext=self.get_face_loc_width(old_obj)
-                    loc,ext=self.get_face_loc_width(obj)
-                    step_desc=np.concatenate([self.last_move_choice,old_loc,old_ext,loc,ext,[obj["label"]]])
-                    self.step_history.append(step_desc)
-                    outfile=open("movelist.txt","a+")
-                    for i in range(len(step_desc)):
-                        outfile.write("{} ".format(step_desc[i]))
-                    outfile.write("\n")
-                    outfile.close()
-                    #print(self.step_history[-1])
-        self.old_video_objects=video_objects
-    def act(self, video_objects):
-        #hold still
-        #record where objects are
-        #choose a combination for walking
-        now=time.time()
-        if now>self.next_action_time:
-            print("state {}".format(self.state))
-            if self.state=="holding_still":
-                #capture a motion
-                self.capture(video_objects)
-                #begin a move
-                #decide new random move here
-                if self.moved_back:
-                    self.last_move_choice=np.array([random.uniform(-1,1),random.uniform(-1,1)])
-                    print("move choice {}".format(self.last_move_choice))
-                    self.moved_back=False
-                else:
-                    self.last_move_choice=-self.last_move_choice
-                    self.moved_back=True
-                print("move {}".format(self.last_move_choice))
-                if self.legs_or_camera=="legs":
-                    self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 1)
-                    self.comms.set_intention( [ "leg_controller","left_speed", "SET" ], self.last_move_choice[0])
-                    self.comms.set_intention( [ "leg_controller","right_speed", "SET" ], self.last_move_choice[1])
-                else:
-                    self.comms.set_intention( ["camera_x","position_delta","SET" ], self.last_move_choice[0]*10)
-                    self.comms.set_intention( ["camera_y","position_delta","SET" ], self.last_move_choice[1]*10)
-                self.state="moving"
-                self.next_action_time=now+self.move_duration_seconds
-            elif self.state=="moving":
-                if self.legs_or_camera=="legs":
-                    self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
-                    print("stopping")
-                self.state="holding_still"
-                self.next_action_time=now+self.wait_duration_seconds
 
 
 
