@@ -28,7 +28,7 @@ class GratbotVideoConnectionUV4L:
             self.frame=frame
             self.frame_timestamp=time.time()
             self._lock.release()
-           
+
     def read(self):
         #returns the most recently read frame and its associated timestamp
         self._lock.acquire()
@@ -41,6 +41,13 @@ class GratbotVideoConnectionUV4L:
         self.end_called=True
         if self.thread.is_alive():
             self.thread.join()
-        
-    def __exit__(self, exc_type, exc_value, traceback) :
+        logging.info("Releasing Capture")
         self.cap.release()
+        logging.info("Destroying Windows")
+        cv.destroyAllWindows()
+
+    def __exit__(self, exc_type, exc_value, traceback) :
+        logging.info("Releasing Capture")
+        self.cap.release()
+        logging.info("Destroying Windows")
+        cv.destroyAllWindows()

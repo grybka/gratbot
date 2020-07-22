@@ -115,6 +115,8 @@ class GratbotBehavior:
         self.comms = comms
     def act(self,video_frame):
         return
+    def shut_down(self):
+        return
 
 class HighlightColor(GratbotBehavior):
     def __init__(self,comms):

@@ -15,6 +15,7 @@ from GratbotBehaviors import MoveAndTrackObjects
 from GratbotBehaviors import JustSaveObjectPos
 from GratbotBehaviors import ShowColorHisto
 from GratbotBehaviors import HighlightColor
+from GratbotManualControls import XBoxControl
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -41,7 +42,8 @@ forward_speed=0.0
 gratbot_comms.set_intention( ["camera_x","position","SET" ], 0 )
 gratbot_comms.set_intention( ["camera_y","position","SET" ], -20 )
 #gratbot_comms.set_intention( ["camera_y","position","SET" ], 0 )
-on_behavior = MoveAndTrackObjects(gratbot_comms)
+#on_behavior = MoveAndTrackObjects(gratbot_comms)
+on_behavior = XBoxControl(gratbot_comms)
 #on_behavior = JustSaveObjectPos(gratbot_comms)
 #on_behavior = ShowColorHisto(gratbot_comms)
 #on_behavior = HighlightColor(gratbot_comms)
@@ -97,8 +99,11 @@ try:
 except KeyboardInterrupt:
     gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
     logging.warning("Keyboard Exception Program Ended, exiting")
-    behavior_thread_should_quit = True
+    on_behavior.shut_down()
 finally:
+    logging.warning("stopping video")
     video.stop()
     #controller.close()
+    logging.warning("turning off comms ")
     gratbot_comms.stop()
+    logging.warning("all done ")
