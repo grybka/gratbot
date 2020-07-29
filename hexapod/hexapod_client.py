@@ -23,14 +23,14 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 #    level=logging.DEBUG)
 
 # connect to bot controls
-logging.info("Connecting to Gratbot")
+logging.info("Connecting to Gratbot comms")
 gratbot_comms = GratbotComms("10.0.0.5", 9999)
 
 
 # connect to camera
 cv.namedWindow("preview")
 cv.moveWindow("preview", 0, 0)
-logging.info("Connecting to Gratbot")
+logging.info("Connecting to Gratbot video")
 video = GratbotVideoConnectionUV4L("http://10.0.0.5:8080/stream/video.mjpeg")
 frame_width = video.cap.get(cv.CAP_PROP_FRAME_WIDTH)
 frame_height = video.cap.get(cv.CAP_PROP_FRAME_HEIGHT)
@@ -48,11 +48,22 @@ on_behavior = XBoxControl(gratbot_comms)
 #on_behavior = ShowColorHisto(gratbot_comms)
 #on_behavior = HighlightColor(gratbot_comms)
 #on_behavior = None
+keep_going=True
+
+def shut_down():
+    keep_going=False
+    gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
+    on_behavior.shut_down()
+    logging.warning("stopping video")
+    video.stop()
+    #controller.close()
+    logging.warning("turning off comms ")
+    gratbot_comms.stop()
 
 # Video Display loop here
 try:
     cycle_counter = 0
-    while True:
+    while keep_going:
         cycle_counter += 1
         myframe, mytime = video.read()
         #myframe = cv.resize(myframe, None, fx=4, fy=4)
@@ -90,8 +101,7 @@ try:
             if key==39: #q Key idvorake
                 gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
                 forward_speed=0
-                gratbot_comms.set_intention( [ "leg_controller","left_speed", "SET" ], forward_speed)
-                gratbot_comms.set_intention( [ "leg_controller","right_speed", "SET" ], forward_speed)
+                shut_down()
 # if cycle_counter%30==0:
 #print("object fps {}".format(imagefinder.get_fps()))
         # send commands (could be different thread)
@@ -99,11 +109,11 @@ try:
 except KeyboardInterrupt:
     gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
     logging.warning("Keyboard Exception Program Ended, exiting")
-    on_behavior.shut_down()
 finally:
+    on_behavior.shut_down()
     logging.warning("stopping video")
     video.stop()
     #controller.close()
     logging.warning("turning off comms ")
     gratbot_comms.stop()
-    logging.warning("all done ")
+logging.warning("all done ")
