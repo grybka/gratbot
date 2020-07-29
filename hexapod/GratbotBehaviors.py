@@ -8,6 +8,7 @@ import random
 import cv2 as cv
 import cvlib
 import imutils
+from yolov5_tool.yolov5_tool import yolov5_tool
 #from cvlib.object_detection import draw_bbox
 
 #from filterpy.kalman import KalmanFilter
@@ -58,6 +59,13 @@ def get_video_frame_objects(video_frame,video_objects=None):
             "endy": box[3]
         })
     return video_objects
+
+yv5model=None
+def get_video_frame_objects_yolov5(video_frame):
+    if yv5model==None:
+        yv5model=yolov5_tool("weights path")
+        yv5model.initialize()
+    return yv5model.detect(video_frame)
 
 def get_video_frame_colored_balls(video_frame,color_rgb,video_objects=None):
 
@@ -201,7 +209,8 @@ class JustSaveObjectPos(GratbotBehavior):
             self.next_action_time=now+self.move_duration_seconds
             #video_objects=get_video_frame_faces(video_frame)
             #video_objects=get_video_frame_objects(video_frame,video_objects)
-            video_objects=get_video_frame_colored_balls(video_frame,self.purple)
+            #video_objects=get_video_frame_colored_balls(video_frame,self.purple)
+            video_objects=get_video_frame_objects_yolov5(video_frame)
             for obj in video_objects:
                 if obj["label"]=="face":
                     loc,ext=self.get_face_loc_width(obj)
