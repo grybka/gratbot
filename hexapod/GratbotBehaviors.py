@@ -60,11 +60,7 @@ def get_video_frame_objects(video_frame,video_objects=None):
         })
     return video_objects
 
-yv5model=None
-def get_video_frame_objects_yolov5(video_frame):
-    if yv5model==None:
-        yv5model=yolov5_tool("weights path")
-        yv5model.initialize()
+def get_video_frame_objects_yolov5(video_frame,yv5model):
     return yv5model.detect(video_frame)
 
 def get_video_frame_colored_balls(video_frame,color_rgb,video_objects=None):
@@ -113,10 +109,10 @@ def draw_object_bboxes(video_frame,video_objects):
         endx=video_objects[i]["endx"]
         endy=video_objects[i]["endy"]
         confidence=video_objects[i]["confidence"]
-        cv.rectangle(video_frame,(startx,starty),(endx,endy),(0,255,0),2)
+        cv.rectangle(video_frame,(int(startx),int(starty)),(int(endx),int(endy)),(0,255,0),2)
         text = "{} {:.2f}%".format(video_objects[i]["label"],confidence * 100)
-        Y = starty - 10 if starty - 10 > 10 else starty + 10
-        cv.putText(video_frame, text, (startx,Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
+        Y = int(starty - 10 if starty - 10 > 10 else starty + 10)
+        cv.putText(video_frame, text, (int(startx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
 
 class GratbotBehavior:
     def __init__(self, comms):
@@ -195,6 +191,7 @@ class JustSaveObjectPos(GratbotBehavior):
         self.wait_duration_seconds=1
         self.next_action_time=time.time()+self.wait_duration_seconds
         self.purple = [120,12,120 ]
+        self.yv5model = None
 
     def get_face_loc_width(self,face):
         centerx=0.5*(face["startx"]+face["endx"])
@@ -210,7 +207,12 @@ class JustSaveObjectPos(GratbotBehavior):
             #video_objects=get_video_frame_faces(video_frame)
             #video_objects=get_video_frame_objects(video_frame,video_objects)
             #video_objects=get_video_frame_colored_balls(video_frame,self.purple)
-            video_objects=get_video_frame_objects_yolov5(video_frame)
+            if self.yv5model==None:
+                self.yv5model=yolov5_tool()
+                #self.yv5model.initialize("E:/projects/yolov5/runs/exp9/weights/last.pt")
+                self.yv5model.initialize("C:/Users/grybk/projects/yolov5/yolov5/runs/exp17/weights/last.pt")
+            video_objects=get_video_frame_objects_yolov5(video_frame,self.yv5model)
+            print("vido objects {}".format(video_objects))
             for obj in video_objects:
                 if obj["label"]=="face":
                     loc,ext=self.get_face_loc_width(obj)
@@ -308,7 +310,33 @@ class MoveAndTrackObjects(GratbotBehavior):
                 self.next_action_time=now+self.wait_duration_seconds
         return None
 
+class FollowThing(GratbotBehavior):
+    def __init__(self, comms):
+        super().__init__(comms)
+        self.state="holding_still"
+        self.move_duration_seconds=2
+        self.wait_duration_seconds=1
+        self.next_action_time=time.time()+self.wait_duration_seconds
 
+    def act(self, video_frame):
+        now=time.time()
+        if now<self.next_action_time:
+            return None
+        #state machine
+        if self.state=="move":
+            self.state=="wait"
+            self.next_action_time=now+wait.wait_duration_seconds
+        elif self.state=="wait":
+            self.state=="decide"
+        elif self.state=="decide":
+            self.state=="move"
+            self.next_action_time=now+wait.move_duration_seconds
+        if self.state=="move":
+            for x in self.actions:
+                self.comms.set_intention( x[0],x[1])
+        elif self.state=="wait":
+            self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
+        elif self.state=="decide":
 ##------ Won't work belowe here----
 
 

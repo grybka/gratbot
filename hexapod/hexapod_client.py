@@ -43,8 +43,8 @@ gratbot_comms.set_intention( ["camera_x","position","SET" ], 0 )
 gratbot_comms.set_intention( ["camera_y","position","SET" ], -20 )
 #gratbot_comms.set_intention( ["camera_y","position","SET" ], 0 )
 #on_behavior = MoveAndTrackObjects(gratbot_comms)
-on_behavior = XBoxControl(gratbot_comms)
-#on_behavior = JustSaveObjectPos(gratbot_comms)
+#on_behavior = XBoxControl(gratbot_comms)
+on_behavior = JustSaveObjectPos(gratbot_comms)
 #on_behavior = ShowColorHisto(gratbot_comms)
 #on_behavior = HighlightColor(gratbot_comms)
 #on_behavior = None
@@ -52,13 +52,18 @@ keep_going=True
 
 def shut_down():
     keep_going=False
+    print("telling legs to stop")
     gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
+    print("telling behavior to stop")
     on_behavior.shut_down()
     logging.warning("stopping video")
     video.stop()
     #controller.close()
     logging.warning("turning off comms ")
     gratbot_comms.stop()
+    logging.warning("closing window ")
+
+    cv.destroyAllWindows()
 
 # Video Display loop here
 try:
@@ -101,7 +106,9 @@ try:
             if key==39: #q Key idvorake
                 gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
                 forward_speed=0
+                print("calling shut down")
                 shut_down()
+                keep_going=False
 # if cycle_counter%30==0:
 #print("object fps {}".format(imagefinder.get_fps()))
         # send commands (could be different thread)
