@@ -317,7 +317,45 @@ class FollowThing(GratbotBehavior):
         self.move_duration_seconds=2
         self.wait_duration_seconds=1
         self.next_action_time=time.time()+self.wait_duration_seconds
+        self.video_objects=None
+        self.actions=[]
 
+    def get_face_loc_width(self,face):
+        centerx=0.5*(face["startx"]+face["endx"])
+        centery=0.5*(face["starty"]+face["endy"])
+        width=(-face["startx"]+face["endx"])
+        height=(-face["starty"]+face["endy"])
+        return np.array([centerx,centery]),np.array([width,height])
+
+    def decide(self,video_objects):
+        #find what I want to trak
+
+        to_track=None
+        for obj in video_objects:
+            if obj["label"]=="purple_ball":
+                to_track=obj
+            else:
+                print("ignoring {} ".format(obj["label"]))
+        if to_track==None:
+            return
+        xy,wh=self.get_face_loc_width(to_track)
+
+        video_height=480
+        video_width=640
+        pixel_to_servo=0.1
+        dx=video_width/2-centerx #how does it know the size
+        dy=video_height/2-centery
+        #if it's up or down, tell the camera to move
+        dx_servo=dx*pixel_to_servo
+        dy_servo=dy*pixel_to_servo
+        #self.comms.set_intention( ["camera_x","position_delta","SET" ], dx_servo )
+        self.actions.append( [ ["camera_y","position_delta","SET" ], dy_servo ])
+        #if it's left or right, tell the legs to move
+        pixel_to_leg=1./320.
+        leg_motion=dx*pixel_to_leg
+        self.actions.append([ [ "leg_controller","on_off", "SET" ], 1])
+        self.actions.append([ [ "leg_controller","left_speed", "SET" ], leg_motion])
+        self.actions.append([ [ "leg_controller","right_speed", "SET" ], -leg_motion])
     def act(self, video_frame):
         now=time.time()
         if now<self.next_action_time:
@@ -331,12 +369,22 @@ class FollowThing(GratbotBehavior):
         elif self.state=="decide":
             self.state=="move"
             self.next_action_time=now+wait.move_duration_seconds
+        #enact the state
         if self.state=="move":
             for x in self.actions:
                 self.comms.set_intention( x[0],x[1])
         elif self.state=="wait":
             self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
         elif self.state=="decide":
+            if self.yv5model==None:
+                self.yv5model=yolov5_tool()
+                    #self.yv5model.initialize("E:/projects/yolov5/runs/exp9/weights/last.pt")
+                self.yv5model.initialize("C:/Users/grybk/projects/yolov5/yolov5/runs/exp17/weights/last.pt")
+            video_objects=get_video_frame_objects_yolov5(video_frame,self.yv5model)
+            draw_object_bboxes(video_frame,video_objects)
+            self.decide(video_frame)
+            return video_objects
+        return None
 ##------ Won't work belowe here----
 
 
