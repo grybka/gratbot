@@ -15,6 +15,7 @@ from GratbotBehaviors import MoveAndTrackObjects
 from GratbotBehaviors import JustSaveObjectPos
 from GratbotBehaviors import ShowColorHisto
 from GratbotBehaviors import HighlightColor
+from GratbotBehaviors import FollowThing
 from GratbotManualControls import XBoxControl
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -44,7 +45,8 @@ gratbot_comms.set_intention( ["camera_y","position","SET" ], -20 )
 #gratbot_comms.set_intention( ["camera_y","position","SET" ], 0 )
 #on_behavior = MoveAndTrackObjects(gratbot_comms)
 #on_behavior = XBoxControl(gratbot_comms)
-on_behavior = JustSaveObjectPos(gratbot_comms)
+#on_behavior = JustSaveObjectPos(gratbot_comms)
+on_behavior = FollowThing(gratbot_comms)
 #on_behavior = ShowColorHisto(gratbot_comms)
 #on_behavior = HighlightColor(gratbot_comms)
 #on_behavior = None

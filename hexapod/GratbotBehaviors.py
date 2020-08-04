@@ -313,12 +313,15 @@ class MoveAndTrackObjects(GratbotBehavior):
 class FollowThing(GratbotBehavior):
     def __init__(self, comms):
         super().__init__(comms)
-        self.state="holding_still"
+        self.state="wait"
         self.move_duration_seconds=2
-        self.wait_duration_seconds=1
+        #self.wait_duration_seconds=1
+        self.wait_duration_seconds=0.5
         self.next_action_time=time.time()+self.wait_duration_seconds
         self.video_objects=None
         self.actions=[]
+        self.yv5model=None
+        self.tracking=False
 
     def get_face_loc_width(self,face):
         centerx=0.5*(face["startx"]+face["endx"])
@@ -327,63 +330,101 @@ class FollowThing(GratbotBehavior):
         height=(-face["starty"]+face["endy"])
         return np.array([centerx,centery]),np.array([width,height])
 
-    def decide(self,video_objects):
+    def get_top_object(self,video_objects,object_class,min_confidence):
+        best_obj=None
+        for obj in video_objects:
+            if obj["label"]==object_class and obj["confidence"]>min_confidence:
+                if best_obj==None:
+                    best_obj=obj
+                else:
+                    if obj["confidence"]>best_obj["confidence"]:
+                        best_obj=obj
+        return best_obj
+
+
+    def decide(self,video_objects,video_frame):
         #find what I want to trak
 
         to_track=None
-        for obj in video_objects:
-            if obj["label"]=="purple_ball":
-                to_track=obj
-            else:
-                print("ignoring {} ".format(obj["label"]))
+        to_track=self.get_top_object(video_objects,"purple_ball",0.2)
         if to_track==None:
+            if self.tracking==True:
+                #this means I lost it
+                cv.imwrite(time.strftime("%Y%m%d-%H%M%S.jpg"),video_frame)
+                self.tracking=False
             return
+        self.tracking=True
         xy,wh=self.get_face_loc_width(to_track)
 
         video_height=480
         video_width=640
         pixel_to_servo=0.1
-        dx=video_width/2-centerx #how does it know the size
-        dy=video_height/2-centery
+        dx=video_width/2-xy[0] #how does it know the size
+        dy=video_height/2-xy[1]
         #if it's up or down, tell the camera to move
         dx_servo=dx*pixel_to_servo
         dy_servo=dy*pixel_to_servo
         #self.comms.set_intention( ["camera_x","position_delta","SET" ], dx_servo )
-        self.actions.append( [ ["camera_y","position_delta","SET" ], dy_servo ])
+        if abs(dy_servo)>5:
+            self.actions.append( [ ["camera_y","position_delta","SET" ], dy_servo ])
+            print("camera {}".format(dy_servo))
+
         #if it's left or right, tell the legs to move
         pixel_to_leg=1./320.
-        leg_motion=dx*pixel_to_leg
-        self.actions.append([ [ "leg_controller","on_off", "SET" ], 1])
-        self.actions.append([ [ "leg_controller","left_speed", "SET" ], leg_motion])
-        self.actions.append([ [ "leg_controller","right_speed", "SET" ], -leg_motion])
+        leg_motion_turn=np.clip(dx*pixel_to_leg,-1,1)
+        right_size_width=170
+        speed_scale=2.0
+        leg_motion_fb=np.clip(-speed_scale*( 1-right_size_width/wh[0]),-1,1)
+        leg_motion_r=np.clip(leg_motion_fb+leg_motion_turn,-1,1)
+        leg_motion_l=np.clip(leg_motion_fb-leg_motion_turn,-1,1)
+        print("leg_motion_fb {}".format(leg_motion_fb))
+        print("leg_motion_turn {}".format(leg_motion_turn))
+        if abs(leg_motion_r)>0.15 or abs(leg_motion_l)>0.15:
+            self.actions.append([ [ "leg_controller","on_off", "SET" ], 1])
+            self.actions.append([ [ "leg_controller","left_speed", "SET" ], leg_motion_l])
+            self.actions.append([ [ "leg_controller","right_speed", "SET" ], leg_motion_r])
+        #if abs(leg_motion)>0.15:
+        #    self.actions.append([ [ "leg_controller","on_off", "SET" ], 1])
+        #    self.actions.append([ [ "leg_controller","left_speed", "SET" ], -leg_motion])
+        #    self.actions.append([ [ "leg_controller","right_speed", "SET" ], leg_motion])
+        #    print("legs {}".format(leg_motion))
+        #else: #if it's centered, then move until it's the right right size
+        #    delta_w=right_size_width-wh[0]
+        #    leg_motion=np.clip(delta_w/50.0,-1,1.)
+        #    print("size now is {}".format(wh[0]))
+        #    self.actions.append([ [ "leg_controller","on_off", "SET" ], 1])
+        #    self.actions.append([ [ "leg_controller","left_speed", "SET" ], leg_motion])
+        #    self.actions.append([ [ "leg_controller","right_speed", "SET" ], leg_motion])
     def act(self, video_frame):
         now=time.time()
         if now<self.next_action_time:
             return None
+        print("onstate {}".format(self.state))
         #state machine
         if self.state=="move":
-            self.state=="wait"
-            self.next_action_time=now+wait.wait_duration_seconds
+            self.state="wait"
+            self.next_action_time=now+self.wait_duration_seconds
         elif self.state=="wait":
-            self.state=="decide"
+            self.state="decide"
         elif self.state=="decide":
-            self.state=="move"
-            self.next_action_time=now+wait.move_duration_seconds
+            self.state="move"
+            self.next_action_time=now+self.move_duration_seconds
         #enact the state
         if self.state=="move":
             for x in self.actions:
                 self.comms.set_intention( x[0],x[1])
+            self.actions=[] #clear action cache
         elif self.state=="wait":
             self.comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
         elif self.state=="decide":
             if self.yv5model==None:
                 self.yv5model=yolov5_tool()
                     #self.yv5model.initialize("E:/projects/yolov5/runs/exp9/weights/last.pt")
-                self.yv5model.initialize("C:/Users/grybk/projects/yolov5/yolov5/runs/exp17/weights/last.pt")
+                self.yv5model.initialize("C:/Users/grybk/projects/yolov5/yolov5/runs/exp28/weights/last.pt")
             video_objects=get_video_frame_objects_yolov5(video_frame,self.yv5model)
+            self.decide(video_objects,video_frame)
             draw_object_bboxes(video_frame,video_objects)
-            self.decide(video_frame)
-            return video_objects
+            return video_frame
         return None
 ##------ Won't work belowe here----
 
