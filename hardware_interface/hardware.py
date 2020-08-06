@@ -286,7 +286,7 @@ def create_hardware(datastruct):
         logging.info("hardware creating {}".format(x))
         if datastruct[x]["type"] in _all_gratbot_spimescapes:
             hardware_dat[x]=_all_gratbot_spimescapes[datastruct[x]["type"]](datastruct[x],hardware_dat)
-	    hardware_dat[x].type=datastruct[x]["type"]
+            hardware_dat[x].type=datastruct[x]["type"]
         else:
             logging.warning("Unrecognized hardware {}".format(x))
         #hardware_dat[x]=create_hardware_item(datastruct[x])
