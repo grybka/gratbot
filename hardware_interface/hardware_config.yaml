@@ -13,24 +13,24 @@ hardware:
 #set properties:   red, blue, green
     wheel_turn_servo:
         type: GratbotServo
-        max_right_steps: 280
+        min_steps: 280
         neutral_steps: 370
-        max_left_steps: 500
+        max_steps: 500
         scale_ratio: 1
         servo_number: 2
 #set properties:   position
     camera_yaw_servo:
         type: GratbotServo
-        max_right_steps: 340
+        min_steps: 340
         neutral_steps: 420
-        max_left_steps: 500
+        max_steps: 500
         scale_ratio: 1
         servo_number: 0
     camera_pitch_servo:
         type: GratbotServo
-        max_right_steps: 280
+        min_steps: 280
         neutral_steps: 370
-        max_left_steps: 510
+        max_steps: 510
         scale_ratio: 1
         servo_number: 1
     wheel_motor:
@@ -55,4 +55,3 @@ hardware:
         sound_speed: 343.0
         #    led_strip:
         #type: GratbotLEDStrip
-
