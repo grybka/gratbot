@@ -7,14 +7,14 @@ import json
 
 sys.path.append('../hardware_interface')
 import hardware
-import leg_control
+#import leg_control
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
 
 #initialize hardware
-config_file=open("../hardware_interface/raspclaws_config.yaml","r")
+config_file=open("../hardware_interface/hardware_config.yaml","r")
 config_data=yaml.safe_load(config_file)
 config_file.close()
 robot=hardware.create_hardware(config_data["hardware"])
