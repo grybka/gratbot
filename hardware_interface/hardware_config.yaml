@@ -16,6 +16,7 @@ hardware:
         max_right_steps: 280
         neutral_steps: 370
         max_left_steps: 500
+        scale_ratio: 1
         servo_number: 2
 #set properties:   position
     camera_yaw_servo:
@@ -23,12 +24,14 @@ hardware:
         max_right_steps: 340
         neutral_steps: 420
         max_left_steps: 500
+        scale_ratio: 1
         servo_number: 0
     camera_pitch_servo:
         type: GratbotServo
         max_right_steps: 280
         neutral_steps: 370
         max_left_steps: 510
+        scale_ratio: 1
         servo_number: 1
     wheel_motor:
 #set properties:   motion +1,0,-1  ,  speed (0 to 100)
