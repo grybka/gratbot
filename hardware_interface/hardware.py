@@ -24,7 +24,7 @@ class GratbotServo(GratbotSpimescape):
     pwm=None
 
     def __init__(self,datastruct,hardware):
-	if self.pwm==None:
+        if self.pwm==None:
             self.pwm=Adafruit_PCA9685.PCA9685()
             self.pwm.set_pwm_freq(50)
         self.max_steps=datastruct["max_steps"]
