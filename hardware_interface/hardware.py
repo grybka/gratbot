@@ -117,7 +117,7 @@ class GratbotLED(GratbotSpimescape):
 class GratbotMotor(GratbotSpimescape):
     forward=0
     backward=1
-    def __init__(self,datastruct):
+    def __init__(self,datastruct,hardware):
         self.motorpinen=datastruct["motor_pin_en"]
         self.motorpin1=datastruct["motor_pin_1"]
         self.motorpin2=datastruct["motor_pin_2"]
@@ -126,8 +126,9 @@ class GratbotMotor(GratbotSpimescape):
         GPIO.setup(self.motorpinen, GPIO.OUT)
         GPIO.setup(self.motorpin1, GPIO.OUT)
         GPIO.setup(self.motorpin2, GPIO.OUT)
-        #pwm_frequency=1000 from adeept
-        pwm_frequency=50 #this seems pretty solid
+        pwm_frequency=1000 #from adeept
+        #pwm_frequency=50 #this seems pretty solid
+        pwm_frequency=30
         self.pwm=GPIO.PWM(self.motorpinen, pwm_frequency)
 
     def stop(self):
@@ -165,7 +166,7 @@ class GratbotMotor(GratbotSpimescape):
                 self.go(GratbotMotor.backward,value)
         else:
             raise Exception("No endpoint {}".format(endpoint))
-
+_all_gratbot_spimescapes["GratbotMotor"]=GratbotMotor
 
 class GratbotIRSensor(GratbotSpimescape):
     def __init__(self,datastruct):
