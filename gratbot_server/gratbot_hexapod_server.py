@@ -1,5 +1,6 @@
 #A server that allows the bot to be controlled over tcp
-import SocketServer
+#import SocketServer
+import socketserver
 import yaml
 import time
 import logging
