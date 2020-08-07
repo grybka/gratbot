@@ -17,6 +17,7 @@ class GratbotComms:
         self.intentions={} # intentions "SET" or "GET", arguments]
         self.intentions_lock=threading.Lock()
         self.hardware_state={}
+        self.hardware_state_update_time={}
         self.hardware_state_lock=threading.Lock()
 
         #start the thread
@@ -40,6 +41,7 @@ class GratbotComms:
                     if command=="GET":
                         self.hardware_state_lock.acquire()
                         self.hardware_state[endpoint]=response["response"]
+                        self.hardware_state_update_time[endpoint]=time.time()
                         self.hardware_state_lock.release()
             except Exception as err:
                 logging.warning("Exception: {}".format(err))
@@ -62,11 +64,12 @@ class GratbotComms:
         try:
             if endpoint in self.hardware_state:
                 response=self.hardware_state[endpoint]
+                update_time=self.hardware_state_update_time[endpoint]
         except Exception as e:
             logging.warning("Exception in get state {}".format(e))
         finally:
             self.hardware_state_lock.release()
-        return response
+        return response,update_time
 
     def stop(self):
         self.should_quit=True
@@ -76,5 +79,3 @@ class GratbotComms:
 
     def __del__(self):
         self.client.disconnect()
-
-

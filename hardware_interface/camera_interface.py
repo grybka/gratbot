@@ -31,6 +31,10 @@ class GratbotCamera(GratbotSpimescape):
       return None
 
     def get(self, endpoint):
-      return None
-      
+        if endpoint=="image":
+            image=self.acquire_image()
+            _,encoded=cv2.imencode('.png',image)
+            return base64.b64encode(encoded)
+        raise Exception("unknown camera endpoint {}".format(endpoint))
+
 _all_gratbot_spimescapes["Camera"]=GratbotCamera
