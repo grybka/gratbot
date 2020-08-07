@@ -8,6 +8,7 @@ import cv2
 
 sys.path.append('../hardware_interface')
 import hardware
+import camera_interface
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)

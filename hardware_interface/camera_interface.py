@@ -17,13 +17,13 @@ class GratbotCamera(GratbotSpimescape):
     def __init__(self, datastruct, hardware):
       self.camera=PiCamera()
       self.resolution=(640,480)
-      camera.resolution=(self.resolution[0],self.resolution[1])
-      camera.framerate=24
-      camera.start_preview()
+      self.camera.resolution=(self.resolution[0],self.resolution[1])
+      self.camera.framerate=24
+      self.camera.start_preview()
 
     def acquire_image(self):
       image=np.empty((self.resolution[0]*self.resolution[1]*3),dtype=np.uint8)
-      camera.capture(image,'bgr')
+      self.camera.capture(image,'bgr')
       image=image.reshape((self.resolution[1],self.resolution[0],3))
       return image
 
