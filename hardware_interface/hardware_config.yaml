@@ -1,4 +1,6 @@
 hardware:
+    camera:
+        type: Camera
     left_front_led:
         type: GratbotLED
         red_pin:   15
