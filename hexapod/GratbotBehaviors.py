@@ -316,7 +316,7 @@ class FollowThing(GratbotBehavior):
         self.state="wait"
         self.move_duration_seconds=2
         #self.wait_duration_seconds=1
-        self.wait_duration_seconds=0.5
+        self.wait_duration_seconds=0.25
         self.next_action_time=time.time()+self.wait_duration_seconds
         self.video_objects=None
         self.actions=[]
