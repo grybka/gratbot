@@ -18,17 +18,19 @@ class DisplayCamera(GratbotBehavior):
         self.rollstate="forward"
         self.last_roll_timestamp=time.time()
         self.roll_interval=3
+        self.wheel_speed=40.0
+
         return
 
     def act(self):
         if time.time()>self.last_roll_timestamp+self.roll_interval:
             if self.rollstate=="forward":
                 self.last_roll_timestamp=time.time()
-                self.comms.set_intention( ["wheel_motor","speed","SET" ], 0.0 )
+                self.comms.set_intention( ["wheel_motor","speed","SET" ], self.wheel_speed)
                 self.rollstate="backward"
             else:
                 self.last_roll_timestamp=time.time()
-                self.comms.set_intention( ["wheel_motor","speed","SET" ], -0.0 )
+                self.comms.set_intention( ["wheel_motor","speed","SET" ], -self.wheel_speed )
                 self.rollstate="forward"
         if self.onstate=="start":
             #send a request for a new image
@@ -40,7 +42,7 @@ class DisplayCamera(GratbotBehavior):
             image,image_timestamp=self.comms.get_state("camera/image/GET")
             #print("polling: {}".format(image_timestamp))
             if image_timestamp is not None and image_timestamp>self.image_request_timestamp:
-                print("received frame after {} seconds".format(image_timestamp-self.image_request_timestamp))
+                #print("received frame after {} seconds".format(image_timestamp-self.image_request_timestamp))
                 x=bytes(image,encoding='utf-8')
                 x=base64.b64decode(x)
                 x=np.frombuffer(x,dtype=np.uint8)
