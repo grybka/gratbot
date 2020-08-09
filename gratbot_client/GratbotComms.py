@@ -10,7 +10,8 @@ class GratbotComms:
         self.client.connect()
         #TODO download info about the hardware
 
-        self.comms_wait_period=0.1 #in seconds
+        #self.comms_wait_period=0.1 #in seconds
+        self.comms_wait_period=0.05 #in seconds
 
         self.should_quit=False
         #store a bunch of belief data about the state of each thing
@@ -39,12 +40,16 @@ class GratbotComms:
                     response=self.client.send_message(address,command,self.intentions[endpoint])
                     logging.debug("Response: {}".format(response))
                     if command=="GET":
-                        self.hardware_state_lock.acquire()
-                        self.hardware_state[endpoint]=response["response"]
-                        self.hardware_state_update_time[endpoint]=time.time()
-                        self.hardware_state_lock.release()
+                        if "response" in response:
+                            self.hardware_state_lock.acquire()
+                            self.hardware_state[endpoint]=response["response"]
+                            logging.debug("writing to endpoing {}".format(endpoint))
+                            self.hardware_state_update_time[endpoint]=time.time()
+                            self.hardware_state_lock.release()
+                        else:
+                            raise("didnt understand {}".format(response))
             except Exception as err:
-                logging.warning("Exception: {}".format(err))
+                logging.exception("Exception: {}".format(err))
             finally:
                 self.intentions={}
                 self.intentions_lock.release()
@@ -60,6 +65,7 @@ class GratbotComms:
         if isinstance(endpoint,list):
             endpoint='/'.join(endpoint)
         response={}
+        update_time=None
         self.hardware_state_lock.acquire()
         try:
             if endpoint in self.hardware_state:

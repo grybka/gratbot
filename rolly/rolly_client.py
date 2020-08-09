@@ -2,19 +2,19 @@ import sys
 import numpy as np
 import cv2 as cv
 import logging
+import time
 #import cvlib
 #from cvlib.object_detection import draw_bbox
 
-from GratbotVideoConnectionUV4L import GratbotVideoConnectionUV4L
 sys.path.append('../gratbot_client')
 from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
-from rolly_behaviours import DisplayCamera
+from rolly_behaviors import DisplayCamera
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.INFO)
-#    level=logging.DEBUG)
+    #level=logging.DEBUG)
 
 # connect to bot controls
 logging.info("Connecting to Gratbot comms")
@@ -29,7 +29,7 @@ cv.namedWindow("preview")
 cv.moveWindow("preview", 0, 0)
 
 keep_going=True
-on_behavior=DisplayCamera()
+on_behavior=DisplayCamera(gratbot_comms)
 
 def shut_down():
     keep_going=False
@@ -68,12 +68,13 @@ try:
                 keep_going=False
 
 except KeyboardInterrupt:
-    gratbot_comms.set_intention( [ "leg_controller","on_off", "SET" ], 0)
     logging.warning("Keyboard Exception Program Ended, exiting")
 finally:
     on_behavior.shut_down()
-    logging.warning("stopping video")
-    #controller.close()
+    logging.warning("telling motors to stop")
+    gratbot_comms.set_intention( ["wheel_motor","stop","SET" ], 1)
+    logging.warning("watiing for motors to stop")
+    time.sleep(5)
     logging.warning("turning off comms ")
     gratbot_comms.stop()
 logging.warning("all done ")
