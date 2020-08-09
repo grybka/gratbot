@@ -8,7 +8,7 @@ import json
 
 sys.path.append('../hardware_interface')
 import hardware
-import leg_control
+import camera_interface
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
@@ -31,18 +31,18 @@ class GratbotServer(socketserver.StreamRequestHandler):
         #print("{} wrote:".format(self.client_address[0]))
             try:
                 logging.debug("received {}".format(self.data))
-                datastructure=json.loads(self.data)
+                datastructure=json.loads(self.data.decode('utf-8'))
                 logging.debug("interpered as {}".format(json.dumps(datastructure)))
                 if datastructure["command"]=="SET":
                     self.robot[datastructure["address"][0]].set(datastructure["address"][1],datastructure["arguments"])
-                    self.wfile.write(json.dumps({ "response": "OK"})+"\n")
+                    self.wfile.write(bytes(json.dumps({ "response": "OK"})+"\n",encoding='utf-8'))
                 elif datastructure["command"]=="GET":
                     ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
-                    self.wfile.write(json.dumps({ "response": ret})+"\n")
+                    self.wfile.write(bytes(json.dumps({ "response": ret})+"\n",encoding='utf-8'))
                 else:
                     raise Exception("initial token not set or get")
             except Exception as error:
-                logging.error(error)
+                logging.exception(error)
                 error_response={}
                 error_response["error"]="{}".format(error)
                 self.wfile.write((json.dumps(error_response)+"\n").encode())
