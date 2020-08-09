@@ -15,11 +15,12 @@ hardware:
 #set properties:   red, blue, green
     wheel_turn_servo:
         type: GratbotServo
-        min_steps: 280
-        neutral_steps: 370
-        max_steps: 500
+        min_steps: 150
+        neutral_steps: 300
+        max_steps: 450
         scale_ratio: 1
         servo_number: 2
+        max_steps_per_command: 500
 #set properties:   position
     camera_yaw_servo:
         type: GratbotServo

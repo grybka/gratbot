@@ -33,7 +33,10 @@ class GratbotServo(GratbotSpimescape):
         self.scale_ratio=datastruct["scale_ratio"]
         self.servo_number=datastruct["servo_number"]
         self.last_steps = datastruct["neutral_steps"]
-        self.max_step_per_command = 20
+        if "max_steps_per_command" in datastruct:
+            self.max_step_per_command = datastruct["max_steps_per_command"]
+        else:
+            self.max_step_per_command = 20
 
     def setpos_steps(self,steps):
         steps=int(steps)

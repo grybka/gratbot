@@ -19,7 +19,10 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 # connect to bot controls
 logging.info("Connecting to Gratbot comms")
 gratbot_comms = GratbotComms("10.0.0.4", 9999)
+#go got to a good starting state
+gratbot_comms.set_intention( [ "wheel_motor","stop", "SET" ], 1)
 
+gratbot_comms.set_intention( ["wheel_turn_servo","position","SET" ], 0 )
 
 # connect to camera
 cv.namedWindow("preview")
