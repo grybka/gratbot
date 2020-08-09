@@ -135,6 +135,7 @@ class GratbotMotor(GratbotSpimescape):
         self.pwm=GPIO.PWM(self.motorpinen, pwm_frequency)
 
     def stop(self):
+        self.go(GratbotMotor.forward,0)
         GPIO.output(self.motorpin1,GPIO.LOW)
         GPIO.output(self.motorpin2,GPIO.LOW)
         GPIO.output(self.motorpinen,GPIO.LOW)
@@ -157,7 +158,7 @@ class GratbotMotor(GratbotSpimescape):
     def set(self,endpoint,value):
         if endpoint=="stop":
             self.stop()
-        if endpoint=="speed":
+        elif endpoint=="speed":
             if value>=0: #forward
                 if value>100.0:
                     value=100.0
