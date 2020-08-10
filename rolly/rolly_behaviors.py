@@ -23,6 +23,9 @@ class DisplayCamera(GratbotBehavior):
         return
 
     def act(self):
+        self.show_video()
+
+    def show_video(self):
         if time.time()>self.last_roll_timestamp+self.roll_interval:
             if self.rollstate=="forward":
                 self.last_roll_timestamp=time.time()
