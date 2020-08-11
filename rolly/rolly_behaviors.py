@@ -23,9 +23,9 @@ class DisplayCamera(GratbotBehavior):
         return
 
     def act(self):
-        self.show_video()
+        return self.get_image()
 
-    def show_video(self):
+    def roll(self):
         if time.time()>self.last_roll_timestamp+self.roll_interval:
             if self.rollstate=="forward":
                 self.last_roll_timestamp=time.time()
@@ -35,6 +35,10 @@ class DisplayCamera(GratbotBehavior):
                 self.last_roll_timestamp=time.time()
                 self.comms.set_intention( ["wheel_motor","speed","SET" ], -self.wheel_speed )
                 self.rollstate="forward"
+
+    def get_image(self):
+        #returns an image if a new one is available
+        #otherwise none if waiting for one
         if self.onstate=="start":
             #send a request for a new image
             self.image_request_timestamp=time.time()

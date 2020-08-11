@@ -5,6 +5,7 @@ from inputs import devices
 import threading
 import cv2 as cv
 import numpy as np
+import logging
 
 class XBoxControl(DisplayCamera):
     def __init__(self,comms):
@@ -24,7 +25,7 @@ class XBoxControl(DisplayCamera):
         self.thread_should_quit=False
         self.values_lock=threading.Lock()
         self.thread.start()
-        self.max_speed=50
+        self.max_speed=80
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -60,8 +61,14 @@ class XBoxControl(DisplayCamera):
         self.keys=[]
         self.values_lock.release()
         if changed:
+            logging.info("wheel motor speed {}".format(self.max_speed*self.values["ABS_Y"]))
+            logging.info("wheel turn_servo {}".format(self.values["ABS_X"] ))
+            logging.info("camera yaw {}".format(self.values["ABS_RX"] ))
+            logging.info("camera pitch {}".format(self.values["ABS_RY"] ))
             self.comms.set_intention( ["wheel_motor","speed","SET" ], self.max_speed*self.values["ABS_Y"])
-            self.comms.set_intention( ["wheel_turn_servo","position","SET" ], self.values["ABS_X"] )
+            self.comms.set_intention( ["wheel_turn_servo","position","SET" ], -self.values["ABS_X"] )
+            self.comms.set_intention( ["camera_yaw_servo","position","SET" ], -self.values["ABS_RX"] )
+            self.comms.set_intention( ["camera_pitch_servo","position","SET" ], self.values["ABS_RY"] )
             #elif self.control_mode=="camera":
             #    if self.values["ABS_RY"]!=0:
             #        self.comms.set_intention( ["camera_y","position_delta","SET" ], self.values["ABS_RY"]*10)
@@ -80,6 +87,4 @@ class XBoxControl(DisplayCamera):
 
     def act(self):
         self.handle_keys()
-        now=time.time()
-
-        return video_frame
+        return self.get_image()
