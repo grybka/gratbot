@@ -79,12 +79,14 @@ class RollyChase(DisplayCamera):
 
         #if it's left or right, tell the legs to move
         right_size_width=170
-        speed_scale=2.0
+        speed_scale=2.5
         wheel_motion_clip=0.7
         wheel_motion_fb=np.clip(-speed_scale*( 1-right_size_width/wh[0]),-wheel_motion_clip,wheel_motion_clip)
         if abs(wheel_motion_fb)>0.2:
             self.comms.set_intention( ["wheel_motor","speed","SET" ], 100*wheel_motion_fb )
             print("wheel motion {}".format(wheel_motion_fb))
+        else:
+            self.comms.set_intention( ["wheel_motor","stop","SET" ], 1)
 
 
     def act(self):
