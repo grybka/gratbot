@@ -11,6 +11,7 @@ from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
 from rolly_behaviors import DisplayCamera
 from rolly_manualbehavior import XBoxControl
+from rolly_chase import RollyChase
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -24,6 +25,8 @@ gratbot_comms = GratbotComms("10.0.0.4", 9999)
 gratbot_comms.set_intention( [ "wheel_motor","stop", "SET" ], 1)
 
 gratbot_comms.set_intention( ["wheel_turn_servo","position","SET" ], 0 )
+gratbot_comms.set_intention( ["camera_pitch_servo","position","SET" ], 0 )
+gratbot_comms.set_intention( ["camera_yaw_servo","position","SET" ], 0 )
 
 # connect to camera
 cv.namedWindow("preview")
@@ -31,7 +34,8 @@ cv.moveWindow("preview", 0, 0)
 
 keep_going=True
 #on_behavior=DisplayCamera(gratbot_comms)
-on_behavior=XBoxControl(gratbot_comms)
+#on_behavior=XBoxControl(gratbot_comms)
+on_behavior=RollyChase(gratbot_comms)
 
 def shut_down():
     keep_going=False

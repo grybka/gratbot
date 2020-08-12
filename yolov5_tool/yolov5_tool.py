@@ -1,13 +1,14 @@
 import torch.backends.cudnn as cudnn
 import sys
-sys.path.append('C:/Users/grybk/projects/gratbot/hexapod')
-sys.path.append('C:/Users/grybk/projects/gratbot/hexapod/yolov5_tool')
-sys.path.append('C:/Users/grybk/projects/gratbot/hexapod/yolov5_tool/yolov5')
+import cv2 as cv
+#sys.path.append('C:/Users/grybk/projects/gratbot/hexapod')
+sys.path.append('C:/Users/grybk/projects/gratbot/yolov5_tool')
+sys.path.append('C:/Users/grybk/projects/gratbot/yolov5_tool/yolov5')
 
 import numpy as np
-from yolov5_tool.yolov5.models.experimental import *
-from yolov5_tool.yolov5.utils.datasets import *
-from yolov5_tool.yolov5.utils.utils import *
+from yolov5.models.experimental import *
+from yolov5.utils.datasets import *
+from yolov5.utils.utils import *
 
 class yolov5_tool:
     def __init__(self):
@@ -67,3 +68,15 @@ class yolov5_tool:
                         "endy": xyxy[3].item()
                     })
         return video_objects
+
+    def draw_object_bboxes(self,video_frame,video_objects):
+        for i in range(len(video_objects)):
+            startx=video_objects[i]["startx"]
+            starty=video_objects[i]["starty"]
+            endx=video_objects[i]["endx"]
+            endy=video_objects[i]["endy"]
+            confidence=video_objects[i]["confidence"]
+            cv.rectangle(video_frame,(int(startx),int(starty)),(int(endx),int(endy)),(0,255,0),2)
+            text = "{} {:.2f}%".format(video_objects[i]["label"],confidence * 100)
+            Y = int(starty - 10 if starty - 10 > 10 else starty + 10)
+            cv.putText(video_frame, text, (int(startx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
