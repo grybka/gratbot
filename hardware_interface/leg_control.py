@@ -22,7 +22,7 @@ class LegControl(GratbotSpimescape):
         self.right_knee_cadence = datastruct["right_knee_cadence"]
         self.period_seconds = datastruct["period_seconds"]
         self.time_offset = time.time()
-	self.turn_on = False
+        self.turn_on = False
         self.left_speed = 0
         self.right_speed =0
         #self.thread = threading.Thread(target=self._daemon_loop)
@@ -44,7 +44,7 @@ class LegControl(GratbotSpimescape):
 #            	self.update_servo_positions()
 
     def update_loop(self):
-	if self.turn_on:
+        if self.turn_on:
             self.update_servo_positions()
 
 
