@@ -17,6 +17,8 @@ class GratbotSpimescape:
     def expose_endpoints(self,endpoint):
         #return a list of viable get and set endpoints
         return [ [],[] ]
+    def shut_down(self):
+        return
     def update_loop(self): # called for periodic actions
         return
 
@@ -146,11 +148,13 @@ class GratbotMotor(GratbotSpimescape):
             GPIO.output(self.motorpin1, GPIO.HIGH)
             GPIO.output(self.motorpin2, GPIO.LOW)
             self.pwm.start(100)
+            time.sleep(0.05)
             self.pwm.ChangeDutyCycle(speed)
         elif direction==GratbotMotor.forward:
             GPIO.output(self.motorpin1, GPIO.LOW)
             GPIO.output(self.motorpin2, GPIO.HIGH)
             self.pwm.start(100)
+            time.sleep(0.05)
             self.pwm.ChangeDutyCycle(speed)
         else:
             raise Exception("invalid direction for motor")

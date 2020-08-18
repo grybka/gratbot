@@ -11,8 +11,8 @@ import hardware
 import camera_interface
 
 root = logging.getLogger()
-root.setLevel(logging.INFO)
-#root.setLevel(logging.DEBUG)
+#root.setLevel(logging.INFO)
+root.setLevel(logging.DEBUG)
 
 #message format
 #in json, all on one line
@@ -74,5 +74,7 @@ if __name__ == "__main__":
         logging.warning("Keyboard Exception Program Ended, exiting")
     finally:
         # return robot to safe state
+        for x in GratbotServer.robot:
+            GratbotServer.robot[x].shut_down()
         if server is not None:
             server.server_close()

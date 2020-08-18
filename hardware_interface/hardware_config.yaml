@@ -18,24 +18,26 @@ hardware:
         min_steps: 150
         neutral_steps: 300
         max_steps: 450
-        scale_ratio: 1
+        scale_ratio: 150
         servo_number: 2
         max_steps_per_command: 500
 #set properties:   position
-    camera_yaw_servo:
-        type: GratbotServo
-        min_steps: 340
-        neutral_steps: 420
-        max_steps: 500
-        scale_ratio: 1
-        servo_number: 0
     camera_pitch_servo:
         type: GratbotServo
-        min_steps: 280
-        neutral_steps: 370
-        max_steps: 510
-        scale_ratio: 1
+        min_steps: 250
+        neutral_steps: 400
+        max_steps: 550
+        scale_ratio: 150
+        servo_number: 0
+        max_steps_per_command: 100
+    camera_yaw_servo:
+        type: GratbotServo
+        min_steps: 100
+        neutral_steps: 300
+        max_steps: 500
+        scale_ratio: 200
         servo_number: 1
+        max_steps_per_command: 100
     wheel_motor:
 #set properties:   motion +1,0,-1  ,  speed (0 to 100)
         type: GratbotMotor

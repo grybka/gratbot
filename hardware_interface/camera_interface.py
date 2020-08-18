@@ -22,6 +22,7 @@ class GratbotCamera(GratbotSpimescape):
       self.camera.start_preview()
       self.last_image=None
       self.last_image_encoded=None
+      self.last_image_timestamp=0
       self.fps_timer=0
       self.fps_reporting=10
       self.wait_time=0.01
@@ -33,6 +34,10 @@ class GratbotCamera(GratbotSpimescape):
       self.thread_should_quit = False
       self.thread.start()
 
+    def shut_down(self):
+        self.thread_should_quit=True
+        self.thread.join()
+
     def acquire_image(self):
       image=np.empty((self.resolution[0]*self.resolution[1]*3),dtype=np.uint8)
       #self.camera.capture(image,'bgr')
@@ -41,28 +46,29 @@ class GratbotCamera(GratbotSpimescape):
       return image
 
     def _daemon_loop(self):
-        self.loop_counter+=1
-        #logging.debug("exposure speed {}".format(self.camera.exposure_speed))
-        #logging.debug("framerate {}".format(self.camera.framerate))
-        start_time=time.time()
-        self.fps_timer+=start_time-self.last_image_timestamp
-        if self.loop_counter%self.fps_reporting==0:
-            self.fps=1/self.fps_timer
-            logging.debug("fps: ".format(self.fps))
-            self.fps_timer=0
-        self.last_image=self.acquire_image()
-        stop_time=time.time()
-        logging.debug("acquiring image took {} seconds".format(stop_time-start_time))
-        _,encoded=cv2.imencode('.jpg',image)
-        encoded=encoded.tobytes()
-        x=base64.b64encode(encoded)
-        #stop_time=time.time()
-        self.image_lock.acquire()
-        self.last_image_encoded=x.decode('utf-8')
-        self.last_image_timestamp=start_time
-        self.image_lock.release()
-        logging.debug("acquiring and compressing image took {} seconds".format(time.time()-start_time))
-        time.sleep(self.wait_time)
+        while not self.thread_should_quit:
+            self.loop_counter+=1
+            #logging.debug("exposure speed {}".format(self.camera.exposure_speed))
+            #logging.debug("framerate {}".format(self.camera.framerate))
+            start_time=time.time()
+            self.fps_timer+=start_time-self.last_image_timestamp
+            if self.loop_counter%self.fps_reporting==0:
+                self.fps=self.fps_reporting/self.fps_timer
+                logging.debug("fps: {}".format(self.fps))
+                self.fps_timer=0
+            self.last_image=self.acquire_image()
+            stop_time=time.time()
+            #logging.debug("acquiring image took {} seconds".format(stop_time-start_time))
+            _,encoded=cv2.imencode('.jpg',self.last_image)
+            encoded=encoded.tobytes()
+            x=base64.b64encode(encoded)
+            #stop_time=time.time()
+            self.image_lock.acquire()
+            self.last_image_encoded=x.decode('utf-8')
+            self.last_image_timestamp=start_time
+            self.image_lock.release()
+            #logging.debug("acquiring and compressing image took {} seconds".format(time.time()-start_time))
+            time.sleep(self.wait_time)
 
     def set(self, endpoint, value):
       return None
