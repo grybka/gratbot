@@ -56,11 +56,15 @@ class GratbotCamera(GratbotSpimescape):
                 self.fps=self.fps_reporting/self.fps_timer
                 logging.debug("fps: {}".format(self.fps))
                 self.fps_timer=0
-            self.last_image=self.acquire_image()
+            #self.last_image=self.acquire_image()
+            stream = BytesIO()
+            camera.capture(stream, format='jpeg',use_video_port=True)
+            stream.seek(0)
+            #self.camera.capture(image,'bgr',use_video_port=True)
             stop_time=time.time()
             #logging.debug("acquiring image took {} seconds".format(stop_time-start_time))
-            _,encoded=cv2.imencode('.jpg',self.last_image)
-            encoded=encoded.tobytes()
+            #_,encoded=cv2.imencode('.jpg',self.last_image)
+            #encoded=encoded.tobytes()
             x=base64.b64encode(encoded)
             #stop_time=time.time()
             self.image_lock.acquire()

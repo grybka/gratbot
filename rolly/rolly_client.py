@@ -10,8 +10,8 @@ sys.path.append('../gratbot_client')
 from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
 from rolly_behaviors import DisplayCamera
-from rolly_manualbehavior import XBoxControl
-from rolly_chase import RollyChase
+#from rolly_manualbehavior import XBoxControl
+#from rolly_chase import RollyChase
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -33,9 +33,9 @@ cv.namedWindow("preview")
 cv.moveWindow("preview", 0, 0)
 
 keep_going=True
-#on_behavior=DisplayCamera(gratbot_comms)
+on_behavior=DisplayCamera(gratbot_comms)
 #on_behavior=XBoxControl(gratbot_comms)
-on_behavior=RollyChase(gratbot_comms)
+#on_behavior=RollyChase(gratbot_comms)
 
 def shut_down():
     keep_going=False
