@@ -26,6 +26,7 @@ class XBoxControl(DisplayCamera):
         self.values_lock=threading.Lock()
         self.thread.start()
         self.max_speed=80
+        self.controller_dead_zone=0.3*self.gamepad_max_val
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -38,9 +39,16 @@ class XBoxControl(DisplayCamera):
             for event in events:
                 if event.ev_type=="Absolute":
                     if event.code in self.ok_keys:
-                        self.new_values[event.code]=2*round(event.state/(2*self.gamepad_max_val),1)
-                        #print("{} set to {}".format(event.code,self.new_values[event.code]))
-                        #print("old value {} {}".format(event.code,self.values[event.code]))
+                        if abs(event.state)<self.controller_dead_zone:
+                            continue
+                        x=0
+                        if event.state>0:
+                            x=round((event.state-self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
+                        else:
+                            x=round((event.state+self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
+                        self.new_values[event.code]=x
+                        print("{} set to {}".format(event.code,self.new_values[event.code]))
+                        print("old value {} {}".format(event.code,self.values[event.code]))
                 if event.ev_type=="Key" and event.state==0:
                     self.keys.append(event.code)
             self.values_lock.release()
