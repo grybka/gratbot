@@ -176,6 +176,53 @@ class GratbotMotor(GratbotSpimescape):
             raise Exception("No endpoint {}".format(endpoint))
 _all_gratbot_spimescapes["GratbotMotor"]=GratbotMotor
 
+class GratbotMecanumDrive(GratbotSpimescape):
+    def __init__(self,datastruct,hardware):
+        self.kit=Motorkit(i2c=board.I2C())
+        self.fl_motor=self.get_kit_motor(datastruct["fl_motor"])
+        self.fl_motor_sign=np.sign(datastruct["fl_motor"])
+        self.fr_motor=self.get_kit_motor(datastruct["fr_motor"])
+        self.fr_motor_sign=np.sign(datastruct["fr_motor"])
+        self.bl_motor=self.get_kit_motor(datastruct["bl_motor"])
+        self.bl_motor_sign=np.sign(datastruct["bl_motor"])
+        self.br_motor=self.get_kit_motor(datastruct["br_motor"])
+        self.br_motor_sign=np.sign(datastruct["br_motor"])
+
+
+    def get_kit_motor(self,integer):
+        if abs(integer)==1:
+            return self.kit.motor1
+        if abs(integer)==2:
+            return self.kit.motor2
+        if abs(integer)==3:
+            return self.kit.motor3
+        if abs(integer)==4:
+            return self.kit.motor4
+        raise Exception("Unknown motor {}".format(integer))
+
+    def drive_motors(motor_matrix):
+        self.fl_motor.throttle=self.fl_motor_sign*motor_matrix[0][0]
+        self.fr_motor.throttle=self.fr_motor_sign*motor_matrix[0][1]
+        self.bl_motor.throttle=self.bl_motor_sign*motor_matrix[1][0]
+        self.br_motor.throttle=self.br_motor_sign*motor_matrix[1][1]
+
+    def set(self,endpoint,value):
+        if endpoint=="stop":
+            kit.motor1.throttle=0
+            kit.motor2.throttle=0
+            kit.motor3.throttle=0
+            kit.motor4.throttle=0
+        elif endpoint[0:5]=="translate":
+            updown=np.array([[1,1],[1,1]])
+            leftright=np.array([1,-1],[-1,1])
+            sum_matrix=updown*value[0]+leftright*value[1]
+            #normalize
+            sum_matrix=sum_matrix/np.max(abs(sum_matrix))
+            self.drive_motors(sum_matrix)
+        else:
+            raise Exception("No endpoint {}".format(endpoint))
+_all_gratbot_spimescapes["GratbotMecanumDrive"]=GratbotMecanumDrive
+
 class GratbotIRSensor(GratbotSpimescape):
     def __init__(self,datastruct):
         self.my_pin=datastruct["pin"]

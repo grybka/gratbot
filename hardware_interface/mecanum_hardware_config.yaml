@@ -1,0 +1,9 @@
+hardware:
+    camera:
+        type: Camera
+    drive:
+        type: GratbotMecanumDrive
+        fl_motor: 1
+        fr_motor: 2
+        bl_motor: 3
+        br_motor: 4
