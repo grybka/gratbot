@@ -80,7 +80,7 @@ class LegControl(GratbotSpimescape):
         if endpoint == "right_speed":
             self.set_right_speed(value)
             return
-	if endpoint == "on_off":
+        if endpoint == "on_off":
             if value:
                 self.turn_on=True
             else:
