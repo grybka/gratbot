@@ -219,6 +219,18 @@ class GratbotMecanumDrive(GratbotSpimescape):
             #normalize
             sum_matrix=sum_matrix/np.max(abs(sum_matrix))
             self.drive_motors(sum_matrix)
+        elif endpoint=="front_left":
+            value=np.clip(-1,1)
+            self.fl_motor.throttle=float(value)
+        elif endpoint=="front_right":
+            value=np.clip(-1,1)
+            self.fr_motor.throttle=float(value)
+        elif endpoint=="back_right":
+            value=np.clip(-1,1)
+            self.br_motor.throttle=float(value)
+        elif endpoint=="back_left":
+            value=np.clip(-1,1)
+            self.bl_motor.throttle=float(value)
         else:
             raise Exception("No endpoint {}".format(endpoint))
 _all_gratbot_spimescapes["GratbotMecanumDrive"]=GratbotMecanumDrive
