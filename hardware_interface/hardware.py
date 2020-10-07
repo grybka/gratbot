@@ -6,6 +6,9 @@ import time
 import math
 import threading
 import numpy
+import board
+from adafruit_motorkit import MotorKit
+import numpy as np
 
 _all_gratbot_spimescapes={}
 
@@ -178,7 +181,8 @@ _all_gratbot_spimescapes["GratbotMotor"]=GratbotMotor
 
 class GratbotMecanumDrive(GratbotSpimescape):
     def __init__(self,datastruct,hardware):
-        self.kit=Motorkit(i2c=board.I2C())
+        self.kit=MotorKit(i2c=board.I2C())
+        self.kit._pca.frequency=100
         self.fl_motor=self.get_kit_motor(datastruct["fl_motor"])
         self.fl_motor_sign=np.sign(datastruct["fl_motor"])
         self.fr_motor=self.get_kit_motor(datastruct["fr_motor"])
@@ -200,7 +204,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
             return self.kit.motor4
         raise Exception("Unknown motor {}".format(integer))
 
-    def drive_motors(motor_matrix):
+    def drive_motors(self,motor_matrix):
         self.fl_motor.throttle=self.fl_motor_sign*motor_matrix[0][0]
         self.fr_motor.throttle=self.fr_motor_sign*motor_matrix[0][1]
         self.bl_motor.throttle=self.bl_motor_sign*motor_matrix[1][0]
@@ -212,25 +216,26 @@ class GratbotMecanumDrive(GratbotSpimescape):
             kit.motor2.throttle=0
             kit.motor3.throttle=0
             kit.motor4.throttle=0
-        elif endpoint[0:5]=="translate":
+        elif endpoint=="translate":
             updown=np.array([[1,1],[1,1]])
-            leftright=np.array([1,-1],[-1,1])
-            sum_matrix=updown*value[0]+leftright*value[1]
+            leftright=np.array([[1,-1],[-1,1]])
+            turn_matrix=np.array([[-1,1],[-1,1]])
+            sum_matrix=updown*value[0]+leftright*value[1]+turn_matrix*value[2]
             #normalize
-            sum_matrix=sum_matrix/np.max(abs(sum_matrix))
+            sum_matrix=sum_matrix/max(np.max(abs(sum_matrix)),1.0)
             self.drive_motors(sum_matrix)
         elif endpoint=="front_left":
-            value=np.clip(-1,1)
-            self.fl_motor.throttle=float(value)
+            value=np.clip(value,-1,1)
+            self.fl_motor.throttle=float(value)*self.fl_motor_sign
         elif endpoint=="front_right":
-            value=np.clip(-1,1)
-            self.fr_motor.throttle=float(value)
+            value=np.clip(value,-1,1)
+            self.fr_motor.throttle=float(value)*self.fr_motor_sign
         elif endpoint=="back_right":
-            value=np.clip(-1,1)
-            self.br_motor.throttle=float(value)
+            value=np.clip(value,-1,1)
+            self.br_motor.throttle=float(value)*self.br_motor_sign
         elif endpoint=="back_left":
-            value=np.clip(-1,1)
-            self.bl_motor.throttle=float(value)
+            value=np.clip(value,-1,1)
+            self.bl_motor.throttle=float(value)*self.bl_motor_sign
         else:
             raise Exception("No endpoint {}".format(endpoint))
 _all_gratbot_spimescapes["GratbotMecanumDrive"]=GratbotMecanumDrive
