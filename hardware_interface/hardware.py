@@ -238,6 +238,14 @@ class GratbotMecanumDrive(GratbotSpimescape):
             self.bl_motor.throttle=float(value)*self.bl_motor_sign
         else:
             raise Exception("No endpoint {}".format(endpoint))
+
+    def shut_down(self):
+        self.fl_motor.throttle=0
+        self.fr_motor.throttle=0
+        self.bl_motor.throttle=0
+        self.br_motor.throttle=0
+
+
 _all_gratbot_spimescapes["GratbotMecanumDrive"]=GratbotMecanumDrive
 
 class GratbotIRSensor(GratbotSpimescape):
