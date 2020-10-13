@@ -15,26 +15,13 @@ class DisplayCamera(GratbotBehavior):
     def __init__(self, comms):
         super().__init__(comms)
         self.onstate="start"
-        self.rollstate="forward"
-        self.last_roll_timestamp=time.time()
-        self.roll_interval=3
-        self.wheel_speed=40.0
+        self.record_frame_period=5
+        last_image_timestamp=time.time()
 
         return
 
     def act(self):
         return self.get_image()
-
-    def roll(self):
-        if time.time()>self.last_roll_timestamp+self.roll_interval:
-            if self.rollstate=="forward":
-                self.last_roll_timestamp=time.time()
-                self.comms.set_intention( ["wheel_motor","speed","SET" ], self.wheel_speed)
-                self.rollstate="backward"
-            else:
-                self.last_roll_timestamp=time.time()
-                self.comms.set_intention( ["wheel_motor","speed","SET" ], -self.wheel_speed )
-                self.rollstate="forward"
 
     def get_image(self):
         #returns an image if a new one is available
@@ -54,6 +41,9 @@ class DisplayCamera(GratbotBehavior):
                 x=base64.b64decode(x)
                 x=np.frombuffer(x,dtype=np.uint8)
                 myframe=cv.imdecode(x,cv.IMREAD_COLOR)
+                #if last_image_timestamp-time.time()>self.record_frame_period:
+                #    cv.imwrite(time.strftime("images/%Y%m%d-%H%M%S.jpg"),myframe)
+                #    record_frame_period=time.time()
                 self.onstate="start"
                 return myframe
         return None

@@ -40,9 +40,8 @@ class XBoxControl(DisplayCamera):
                 if event.ev_type=="Absolute":
                     if event.code in self.ok_keys:
                         if abs(event.state)<self.controller_dead_zone:
-                            continue
-                        x=0
-                        if event.state>0:
+                            x=0
+                        elif event.state>0:
                             x=round((event.state-self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
                         else:
                             x=round((event.state+self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
@@ -59,23 +58,27 @@ class XBoxControl(DisplayCamera):
         self.thread.join()
 
     def handle_keys(self):
+        changed={}
         self.values_lock.acquire()
-        changed=False
         for key in self.ok_keys:
+            changed[key]=False
             if self.new_values[key]!=self.values[key]:
-                changed=True
+                changed[key]=True
                 self.values[key]=self.new_values[key]
         pressed_keys=np.unique(self.keys)
         self.keys=[]
         self.values_lock.release()
-        if changed:
+        if changed["ABS_Y"]:
             logging.info("wheel motor speed {}".format(self.max_speed*self.values["ABS_Y"]))
-            logging.info("wheel turn_servo {}".format(self.values["ABS_X"] ))
-            logging.info("camera yaw {}".format(self.values["ABS_RX"] ))
-            logging.info("camera pitch {}".format(self.values["ABS_RY"] ))
             self.comms.set_intention( ["wheel_motor","speed","SET" ], self.max_speed*self.values["ABS_Y"])
+        if changed["ABS_X"]:
+            logging.info("wheel turn_servo {}".format(self.values["ABS_X"] ))
             self.comms.set_intention( ["wheel_turn_servo","position","SET" ], -self.values["ABS_X"] )
+        if changed["ABS_RX"]:
+            logging.info("camera yaw {}".format(self.values["ABS_RX"] ))
             self.comms.set_intention( ["camera_yaw_servo","position","SET" ], -self.values["ABS_RX"] )
+        if changed["ABS_RY"]:
+            logging.info("camera pitch {}".format(self.values["ABS_RY"] ))
             self.comms.set_intention( ["camera_pitch_servo","position","SET" ], self.values["ABS_RY"] )
             #elif self.control_mode=="camera":
             #    if self.values["ABS_RY"]!=0:

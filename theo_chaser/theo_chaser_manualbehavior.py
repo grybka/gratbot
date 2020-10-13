@@ -1,4 +1,4 @@
-from rolly_behaviors import DisplayCamera
+from theo_chaser_behaviors import DisplayCamera
 import time
 from inputs import devices
 import threading
@@ -25,7 +25,7 @@ class XBoxControl(DisplayCamera):
         self.values_lock=threading.Lock()
         self.thread.start()
         self.max_speed=80
-        self.controller_dead_zone=0.3*self.gamepad_max_val
+        self.controller_dead_zone=0.2*self.gamepad_max_val
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -38,16 +38,16 @@ class XBoxControl(DisplayCamera):
             for event in events:
                 if event.ev_type=="Absolute":
                     if event.code in self.ok_keys:
-                        if abs(event.state)<self.controller_dead_zone:
-                            continue
                         x=0
-                        if event.state>0:
+                        if abs(event.state)<self.controller_dead_zone:
+                            x=0
+                        elif event.state>0:
                             x=round((event.state-self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
                         else:
                             x=round((event.state+self.controller_dead_zone)/((self.gamepad_max_val-self.controller_dead_zone)),1)
                         self.new_values[event.code]=x
-                        print("{} set to {}".format(event.code,self.new_values[event.code]))
-                        print("old value {} {}".format(event.code,self.values[event.code]))
+                        #print("{} set to {}".format(event.code,self.new_values[event.code]))
+                        #print("old value {} {}".format(event.code,self.values[event.code]))
                 if event.ev_type=="Key" and event.state==0:
                     self.keys.append(event.code)
             self.values_lock.release()
@@ -68,31 +68,9 @@ class XBoxControl(DisplayCamera):
         self.keys=[]
         self.values_lock.release()
         if changed:
-            logging.info("wheel motor speed {}".format(self.max_speed*self.values["ABS_Y"]))
-            logging.info("wheel turn_servo {}".format(self.values["ABS_X"] ))
-            logging.info("camera yaw {}".format(self.values["ABS_RX"] ))
-            logging.info("camera pitch {}".format(self.values["ABS_RY"] ))
-            translation=[ self.values["ABS_RX"] , self.values["ABS_RY"], self.values["ABS_X"] ]
+            translation=[ self.values["ABS_RY"] , self.values["ABS_RX"], -self.values["ABS_X"] ]
+            logging.info("Sending [{},{},{}]".format(translation[0],translation[1],translation[2]))
             self.comms.set_intention( ["drive","translate","SET"],translation)
-            #self.comms.set_intention( ["wheel_motor","speed","SET" ], self.max_speed*self.values["ABS_Y"])
-            #self.comms.set_intention( ["wheel_turn_servo","position","SET" ], -self.values["ABS_X"] )
-            #self.comms.set_intention( ["camera_yaw_servo","position","SET" ], -self.values["ABS_RX"] )
-            #self.comms.set_intention( ["camera_pitch_servo","position","SET" ], self.values["ABS_RY"] )
-            #elif self.control_mode=="camera":
-            #    if self.values["ABS_RY"]!=0:
-            #        self.comms.set_intention( ["camera_y","position_delta","SET" ], self.values["ABS_RY"]*10)
-            #    if self.values["ABS_RX"]!=0:
-            #        self.comms.set_intention( ["camera_x","position_delta","SET" ], self.values["ABS_RX"]*10)
-#        for key in pressed_keys:
-#            if key=="BTN_SOUTH":
-#                cv.imwrite(time.strftime("%Y%m%d-%H%M%S.jpg"),video_frame)
-#                print("saved!")
-#            if key=="BTN_NORTH":
-#                print("camera mode")
-#                self.control_mode="camera"
-#            if key=="BTN_EAST":
-#                print("leg mode")
-#                self.control_mode="legs"
 
     def act(self):
         self.handle_keys()

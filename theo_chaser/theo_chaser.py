@@ -10,7 +10,7 @@ import time
 sys.path.append('../gratbot_client')
 from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
-from theo_chaser_manualbehavior impurt XBoxControl
+from theo_chaser_manualbehavior import XBoxControl
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -71,8 +71,7 @@ except KeyboardInterrupt:
 finally:
     on_behavior.shut_down()
     logging.warning("telling motors to stop")
-    gratbot_comms.set_intention( ["wheel_motor","stop","SET" ], 1)
-    logging.warning("watiing for motors to stop")
+    gratbot_comms.set_intention(["drive", "translate", "SET"], [0, 0, 0])
     time.sleep(5)
     logging.warning("turning off comms ")
     gratbot_comms.stop()
