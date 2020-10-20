@@ -1,4 +1,5 @@
 from theo_chaser_behaviors import DisplayCamera
+from theo_chaser_object_tagger import Theo_Chaser_Object_Tagger
 import time
 from inputs import devices
 import threading
@@ -26,6 +27,8 @@ class XBoxControl(DisplayCamera):
         self.thread.start()
         self.max_speed=80
         self.controller_dead_zone=0.2*self.gamepad_max_val
+        self.tagger=Theo_Chaser_Object_Tagger()
+
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -74,4 +77,8 @@ class XBoxControl(DisplayCamera):
 
     def act(self):
         self.handle_keys()
-        return self.get_image()
+        ret=self.get_image()
+        if ret is not None:
+            return self.tagger.draw_bboxes(ret)
+        return None
+        #return self.get_image()

@@ -191,7 +191,16 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.bl_motor_sign=np.sign(datastruct["bl_motor"])
         self.br_motor=self.get_kit_motor(datastruct["br_motor"])
         self.br_motor_sign=np.sign(datastruct["br_motor"])
+        self.stop_time=0
 
+    def update_loop(self):
+        if self.stop_time!=0:
+            if time.time()>self.stop_time:
+                self.fl_motor.throttle=0
+                self.fr_motor.throttle=0
+                self.bl_motor.throttle=0
+                self.br_motor.throttle=0
+                self.stop_time=0
 
     def get_kit_motor(self,integer):
         if abs(integer)==1:
@@ -221,6 +230,11 @@ class GratbotMecanumDrive(GratbotSpimescape):
             leftright=np.array([[1,-1],[-1,1]])
             turn_matrix=np.array([[-1,1],[-1,1]])
             sum_matrix=updown*value[0]+leftright*value[1]+turn_matrix*value[2]
+            if len(value)>3:
+                self.stop_time=time.time()+value[3]
+            else:
+                self.stop_time=0
+
             #normalize
             sum_matrix=sum_matrix/max(np.max(abs(sum_matrix)),1.0)
             self.drive_motors(sum_matrix)

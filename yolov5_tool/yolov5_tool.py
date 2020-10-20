@@ -8,18 +8,23 @@ sys.path.append('C:/Users/grybk/projects/gratbot/yolov5_tool/yolov5')
 import numpy as np
 from yolov5.models.experimental import *
 from yolov5.utils.datasets import *
-from yolov5.utils.utils import *
+from yolov5.utils.torch_utils import *
+from yolov5.utils.general import *
+import logging
 
 class yolov5_tool:
     def __init__(self):
-        self.classes=["purple_ball","box"]
+        #self.classes=["purple_ball","box"]
+        self.classes=[]
+        self.initialized=False
         return
 
     def initialize(self,weight_path):
         self.device=''
         self.imgsz=640
         # Initialize
-        self.device = torch_utils.select_device(self.device)
+        #self.device = torch_utils.select_device(self.device)
+        self.device = select_device(self.device)
         self.half = self.device.type != 'cpu'
         # Load Model
         self.model=torch.load(weight_path,map_location=self.device)['model'].float().fuse().eval()
@@ -29,6 +34,11 @@ class yolov5_tool:
 
         img = torch.zeros((1,3,self.imgsz,self.imgsz),device=self.device)
         _ = self.model(img.half() if self.half else img) if self.device.type!= 'cpu' else None
+
+        #get clas names
+        self.classes=self.model.module.names if hasattr(self.model,'module') else self.model.names
+        print("classis is {}".format(self.classes))
+        self.initialized=True
 
     def detect(self,img):
         #prep image
@@ -44,10 +54,10 @@ class yolov5_tool:
         augment=True
         pred=self.model(img,augment=True)[0]
         # Apply NMS
-        #conf_thres=0.4
-        conf_thres=0.1
-        #iou_thres=0.5
-        iou_thres=0.1
+        conf_thres=0.4
+        #conf_thres=0.1
+        iou_thres=0.5
+        #iou_thres=0.1
         agnostic=True
         classes=[]
 
@@ -70,6 +80,7 @@ class yolov5_tool:
         return video_objects
 
     def draw_object_bboxes(self,video_frame,video_objects):
+        #logging.info("drawing bboxes")
         for i in range(len(video_objects)):
             startx=video_objects[i]["startx"]
             starty=video_objects[i]["starty"]
