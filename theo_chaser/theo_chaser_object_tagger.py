@@ -2,6 +2,7 @@ import sys
 sys.path.append('../yolov5_tool')
 from yolov5_tool import yolov5_tool
 import logging
+import numpy as np
 
 class Theo_Chaser_Object_Tagger():
     def __init__(self):

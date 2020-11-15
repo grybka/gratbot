@@ -4,6 +4,8 @@ import numpy as np
 import cv2 as cv
 import logging
 import time
+import os
+import traceback
 #import cvlib
 #from cvlib.object_detection import draw_bbox
 
@@ -11,6 +13,7 @@ sys.path.append('../gratbot_client')
 from GratbotComms import GratbotComms
 from GratbotClient import GratbotClient
 from theo_chaser_manualbehavior import XBoxControl
+from theo_chaser_chase import Theo_Chaser_Chase
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -27,7 +30,8 @@ cv.moveWindow("preview", 0, 0)
 
 keep_going=True
 #on_behavior=DisplayCamera(gratbot_comms)
-on_behavior=XBoxControl(gratbot_comms)
+#on_behavior=XBoxControl(gratbot_comms)
+on_behavior=Theo_Chaser_Chase(gratbot_comms)
 #on_behavior=RollyChase(gratbot_comms)
 
 def shut_down():
@@ -68,6 +72,12 @@ try:
 
 except KeyboardInterrupt:
     logging.warning("Keyboard Exception Program Ended, exiting")
+except Exception as e:
+    print("Exception: {}".format(e))
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    print(exc_type, fname, exc_tb.tb_lineno)
+    traceback.print_exc(file=sys.stdout)
 finally:
     on_behavior.shut_down()
     logging.warning("telling motors to stop")
