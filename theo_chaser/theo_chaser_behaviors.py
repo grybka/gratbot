@@ -16,7 +16,7 @@ class DisplayCamera(GratbotBehavior):
         super().__init__(comms)
         self.onstate="start"
         self.record_frame_period=5
-        last_image_timestamp=time.time()
+        self.last_image_timestamp=time.time()
 
         return
 
@@ -37,6 +37,7 @@ class DisplayCamera(GratbotBehavior):
             #print("polling: {}".format(image_timestamp))
             if image_timestamp is not None and image_timestamp>self.image_request_timestamp:
                 #print("received frame after {} seconds".format(image_timestamp-self.image_request_timestamp))
+                self.last_image_timestamp=image_timestamp
                 x=bytes(image,encoding='utf-8')
                 x=base64.b64decode(x)
                 x=np.frombuffer(x,dtype=np.uint8)
@@ -47,3 +48,6 @@ class DisplayCamera(GratbotBehavior):
                 self.onstate="start"
                 return myframe
         return None
+
+    def get_image_timestamp(self):
+        return self.last_image_timestamp

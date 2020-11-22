@@ -1,3 +1,5 @@
+#behavior to follow person
+
 from theo_chaser_behaviors import DisplayCamera
 from theo_chaser_object_tagger import Theo_Chaser_Object_Tagger
 import time
@@ -6,10 +8,8 @@ import threading
 import cv2 as cv
 import numpy as np
 import logging
-from tape_finder import process_img_to_find_tape
-from tape_finder import process_img_to_highlight_tape
 
-class XBoxControl(DisplayCamera):
+class Theo_Chaser_Chase(DisplayCamera):
     def __init__(self,comms):
         super().__init__(comms)
         self.gamepad=devices.gamepads[0]
@@ -30,8 +30,6 @@ class XBoxControl(DisplayCamera):
         self.max_speed=80
         self.controller_dead_zone=0.2*self.gamepad_max_val
         self.tagger=Theo_Chaser_Object_Tagger()
-        #self.image_mode="uvl" #as opposed to image_tagger
-        self.image_mode="tape" #as opposed to image_tagger
 
 
     def _daemon_loop(self):
@@ -78,47 +76,43 @@ class XBoxControl(DisplayCamera):
             translation=[ self.values["ABS_RY"] , self.values["ABS_RX"], -self.values["ABS_X"] ]
             logging.info("Sending [{},{},{}]".format(translation[0],translation[1],translation[2]))
             self.comms.set_intention( ["drive","translate","SET"],translation)
-        for key in pressed_keys:
-            if key=="BTN_SOUTH":
-                print("changing mode")
-                print("was {} now ...".format(self.image_mode))
-                if self.image_mode=='uvl':
-                    print("tape")
-                    self.image_mode='tape'
-                elif self.image_mode=='tape':
-                    print("uvl")
-                    self.image_mode='uvl'
-        #    if key=="BTN_NORTH":
-        #    if key=="BTN_EAST":
+
+    def follow_objects(self,video_objects):
+        ret_objects=[]
+        for x in video_objects:
+            if x["label"] != "person" or x["confidence"]<0.5:
+                continue
+            pos,wh=self.tagger.get_obj_loc_width(x)
+            target_width=0.6
+            pixel_to_turn=-0.8
+            #TODO this has trouble follwing me because it hits the bottom of the usable speed
+
+            width_to_fb=3.0
+            print("chasing {} at {} wh {}".format(x["label"],pos,wh))
+            time_scale=0.1
+            translation=[ width_to_fb*(target_width-wh[0]), 0, pixel_to_turn*pos[0],time_scale ]
+            if np.max(np.abs(translation))<0.8:
+                my_scale=0.8/np.max(np.abs(translation))
+                translation[0]=translation[0]*my_scale
+                translation[1]=translation[1]*my_scale
+                translation[2]=translation[2]*my_scale
+                time_scale=time_scale/my_scale
+                translation[3]=time_scale
+
+            #translation[0]=0 #no fb
+            print("translaation {}".format(translation))
+            self.comms.set_intention( ["drive","translate","SET"],translation)
+            ret_objects.append(x)
+
+            break
+        return ret_objects
 
     def act(self):
         self.handle_keys()
         ret=self.get_image()
         if ret is not None:
-            if self.image_mode=='image_tagger':
-                return self.tagger.draw_bboxes(ret)
-            if self.image_mode=='uvl':
-                converted=cv.cvtColor(ret, cv.COLOR_BGR2HSV)
-                xtarget=320
-                ytarget=240+120
-                text="({})".format(converted[ytarget][xtarget])
-                converted=cv.line(converted,(xtarget-10,ytarget),(xtarget+10,ytarget),(255,255,255),1)
-                converted=cv.line(converted,(xtarget,ytarget-10),(xtarget,ytarget+10),(255,255,255),1)
-                # font
-                font = cv.FONT_HERSHEY_SIMPLEX
-                # fontScale
-                fontScale = 1
-                color = (255, 255, 255) # (10,50,110)
-                thickness = 2
-                converted=cv.putText(converted,text,(320,240),font,fontScale,color,thickness,cv.LINE_AA)
-                return converted
-            if self.image_mode=='tape':
-                #fit=process_img_to_find_tape(ret)
-                fit=process_img_to_highlight_tape(ret)
-                if fit is not None:
-                    b=fit.intercept
-                    m=fit.slope
-                    cv.line(ret, (int(b+m*240), 240), (int(b+m*480), 480),(255,255,255), 3, cv.LINE_AA)
-                return ret
+            video_objects=self.tagger.tag_objects(ret)
+            self.follow_objects(video_objects)
+            return self.tagger.draw_bboxes(ret,video_objects)
         return None
         #return self.get_image()
