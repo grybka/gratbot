@@ -39,29 +39,34 @@ class Theo_Chaser_Line_Follower(DisplayCamera):
         self.last_action_timestamp=time.time()
         self.start_time=time.time()
         self.spasm_mode="none"
-        self.skew_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
-        self.skew_bm_pred_model=nn.Linear(3,2)
-        self.turn_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
-        self.turn_bm_pred_model=nn.Linear(3,2)
-        self.fb_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
-        self.fb_bm_pred_model=nn.Sequential(nn.Linear(3,3),nn.Sigmoid(),nn.Linear(3,2))
+        self.utility_model=nn.Sequential(nn.Linear(5,5),nn.Sigmoid(),nn.Linear(5,3),nn.Sigmoid(),nn.Linear(3,1))
+        PATH="line_utility_model.pt"
+        self.utility_model.load_state_dict(torch.load(PATH))
+        self.standing_translation=None
 
-        modelfile=torch.load("motion_pred.pt")
+        #self.skew_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
+    #    self.skew_bm_pred_model=nn.Linear(3,2)
+#        self.turn_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
+#        self.turn_bm_pred_model=nn.Linear(3,2)
+#        self.fb_act_pred_model=nn.Sequential(nn.Linear(4,4),nn.Sigmoid(),nn.Linear(4,1))
+#        self.fb_bm_pred_model=nn.Sequential(nn.Linear(3,3),nn.Sigmoid(),nn.Linear(3,2))
+
+#        modelfile=torch.load("motion_pred.pt")
 
         #action prediction models.  Given [ db/100, dm, m, b/100] prection [ 10*action_scale ]
         #future prediction models   Given [ b/100, m, 10*action_scale] predect next [ b/100, m]
-        self.skew_act_pred_model.load_state_dict(modelfile["skew_act_pred_model"])
-        self.turn_act_pred_model.load_state_dict(modelfile["turn_act_pred_model"])
-        self.fb_act_pred_model.load_state_dict(modelfile["fb_act_pred_model"])
-        self.skew_bm_pred_model.load_state_dict(modelfile["skew_bm_pred_model"])
-        self.turn_bm_pred_model.load_state_dict(modelfile["turn_bm_pred_model"])
-        self.fb_bm_pred_model.load_state_dict(modelfile["fb_bm_pred_model"])
-        self.skew_act_pred_model.eval()
-        self.turn_act_pred_model.eval()
-        self.fb_act_pred_model.eval()
-        self.skew_bm_pred_model.eval()
-        self.turn_bm_pred_model.eval()
-        self.fb_bm_pred_model.eval()
+#        self.skew_act_pred_model.load_state_dict(modelfile["skew_act_pred_model"])
+#        self.turn_act_pred_model.load_state_dict(modelfile["turn_act_pred_model"])
+#        self.fb_act_pred_model.load_state_dict(modelfile["fb_act_pred_model"])
+#        self.skew_bm_pred_model.load_state_dict(modelfile["skew_bm_pred_model"])
+#        self.turn_bm_pred_model.load_state_dict(modelfile["turn_bm_pred_model"])
+#        self.fb_bm_pred_model.load_state_dict(modelfile["fb_bm_pred_model"])
+#        self.skew_act_pred_model.eval()
+#        self.turn_act_pred_model.eval()
+#        self.fb_act_pred_model.eval()
+#        self.skew_bm_pred_model.eval()
+#        self.turn_bm_pred_model.eval()
+#        self.fb_bm_pred_model.eval()
 
     def _daemon_loop(self):
         while not self.thread_should_quit:
@@ -103,20 +108,26 @@ class Theo_Chaser_Line_Follower(DisplayCamera):
         pressed_keys=np.unique(self.keys)
         self.keys=[]
         self.values_lock.release()
+        translation=None
         if changed:
-            translation=[ self.values["ABS_RY"] , self.values["ABS_RX"], -self.values["ABS_X"] ]
+            speed_scale=0.5
+            translation=[ speed_scale*self.values["ABS_RY"] , speed_scale*self.values["ABS_RX"], -speed_scale*self.values["ABS_X"] ]
             logging.info("Sending [{},{},{}]".format(translation[0],translation[1],translation[2]))
-            self.comms.set_intention( ["drive","translate","SET"],translation)
+            if translation[0]==0 and translation[1]==0 and translation[2]==0:
+                translation=None
+            self.standing_translation=translation
+            #self.comms.set_intention( ["drive","translate","SET"],translation)
         for key in pressed_keys:
             if key=="BTN_SOUTH":
                 self.spasm_mode="none"
             if key=="BTN_EAST":
-                self.spasm_mode="skew"
+                self.spasm_mode="random"
             if key=="BTN_NORTH":
                 #self.spasm_mode="turn"
                 self.spasm_mode="auto"
             if key=="BTN_WEST":
                 self.spasm_mode="forbac"
+        return self.standing_translation
 
     def instinct_followline(self,bottom_b,m):
         time_scale=0.10
@@ -160,64 +171,89 @@ class Theo_Chaser_Line_Follower(DisplayCamera):
             translation=[ 0.5*np.sign(scale), 0,0 ,0.1*abs(scale) ]
             return translation
 
+        if self.spasm_mode=="random":
+            fb=random.choice([-0.9,-0.5,-0.25,0,0.25,0.5,0.9])
+            skew=random.choice([-0.9,-0.5,-0.25,0,0.25,0.5,0.9])
+            turn=random.choice([-0.9,-0.5,-0.25,0,0.25,0.5,0.9])
+            return [fb,skew,turn]
+
         if self.spasm_mode=='auto':
             b=bottom_b
-            print("b is {}, m is {}".format(b,m))
-        #action prediction models.  Given [ db/100, dm, m, b/100] prection [ 10*action_scale ]
-        #future prediction models   Given [ b/100, m, 10*action_scale] predect next [ b/100, m]
-            cur_state=torch.tensor( [-b/100,-m,m,b/100]).float()
-            skew_act=self.skew_act_pred_model(cur_state)
-            print("desired skew {}".format(skew_act.item()/10))
-            clipped_act=np.clip(skew_act.item()/10,-0.5,0.5)
-            print("clipped skew {}".format(clipped_act))
-            for_state=torch.tensor( [b/100,m,10*clipped_act]).float()
-            new_state=self.skew_bm_pred_model(for_state)
-            print("predicted new b,m {}, {}".format(b+new_state[0]*100,m+new_state[1]))
+            my_opts=[-0.9,-0.5,-0.25,0,0.25,0.5,0.9]
+            choices=[]
+            for i in range(len(my_opts)):
+                for j in range(len(my_opts)):
+                    for k in range(len(my_opts)):
+                        choices.append(torch.tensor([b,m,my_opts[i],my_opts[j],my_opts[k]]))
+            x=torch.stack(choices).float()
+            y=self.utility_model(x)
+            #add a desire to go forward
+            for i in range(len(y)):
+                y[i]+=0.1*x[i][2]
+            #probs=np.exp(2.0*(y.detach().numpy()))
+            #norm_probs=probs/np.sum(probs)
+            #norm_probs_z=[ z[0] for z in norm_probs]
+            #print(norm_probs_z)
+            #action_choice=np.random.choice(len(probs),p=norm_probs_z)
+            action_choice=torch.argmax(y)
 
-            scale=skew_act.item()
-            print("scale {}".format(scale))
-            translation=[ 0, 0.5*np.sign(scale),0,0.1*abs(scale)]
-            return translation
-
-
-            turn_act=self.turn_act_pred_model(cur_state)
-            print("desired turn {}".format(turn_act.item()/10))
-            clipped_act=np.clip(turn_act.item()/10,-0.5,0.5)
-            for_state=torch.tensor( [b/100,m,10*turn_act.item()]).float()
-            new_state=self.turn_bm_pred_model(for_state)
-            print("predicted new  for turn b,m {}, {}".format(b+new_state[0]*100,m+new_state[1]))
+            return [x[action_choice][2].item(),x[action_choice][3].item(),x[action_choice][4].item()]
 
         return None
 
+    def interpret_translation(self,translation):
+        time_base=0.1
+        power_cut=0.6
+        min_cut=0.05
+        if(np.max(np.abs(translation))<min_cut):
+            return [0,0,0,time_base]
+        response=[translation[0],translation[1],translation[2],time_base]
+        if(np.max(np.abs(translation))<power_cut):
+            scaling=power_cut/np.max(np.abs(translation))
+            response=[translation[0]*scaling,translation[1]*scaling,translation[2]*scaling,time_base/scaling]
+        return response
 
     def act(self):
-        self.handle_keys()
         ret=self.get_image()
         if ret is not None:
+            translation=self.handle_keys()
             fit=process_img_to_find_tape(ret)
-            min_time_sample=2.0
+            min_time_sample=1.0
+            m=0
+            b=0
             if fit is not None:
-                b=fit.intercept
                 m=fit.slope
-                bottom_b=b+m*480-320
-                cv.line(ret, (int(b+m*240), 240), (int(b+m*480), 480),(255,255,255), 3, cv.LINE_AA)
+                b=((fit.intercept+m*480)-320)/320 #scaled to roughly [-1,1]
+                bottom_b=b #legacy
+
+                cv.line(ret, (int(fit.intercept+m*240), 240), (int(fit.intercept+m*480), 480),(255,255,255), 3, cv.LINE_AA)
                 #record if I had a change
                 f=open("line_follow_log_{}.txt".format(timestr),"a")
                 f.write("{} {} {} \n".format(self.get_image_timestamp()-self.start_time,b,m))
                 f.close()
-                self.last_action=None
-
-                if self.get_image_timestamp()<self.last_action_timestamp+min_time_sample:
-                #print("not ready")
-                    return ret #don't act until last action could have taken
-                translation=self.instinct_spasm(bottom_b,m)
-                if translation==None:
-                    return ret
-                f=open("line_follow_action_log_{}.txt".format(timestr),"a")
-                f.write("{} {} {} {} {}\n".format(time.time()-self.start_time,translation[0],translation[1],translation[2],translation[3]))
+                #self.last_action=None
+                #if self.get_image_timestamp()<self.last_action_timestamp+min_time_sample:
+                #    return ret #don't act until last action could have taken
+                #get an action vector of the form [fb,sideside,turn]
+            else:
+                f=open("line_follow_log_{}.txt".format(timestr),"a")
+                f.write("{} {} {} \n".format(self.get_image_timestamp()-self.start_time,"Nan","Nan"))
                 f.close()
-                self.comms.set_intention( ["drive","translate","SET"],translation)
-                self.last_action_timestamp=time.time()
+            if translation is None:
+                if self.get_image_timestamp()>self.last_action_timestamp+min_time_sample:
+                    print("moving")
+                    translation=self.instinct_spasm(b,m)
+                else:
+                    print("waiting")
+
+
+            if translation==None:
+                return ret
+            f=open("line_follow_action_log_{}.txt".format(timestr),"a")
+            f.write("{} {} {} {}\n".format(time.time()-self.start_time,translation[0],translation[1],translation[2]))
+            f.close()
+            self.comms.set_intention( ["drive","translate","SET"],self.interpret_translation(translation))
+            self.last_action_timestamp=time.time()
             return ret
         return None
         #return self.get_image()

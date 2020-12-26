@@ -31,7 +31,8 @@ class XBoxControl(DisplayCamera):
         self.controller_dead_zone=0.2*self.gamepad_max_val
         self.tagger=Theo_Chaser_Object_Tagger()
         #self.image_mode="uvl" #as opposed to image_tagger
-        self.image_mode="tape" #as opposed to image_tagger
+        #self.image_mode="tape" #as opposed to image_tagger
+        self.image_mode="image_tagger" #as opposed to image_tagger
 
 
     def _daemon_loop(self):
