@@ -266,6 +266,7 @@ class GratbotIRSensor(GratbotSpimescape):
     def __init__(self,datastruct):
         self.my_pin=datastruct["pin"]
         GPIO.setwarnings(False)
+        #GPIO.setmode(GPIO.BOARD)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.my_pin,GPIO.IN)
     def get_status(self):
@@ -305,7 +306,8 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         self.trigger_pin=datastruct["trigger_pin"]
         self.echo_pin=datastruct["echo_pin"]
         self.sound_speed=datastruct["sound_speed"]
-        GPIO.setmode(GPIO.BOARD)
+        #GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.trigger_pin,GPIO.OUT,initial=GPIO.LOW)
         GPIO.setup(self.echo_pin,GPIO.IN)
 
@@ -338,6 +340,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         n_averages=0
         while (time.time()-t1)<time_budget:
             x=self.measure_distance()
+            time.sleep(0.001)
             x_sum+=x
             xx_sum+=x*x
             n_averages+=1
@@ -352,6 +355,9 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         return { "average_distance": avg, "stdev_distance": stdev }
         #avg=self.measure_distance()
         #return {"average_distance": avg}
+
+
+_all_gratbot_spimescapes["GratbotUltrasonicSensor"]=GratbotUltrasonicSensor
 
 def create_hardware_item(datastruct):
     if "type" in datastruct:

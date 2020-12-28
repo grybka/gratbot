@@ -1,6 +1,11 @@
 hardware:
     camera:
         type: Camera
+    ultrasonic_sensor:
+        type: GratbotUltrasonicSensor
+        trigger_pin: 23
+        echo_pin: 24
+        sound_speed: 340
     drive:
         type: GratbotMecanumDrive
         fl_motor: -3
