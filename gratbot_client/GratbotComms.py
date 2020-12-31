@@ -19,6 +19,7 @@ class GratbotComms:
         self.intentions_lock=threading.Lock()
         self.hardware_state={}
         self.hardware_state_update_time={}
+        self.hardware_state_query_time={}
         self.hardware_state_lock=threading.Lock()
 
         #start the thread
