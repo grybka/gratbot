@@ -2,6 +2,13 @@ import time
 import cv2 as cv
 import base64
 import numpy as np
+from GratbotVideoConnectionUV4L import GratbotVideoConnectionUV4L
+import logging
+
+
+logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S',
+    level=logging.INFO)
 
 class GratbotBehavior:
     def __init__(self, comms):
@@ -51,3 +58,35 @@ class DisplayCamera(GratbotBehavior):
 
     def get_image_timestamp(self):
         return self.last_image_timestamp
+
+class DisplayCameraUV4L(GratbotBehavior):
+    def __init__(self, comms):
+        super().__init__(comms)
+        self.onstate="start"
+        self.record_frame_period=5
+        self.last_image_timestamp=time.time()
+
+        logging.info("Connecting to Gratbot video")
+        self.video = GratbotVideoConnectionUV4L("http://10.0.0.4:8080/stream/video.mjpeg")
+        frame_width = self.video.cap.get(cv.CAP_PROP_FRAME_WIDTH)
+        frame_height = self.video.cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+        logging.info("conncected {} x {}".format(frame_width,frame_height))
+        return
+
+    def act(self):
+        return self.get_image()
+
+    def get_image(self):
+        #returns an image if a new one is available
+        #otherwise none if waiting for one
+        myframe,mytime=self.video.read()
+        self.last_image_timestamp=mytime
+        return myframe
+
+    def get_image_timestamp(self):
+        return self.last_image_timestamp
+
+    def shut_down(self):
+        logging.info("stopping video")
+        self.video.stop()
+        logging.info("stopped video")
