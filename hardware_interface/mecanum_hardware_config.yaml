@@ -1,6 +1,6 @@
 hardware:
-    camera:
-        type: Camera
+#   camera:
+#       type: Camera
     ultrasonic_sensor:
         type: GratbotUltrasonicSensor
         trigger_pin: 23

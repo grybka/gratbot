@@ -16,6 +16,7 @@ from theo_chaser_manualbehavior import XBoxControl
 from theo_chaser_chase import Theo_Chaser_Chase
 from theo_chaser_line_follower import Theo_Chaser_Line_Follower
 from theo_chaser_learn_and_track import Theo_Chaser_Learn_And_Track
+from theo_chaser_mapper import Theo_Chaser_Mapper
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -33,7 +34,8 @@ cv.moveWindow("preview", 0, 0)
 keep_going=True
 #on_behavior=DisplayCamera(gratbot_comms)
 #on_behavior=XBoxControl(gratbot_comms)
-on_behavior=Theo_Chaser_Learn_And_Track(gratbot_comms)
+#on_behavior=Theo_Chaser_Learn_And_Track(gratbot_comms)
+on_behavior=Theo_Chaser_Mapper(gratbot_comms)
 #on_behavior=Theo_Chaser_Line_Follower(gratbot_comms)
 #on_behavior=Theo_Chaser_Chase(gratbot_comms)
 #on_behavior=RollyChase(gratbot_comms)

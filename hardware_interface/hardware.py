@@ -310,6 +310,10 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.trigger_pin,GPIO.OUT,initial=GPIO.LOW)
         GPIO.setup(self.echo_pin,GPIO.IN)
+        self.last_avg=0
+        self.last_stdev=0
+        self.last_timestamp=0
+        self.reading_scheduled=False
 
     def measure_distance(self,max_distance=2.0):
         #returns distance in meters
@@ -347,10 +351,27 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
             n_averages+=1
         avg=x_sum/n_averages
         stdev=math.sqrt(xx_sum/n_averages-avg*avg)
+        self.last_avg=avg
+        self.last_stdev=stdev
+        self.last_timestamp=time.time()
         return avg,stdev
+
+
+    def update_loop(self): # called for periodic actions
+        if self.reading_scheduled:
+            time_budget=0.07
+            self.average_distance(time_budget)
+            self.reading_scheduled=False
+        return
+
+    def set(self,endpoint,value):
+        #for now, anything just tells it to take a reading
+        self.reading_scheduled=True
 
     def get(self,endpoint):
         time_budget=0.07
+        if endpoint="last_measurement":
+            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": last_time }
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }
