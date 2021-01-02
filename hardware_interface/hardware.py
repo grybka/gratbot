@@ -302,7 +302,7 @@ class GratbotLEDStrip(GratbotSpimescape):
             time.sleep(wait_ms/1000.0)
 
 class GratbotUltrasonicSensor(GratbotSpimescape):
-    def __init__(self,datastruct):
+    def __init__(self,datastruct,hardware):
         self.trigger_pin=datastruct["trigger_pin"]
         self.echo_pin=datastruct["echo_pin"]
         self.sound_speed=datastruct["sound_speed"]
@@ -340,7 +340,8 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         n_averages=0
         while (time.time()-t1)<time_budget:
             x=self.measure_distance()
-            time.sleep(0.001)
+            #time.sleep(0.001)
+            time.sleep(0.01)
             x_sum+=x
             xx_sum+=x*x
             n_averages+=1
@@ -349,7 +350,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         return avg,stdev
 
     def get(self,endpoint):
-        time_budget=0.05
+        time_budget=0.07
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }

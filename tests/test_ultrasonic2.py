@@ -4,6 +4,7 @@ import yaml
 import logging
 import hardware
 import leg_control
+import time
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
@@ -17,6 +18,7 @@ robot=hardware.create_hardware(config_data["hardware"])
 robot_thread=hardware.GratbotHardwareThread(robot)
 
 while True:
+    a=input("ready?")
     if a=="q":
         break
     time.sleep(1)
