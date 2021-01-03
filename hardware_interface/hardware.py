@@ -339,6 +339,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
 
     def average_distance(self,time_budget):
         #returns average and standard deviation of n_averages distance measurements
+        print("average distance called")
         t1=time.time()
         x_sum=0
         xx_sum=0
@@ -365,6 +366,10 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
             self.average_distance(time_budget)
             self.reading_scheduled=False
         elif self.update_frequency>0:
+            #print("usonic update loop called with freq")
+            #print("{}".format((time.time()-self.last_timestamp)))
+            #print("{}".format(1/self.update_frequency))
+                    
             if (time.time()-self.last_timestamp)>1/self.update_frequency:
                 self.reading_scheduled=True
         return
@@ -373,18 +378,22 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         #for now, anything just tells it to take a reading
         if endpoint=="update_now":
             self.reading_scheduled=True
-        elif endpoint=="update_frequency"
+        elif endpoint=="update_frequency":
+            print("setting update frequency to {}".format(float(value)))
             self.update_frequency=float(value)
 
     def get(self,endpoint):
         time_budget=0.07
-        if endpoint="last_measurement":
-            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": last_time, "n_averages": self.n_averages }
+        print("get called")
+        if endpoint=="last_measurement":
+            "last measurement queried"
+            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": self.last_timestamp, "n_averages": self.n_averages }
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }
         #avg=self.measure_distance()
         #return {"average_distance": avg}
+
 
 
 _all_gratbot_spimescapes["GratbotUltrasonicSensor"]=GratbotUltrasonicSensor
