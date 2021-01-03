@@ -6,9 +6,9 @@ import time
 GPIO.setmode(GPIO.BCM)
 
 #set GPIO Pins
-GPIO_TRIGGER = 18
+GPIO_TRIGGER = 23
 #GPIO_ECHO = 24
-GPIO_ECHO = 23
+GPIO_ECHO = 24
 
 #set GPIO direction (IN / OUT)
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
@@ -17,14 +17,17 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 def distance():
     # set Trigger to HIGH
     GPIO.output(GPIO_TRIGGER, True)
+    print("B")
 
     # set Trigger after 0.01ms to LOW
     time.sleep(0.00001)
     GPIO.output(GPIO_TRIGGER, False)
 
+    print("C")
     StartTime = time.time()
     StopTime = time.time()
 
+    print("D")
     # save StartTime
     while GPIO.input(GPIO_ECHO) == 0:
         StartTime = time.time()
@@ -44,6 +47,7 @@ def distance():
 if __name__ == '__main__':
     try:
         while True:
+            print("A")
             dist = distance()
             print ("Measured Distance = %.1f cm" % dist)
             time.sleep(1)
