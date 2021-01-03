@@ -187,7 +187,8 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
         if changed:
             translation=[ self.values["ABS_RY"] , self.values["ABS_RX"], -self.values["ABS_X"] ]
             logging.info("Sending [{},{},{}]".format(translation[0],translation[1],translation[2]))
-            self.comms.set_intention( ["drive","translate","SET"],translation)
+            #self.comms.set_intention( ["drive","translate","SET"],translation)
+            self.comms.set( ["drive","translate"],translation)
 
     def interpret_translation(self,translation):
         time_base=0.1
@@ -205,7 +206,8 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
         #resp=self.comms.immediate_get(["ultrasonic_sensor","last_measurement"])
 
         #self.comms.set_intention(["ultrasonic_sensor","distance","GET"],None)
-        resp=self.comms.immediate_get(["ultrasonic_sensor","last_measurement"])
+        #resp=self.comms.immediate_get(["ultrasonic_sensor","last_measurement"])
+        resp=self.comms.get_state(["ultrasonic_sensor","last_measurement"])
         print("resp {}".format(resp))
         ret_objects=[]
         for x in video_objects:
@@ -228,13 +230,15 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
             print("translaation {}".format(translation))
             converted=self.interpret_translation(translation)
             print("converted {}".format(converted))
-            self.comms.set_intention( ["drive","translate","SET"],converted)
+            #self.comms.set_intention( ["drive","translate","SET"],converted)
+            self.comms.set_intention( ["drive","translate"],converted)
             ret_objects.append(x)
 
             break
         return ret_objects
 
     def act(self):
+        self.comms.update()
         self.handle_keys()
         ret=self.get_image()
         if self.last_last_image_timestamp==None or self.last_image_timestamp>self.last_last_image_timestamp:

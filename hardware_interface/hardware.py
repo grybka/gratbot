@@ -20,6 +20,8 @@ class GratbotSpimescape:
     def expose_endpoints(self,endpoint):
         #return a list of viable get and set endpoints
         return [ [],[] ]
+    def get_update(self,last_time): #request changes since time as dictionary
+        return {}
     def shut_down(self):
         return
     def update_loop(self): # called for periodic actions
@@ -369,7 +371,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
             #print("usonic update loop called with freq")
             #print("{}".format((time.time()-self.last_timestamp)))
             #print("{}".format(1/self.update_frequency))
-                    
+
             if (time.time()-self.last_timestamp)>1/self.update_frequency:
                 self.reading_scheduled=True
         return
@@ -382,17 +384,26 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
             print("setting update frequency to {}".format(float(value)))
             self.update_frequency=float(value)
 
+    def get_last_measurement(self):
+        return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": self.last_timestamp, "n_averages": self.n_averages }
+
     def get(self,endpoint):
         time_budget=0.07
         print("get called")
         if endpoint=="last_measurement":
             "last measurement queried"
-            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": self.last_timestamp, "n_averages": self.n_averages }
+            return self.get_last_measurement()
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }
         #avg=self.measure_distance()
         #return {"average_distance": avg}
+
+    def get_update(self,last_time): #request changes since time as dictionary
+        ret={}
+        if last_time<self.last_timestamp:
+            ret["last_measurement"]=self.get_last_measurement()
+        return ret
 
 
 
