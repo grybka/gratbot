@@ -140,6 +140,8 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
         self.max_speed=80
         self.controller_dead_zone=0.2*self.gamepad_max_val
         self.tagger=Theo_Chaser_Object_Tagger()
+        self.last_last_image_timestamp=0
+        self.comms.set_intention(["ultrasonic_sensor","update_frequency","SET"],1)
 
 
     def _daemon_loop(self):
@@ -200,6 +202,11 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
         return response
 
     def follow_objects(self,video_objects):
+        #resp=self.comms.immediate_get(["ultrasonic_sensor","last_measurement"])
+
+        #self.comms.set_intention(["ultrasonic_sensor","distance","GET"],None)
+        resp=self.comms.immediate_get(["ultrasonic_sensor","last_measurement"])
+        print("resp {}".format(resp))
         ret_objects=[]
         for x in video_objects:
             if (x["label"] != "sports ball" and x["label"] != "orange") or x["confidence"]<0.5:
@@ -230,6 +237,10 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
     def act(self):
         self.handle_keys()
         ret=self.get_image()
+        if self.last_last_image_timestamp==None or self.last_image_timestamp>self.last_last_image_timestamp:
+            self.last_last_image_timestamp=self.last_image_timestamp
+        else:
+            print("repeat frame!")
         if ret is not None:
             video_objects=self.tagger.tag_objects(ret)
             self.follow_objects(video_objects)

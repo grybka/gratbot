@@ -55,6 +55,11 @@ class GratbotComms:
                 self.intentions={}
                 self.intentions_lock.release()
 
+    def immediate_get(self,endpoint):
+        response=self.client.send_message(endpoint,"GET",0)
+        logging.debug("Response: {}".format(response))
+        return response["response"]
+
     def set_intention(self,endpoint,value):
         if isinstance(endpoint,list):
             endpoint='/'.join(endpoint)
