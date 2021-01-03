@@ -314,10 +314,11 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         self.last_stdev=0
         self.last_timestamp=0
         self.reading_scheduled=False
+        self.update_frequency=0 #in Hz
 
     def measure_distance(self,max_distance=2.0):
         #returns distance in meters
-        timeout=1.0
+        timeout=0.05
         max_wait=2*max_distance/self.sound_speed
         GPIO.output(self.trigger_pin,GPIO.HIGH)
         time.sleep(0.000015)
@@ -345,7 +346,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         while (time.time()-t1)<time_budget:
             x=self.measure_distance()
             #time.sleep(0.001)
-            time.sleep(0.01)
+            time.sleep(0.005)
             x_sum+=x
             xx_sum+=x*x
             n_averages+=1
@@ -353,6 +354,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         stdev=math.sqrt(xx_sum/n_averages-avg*avg)
         self.last_avg=avg
         self.last_stdev=stdev
+        self.n_averages=n_averages
         self.last_timestamp=time.time()
         return avg,stdev
 
@@ -362,16 +364,22 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
             time_budget=0.07
             self.average_distance(time_budget)
             self.reading_scheduled=False
+        elif self.update_frequency>0:
+            if (time.time()-self.last_timestamp)>1/self.update_frequency:
+                self.reading_scheduled=True
         return
 
     def set(self,endpoint,value):
         #for now, anything just tells it to take a reading
-        self.reading_scheduled=True
+        if endpoint=="update_now":
+            self.reading_scheduled=True
+        elif endpoint=="update_frequency"
+            self.update_frequency=float(value)
 
     def get(self,endpoint):
         time_budget=0.07
-        if endpoint=="last_measurement":
-            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": last_time }
+        if endpoint="last_measurement":
+            return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": last_time, "n_averages": self.n_averages }
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
         return { "average_distance": avg, "stdev_distance": stdev }

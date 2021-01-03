@@ -70,7 +70,11 @@ class DisplayCameraUV4L(GratbotBehavior):
         self.video = GratbotVideoConnectionUV4L("http://10.0.0.4:8080/stream/video.mjpeg")
         frame_width = self.video.cap.get(cv.CAP_PROP_FRAME_WIDTH)
         frame_height = self.video.cap.get(cv.CAP_PROP_FRAME_HEIGHT)
-        logging.info("conncected {} x {}".format(frame_width,frame_height))
+        logging.info("video {} x {}".format(frame_width,frame_height))
+        self.fps_frames=10
+        self.fps_timer=time.time()
+        self.fps_counter=0
+        self.fps=0
         return
 
     def act(self):
@@ -81,7 +85,18 @@ class DisplayCameraUV4L(GratbotBehavior):
         #otherwise none if waiting for one
         myframe,mytime=self.video.read()
         self.last_image_timestamp=mytime
+        if myframe is not None:
+            self.fps_counter+=1
+            if self.fps_counter>=self.fps_frames:
+                self.fps=self.fps_frames/(time.time()-self.fps_timer)
+                self.fps_timer=time.time()
+                self.fps_counter=0
         return myframe
+
+    def tag_with_fps(self,frame):
+        font = cv.FONT_HERSHEY_SIMPLEX
+        cv.putText(frame, "FPS: {}".format(self.fps), (7, 70), font, 3, (100, 255, 0), 3, cv.LINE_AA)
+        return frame
 
     def get_image_timestamp(self):
         return self.last_image_timestamp
