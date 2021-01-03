@@ -370,7 +370,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
 
     def get(self,endpoint):
         time_budget=0.07
-        if endpoint="last_measurement":
+        if endpoint=="last_measurement":
             return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": last_time }
         avg,stdev=self.average_distance(time_budget)
         #I assume the endpoint is something like "distance"
