@@ -39,7 +39,7 @@ class GratbotServer(socketserver.StreamRequestHandler):
                 elif datastructure["command"]=="GET":
                     ret=self.robot[datastructure["address"][0]].get(datastructure["address"][1])
                     self.wfile.write(bytes(json.dumps({ "response": ret})+"\n",encoding='utf-8'))
-                elif datastructure["command"]=="UPDATE"
+                elif datastructure["command"]=="UPDATE":
                     ret=self.do_update(datastructure["arguments"])
                     self.wfile.write(bytes(json.dumps({ "response": ret})+"\n",encoding='utf-8'))
                 else:
@@ -50,14 +50,14 @@ class GratbotServer(socketserver.StreamRequestHandler):
                 error_response["error"]="{}".format(error)
                 self.wfile.write((json.dumps(error_response)+"\n").encode())
                 #self.wfile.write(yaml.safe_dump({ "error": error}))
-        def do_update(last_time):
-            ret={}
-            ret["timestamp"]=time.time()
-            for elem in self.robot
-                updates=self.robot[elem].get_update(last_time)
-                for endpoint in updates:
-                    ret[ elem+"/"+endpoint]=updates[endpoint]
-            return ret
+    def do_update(self,last_time):
+        ret={}
+        ret["timestamp"]=time.time()
+        for elem in self.robot:
+            updates=self.robot[elem].get_update(last_time)
+            for endpoint in updates:
+                ret[ elem+"/"+endpoint]=updates[endpoint]
+        return ret
 
 if __name__ == "__main__":
     #HOST, PORT = "localhost", 9999
