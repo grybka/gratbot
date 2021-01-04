@@ -184,7 +184,7 @@ _all_gratbot_spimescapes["GratbotMotor"]=GratbotMotor
 class GratbotMecanumDrive(GratbotSpimescape):
     def __init__(self,datastruct,hardware):
         self.kit=MotorKit(i2c=board.I2C())
-        self.kit._pca.frequency=100
+        self.kit._pca.frequency=1000
         self.fl_motor=self.get_kit_motor(datastruct["fl_motor"])
         self.fl_motor_sign=np.sign(datastruct["fl_motor"])
         self.fr_motor=self.get_kit_motor(datastruct["fr_motor"])
