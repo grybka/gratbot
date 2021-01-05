@@ -10,7 +10,8 @@ import traceback
 #from cvlib.object_detection import draw_bbox
 
 sys.path.append('../gratbot_client')
-from GratbotComms import GratbotComms
+#from GratbotComms import GratbotComms
+from GratbotCommsMk2 import GratbotCommsMk2
 from GratbotClient import GratbotClient
 from theo_chaser_manualbehavior import XBoxControl
 from theo_chaser_chase import Theo_Chaser_Chase_MK2
@@ -25,7 +26,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 
 # connect to bot controls
 logging.info("Connecting to Gratbot comms")
-gratbot_comms = GratbotComms("10.0.0.4", 9999)
+gratbot_comms = GratbotCommsMk2("10.0.0.4", 9999)
 
 # connect to camera
 cv.namedWindow("preview")
@@ -34,10 +35,10 @@ cv.moveWindow("preview", 0, 0)
 keep_going=True
 #on_behavior=DisplayCamera(gratbot_comms)
 #on_behavior=XBoxControl(gratbot_comms)
-#on_behavior=Theo_Chaser_Learn_And_Track(gratbot_comms)
+on_behavior=Theo_Chaser_Learn_And_Track(gratbot_comms)
 #on_behavior=Theo_Chaser_Mapper(gratbot_comms)
 #on_behavior=Theo_Chaser_Line_Follower(gratbot_comms)
-on_behavior=Theo_Chaser_Chase_MK2(gratbot_comms)
+#on_behavior=Theo_Chaser_Chase_MK2(gratbot_comms)
 #on_behavior=RollyChase(gratbot_comms)
 
 def shut_down():
@@ -45,8 +46,8 @@ def shut_down():
     print("telling behavior to stop")
     on_behavior.shut_down()
     #controller.close()
-    logging.warning("turning off comms ")
-    gratbot_comms.stop()
+    #logging.warning("turning off comms ")
+    #gratbot_comms.stop()
     logging.warning("closing window ")
 
     cv.destroyAllWindows()
@@ -87,8 +88,9 @@ except Exception as e:
 finally:
     on_behavior.shut_down()
     logging.warning("telling motors to stop")
-    gratbot_comms.set_intention(["drive", "translate", "SET"], [0, 0, 0])
-    time.sleep(5)
+    #gratbot_comms.set_intention(["drive", "translate", "SET"], [0, 0, 0])
+    gratbot_comms.set(["drive", "translate"], [0, 0, 0])
+    time.sleep(1)
     logging.warning("turning off comms ")
-    gratbot_comms.stop()
+    #gratbot_comms.stop()
 logging.warning("all done ")

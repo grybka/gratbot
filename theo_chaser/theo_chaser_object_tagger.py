@@ -28,6 +28,15 @@ class Theo_Chaser_Object_Tagger():
         #logging.info("detected")
         return video_objects
 
+    def log_tags(self,video_objects,fname,timestamp):
+        f=open(fname,"a")
+        for obj in video_objects:
+            outstr="{} {} {} {} {} {} {}\n".format(timestamp,(obj["label"]).replace(' ','_'),obj["confidence"],obj["startx"],obj["starty"],obj["endx"],obj["endy"])
+            f.write(outstr)
+        if len(video_objects)==0:
+            f.write("{} none 0 0 0 0 0".format(timestamp))
+        f.close()
+
     def draw_bboxes(self,video_frame,video_objects=None):
         if video_frame is None:
             logger.warning("Gave me a none video frame")

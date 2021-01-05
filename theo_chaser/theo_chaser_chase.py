@@ -141,7 +141,12 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
         self.controller_dead_zone=0.2*self.gamepad_max_val
         self.tagger=Theo_Chaser_Object_Tagger()
         self.last_last_image_timestamp=0
-        self.comms.set_intention(["ultrasonic_sensor","update_frequency","SET"],1)
+        #self.comms.set_intention(["ultrasonic_sensor","update_frequency","SET"],1)
+        self.comms.set(["ultrasonic_sensor","update_frequency"],1)
+        #for logging data
+        self.start_timestr = time.strftime("%Y%m%d-%H%M%S")
+        self.start_time=time.time()
+        self.object_log_fname="logs/learn_and_track_object_log_{}.txt".format(self.timestr)
 
 
     def _daemon_loop(self):
@@ -231,7 +236,7 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
             converted=self.interpret_translation(translation)
             print("converted {}".format(converted))
             #self.comms.set_intention( ["drive","translate","SET"],converted)
-            self.comms.set_intention( ["drive","translate"],converted)
+            self.comms.set( ["drive","translate"],converted)
             ret_objects.append(x)
 
             break
@@ -247,6 +252,7 @@ class Theo_Chaser_Chase_MK2(DisplayCameraUV4L):
             print("repeat frame!")
         if ret is not None:
             video_objects=self.tagger.tag_objects(ret)
+            self.tagger.log_tags(self.object_log_fname,time.time()-self.start_time)
             self.follow_objects(video_objects)
             ret=self.tagger.draw_bboxes(ret,video_objects)
             ret=self.tag_with_fps(ret)

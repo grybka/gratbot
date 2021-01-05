@@ -3,8 +3,12 @@
 import time
 from GratbotClient import GratbotClient
 import logging
+import threading
 
-class GratbotComms:
+#logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+
+class GratbotCommsMk2:
     def __init__(self,ip,port):
         self.client=GratbotClient(ip,port)
         self.client.connect()
@@ -40,7 +44,7 @@ class GratbotComms:
     def set(self,endpoint,value):
         logging.debug("Setting: {} to {}".format(endpoint,value))
         self.client_lock.acquire()
-        response=self.client.send_message(endpoint,"GET",0)
+        response=self.client.send_message(endpoint,"SET",value)
         self.client_lock.release()
         logging.debug("Response: {}".format(response))
         return response["response"]
@@ -55,3 +59,4 @@ class GratbotComms:
                 self.last_hardware_state_update=value
             self.hardware_state[elem]=value
         self.hardware_state_lock.release()
+        return response
