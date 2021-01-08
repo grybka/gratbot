@@ -59,4 +59,4 @@ class GratbotCommsMk2:
                 self.last_hardware_state_update=value
             self.hardware_state[elem]=value
         self.hardware_state_lock.release()
-        return response
+        return response["response"]
