@@ -9,6 +9,7 @@ import json
 sys.path.append('../hardware_interface')
 import hardware
 import camera_interface
+import lis3mdl_compass_interface
 
 root = logging.getLogger()
 #root.setLevel(logging.INFO)
