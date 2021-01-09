@@ -12,8 +12,8 @@ import camera_interface
 import lis3mdl_compass_interface
 
 root = logging.getLogger()
-#root.setLevel(logging.INFO)
-root.setLevel(logging.DEBUG)
+root.setLevel(logging.INFO)
+#root.setLevel(logging.DEBUG)
 
 #message format
 #in json, all on one line

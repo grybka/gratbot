@@ -10,6 +10,9 @@ class GratbotMagnetometer(GratbotSpimescape):
     def __init__(self, datastruct, hardware):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.sensor = adafruit_lis3mdl.LIS3MDL(i2c)
+        self.sensor.range=adafruit_lis3mdl.Range.RANGE_4_GAUSS
+        #self.sensor.range=adafruit_lis3mdl.Range.RANGE_8_GAUSS
+        #self.sensor.range=adafruit_lis3mdl.Range.RANGE_12_GAUSS
 
     def set(self, endpoint, value):
       return None
