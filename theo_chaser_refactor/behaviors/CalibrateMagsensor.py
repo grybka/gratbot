@@ -1,3 +1,5 @@
+
+import time
 from behaviors.GratbotBehavior import GratbotBehavior
 from behaviors.GratbotBehavior import GratbotBehaviorStatus
 from behaviors.GratbotBehavior import GratbotBehavior_RecordSensorToMemory

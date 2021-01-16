@@ -23,6 +23,8 @@ from behaviors.GratbotBehavior import GratbotBehavior_Series
 from behaviors.GratbotBehavior import GratbotBehaviorStatus
 
 from behaviors.CalibrateTurning import CalibrateTurnToAngle
+from behaviors.CalibrateTurning import CalibrateTurnToVideo
+from behaviors.CalibrateFB import CalibrateFBToDistance
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -55,16 +57,21 @@ class DisplayLoop:
 # connect to bot controls
 logging.info("Connecting to Gratbot comms")
 gratbot_comms = GratbotCommsMk2("10.0.0.4", 9999)
+gratbot_comms.set(["ultrasonic_sensor","update_frequency"],2)
 
 
 sensor_fusion=GratbotSensorFusion()
+sensor_fusion.load_config("sensor_fusion_config.yml")
 display_loop=DisplayLoop(sensor_fusion)
 
-myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
-myloop.should_loop=True
+
+#myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
+#myloop.should_loop=True
 #on_behavior=CalibrateMagsensor()
-on_behavior=myloop
+#on_behavior=myloop
 #on_behavior=CalibrateTurnToAngle()
+#on_behavior=CalibrateTurnToVideo()
+on_behavior=CalibrateFBToDistance()
 
 try:
     #This is the behavior execution loop
@@ -88,5 +95,6 @@ except Exception as e:
     print(exc_type, fname, exc_tb.tb_lineno)
     traceback.print_exc(file=sys.stdout)
 finally:
+    sensor_fusion.save_config("sensor_fusion_config.yml")
     display_loop.stop()
     sensor_fusion.stop()

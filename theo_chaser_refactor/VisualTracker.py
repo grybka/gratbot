@@ -4,6 +4,7 @@ import cv2 as cv
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 from scipy.optimize import linear_sum_assignment
+import uuid
 
 class VTTrackedObject:
     def __init__(self,x,y,w,h,label):
@@ -41,12 +42,14 @@ class VTTrackedObject:
         self.kfy.R =np.array([[0.1]])
         self.kfw.R =np.array([[0.1]])
         self.kfh.R =np.array([[0.1]])
-        self.kfx.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=10)
-        self.kfy.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=10)
-        self.kfw.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=10)
-        self.kfh.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=10)
+        self.kfx.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
+        self.kfy.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
+        self.kfw.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
+        self.kfh.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
 
+        self.last_update=[x,y,w,h]
         self.missed_frames=0
+        self.id=uuid.uuid1()
 
     def predict(self):
         self.kfx.predict()
@@ -55,6 +58,7 @@ class VTTrackedObject:
         self.kfh.predict()
 
     def update(self,x,y,w,h,label):
+        self.last_update=[x,y,w,h]
 
         #print("update tracked object at {} {} {} {} {}".format(x,y,w,h,label))
         self.kfx.update([x])
@@ -72,6 +76,10 @@ class VTTrackedObject:
         x,y,w,h=self.get_predictions()
         return [x-w/2,x+w/2,y-h/2,y+h/2]
 
+    def get_extended_bounding_box_last_update(self):
+        x,y,w,h=self.last_update
+        return [x-w/2,x+w/2,y-h/2,y+h/2]
+
     def get_bounding_box_overlap(self,bbvector):
         myvector=self.get_extended_bounding_box()
         overlap_box=[
@@ -84,11 +92,11 @@ class VTTrackedObject:
         overlap_area=(overlap_box[1]-overlap_box[0])*(overlap_box[3]-overlap_box[2])
         return overlap_area/min_area
 
-
 class VisualTracker:
     def __init__(self):
         self.object_tagger=Theo_Chaser_Object_Tagger()
         self.tracked_objects=[]
+        self.id_names_hash=["Franz","Brunhilda","Steve","Persepolis","Legolas","Senator","Doublewide","Convolution","Beaucephalus","Microencephalus","Enchilada","Buttercup","Malferious","Ferrous","Titiana","Europa","Malpractice","Daedelus","Dad-elus","Cheesemonger","Burgertime","ForgetMeNot","Nevar4get","Allowance","Betrayal","Elvis"]
 
     def get_cost(self,tracked_object,vision_object):
         vision_bbox=[vision_object["startx"],vision_object["endx"],vision_object["starty"],vision_object["endy"]]
@@ -148,7 +156,26 @@ class VisualTracker:
             ey=240+eyf*480
             #print("drawing box at {} {} {} {}".format(sx,sy,ex,ey))
             cv.rectangle(video_frame,(int(sx),int(sy)),(int(ex),int(ey)),(0,255,0),2)
-            text = "{} {}".format(obj.label,obj.missed_frames)
+            #text = "{} {}".format(obj.label,obj.missed_frames)
+            text = "{} {}".format(self.id_names_hash[hash(obj.id)%len(self.id_names_hash)],obj.missed_frames)
             Y = int(sy - 10 if sy - 10 > 10 else sy + 10)
             cv.putText(video_frame, text, (int(sx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
         return video_frame
+
+    def serialize_tracks(self):
+        ret=[]
+        for obj in self.tracked_objects:
+            item={}
+            item["label"]=obj.label
+            item["id"]=str(obj.id)
+            item["last_update"]=obj.last_update
+            item["xywh"]=obj.get_predictions()
+            ret.append(item)
+        return ret
+
+    def retrieve_object(self,id):
+        for obj in self.tracked_objects:
+            if obj.id==id:
+                return obj
+        print("{} not found".format(id))
+        return None

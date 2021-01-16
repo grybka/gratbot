@@ -53,3 +53,9 @@ class Theo_Chaser_Object_Tagger():
         width=(-face["startx"]+face["endx"])/self.video_width
         height=(-face["starty"]+face["endy"])/self.video_height
         return np.array([centerx,centery]),np.array([width,height])
+
+    def retrieve_object(self,id):
+        for obj in self.tracked_objects:
+            if obj.id==id:
+                return ob
+        return None

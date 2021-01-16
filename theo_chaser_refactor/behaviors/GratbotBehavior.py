@@ -1,7 +1,8 @@
 #import enum
 from enum import Enum
 import time
-import sys
+import sys,os,traceback
+import logging
 
 class GratbotBehaviorStatus(Enum):
     INPROGRESS = 1
@@ -104,6 +105,26 @@ class GratbotBehavior_RecordSensorToMemory(GratbotBehavior):
     def act(self,comms,sensors):
         try:
             sensors.short_term_memory[self.memory_address]=sensors.gratbot_state[self.sensor_address]
+        except Exception as e:
+            print("Exception: {}".format(e))
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            traceback.print_exc(file=sys.stdout)
+            return GratbotBehaviorStatus.FAILED
+        return GratbotBehaviorStatus.COMPLETED
+
+
+class GratbotBehavior_CopyMemory(GratbotBehavior):
+    def __init__(self,memory_address_from,memory_address_to):
+        super().__init__()
+        self.memory_address_to=memory_address_to
+        self.memory_address_from=memory_address_from
+
+    def act(self,comms,sensors):
+        try:
+            logging.warning("copyfing from {} to {}".format(self.memory_address_from,self.memory_address_to))
+            sensors.update_memory(self.memory_address_to,sensors.short_term_memory[self.memory_address_from])
         except Exception as e:
             print("Exception: {}".format(e))
             exc_type, exc_obj, exc_tb = sys.exc_info()
