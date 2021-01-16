@@ -341,7 +341,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
 
     def average_distance(self,time_budget):
         #returns average and standard deviation of n_averages distance measurements
-        print("average distance called")
+        #print("average distance called")
         t1=time.time()
         x_sum=0
         xx_sum=0
