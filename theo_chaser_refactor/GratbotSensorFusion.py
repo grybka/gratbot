@@ -11,6 +11,7 @@ from scipy.optimize import curve_fit
 import yaml
 import matplotlib
 import matplotlib.pyplot as plt
+from GratbotMap import GratbotMap
 
 class TurnPredictor():
     def __init__(self):
@@ -147,6 +148,7 @@ class GratbotSensorFusion():
         self.start_timestr = time.strftime("%Y%m%d-%H%M%S")
         self.save_filename = "logs/sensor_log_{}.txt".format(self.start_timestr)
         self.save_lock=threading.Lock()
+        self.map=GratbotMap()
 
     def save_config(self,fname):
         output_config={}
@@ -170,6 +172,7 @@ class GratbotSensorFusion():
         resp=comms.update()
         self.gratbot_state.update(resp)
         self.gratbot_state["compass_heading"]=self.get_compass_heading()
+        self.map.update_with_compass(self.get_compass_heading())
         if self.save_updates:
             resp["compass_heading"]=self.get_compass_heading()
             resp["timestamp"]=time.time()
@@ -210,13 +213,16 @@ class GratbotSensorFusion():
         self.user_frame_lock.release()
 
     def get_user_display(self):
+        ret={}
         #self.last_video_frame_lock.acquire()
         #the_frame=self.last_video_frame
         #self.last_video_frame_lock.release()
         self.user_frame_lock.acquire()
-        the_frame=self.user_frame
+        ret["vision"]=self.user_frame
+        #the_frame=self.user_frame
         self.user_frame_lock.release()
-        return the_frame
+        ret["map"]=self.map.map_image()
+        return ret
 
     def stop(self):
         self.video.stop()

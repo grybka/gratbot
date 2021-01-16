@@ -39,11 +39,15 @@ class DisplayLoop:
         self.thread.start()
 
     def _run(self):
-        self.primary_window=cv.namedWindow("preview")
+        self.primary_window=cv.namedWindow("vision")
         while self.keep_going:
-            new_frame=self.sensor_fusion.get_user_display()
-            if new_frame is not None:
-                cv.imshow("preview", new_frame)
+            new_frames=self.sensor_fusion.get_user_display()
+            for frm in new_frames:
+                #if frm=="vision":
+                if new_frames[frm] is not None:
+                    cv.imshow(frm, new_frames[frm])
+            #if new_frame is not None:
+            #    cv.imshow("preview", new_frame)
             key = cv.waitKey(30)
         logging.warning("closing window ")
         cv.destroyAllWindows()
@@ -65,13 +69,13 @@ sensor_fusion.load_config("sensor_fusion_config.yml")
 display_loop=DisplayLoop(sensor_fusion)
 
 
-#myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
-#myloop.should_loop=True
+myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
+myloop.should_loop=True
 #on_behavior=CalibrateMagsensor()
-#on_behavior=myloop
+on_behavior=myloop
 #on_behavior=CalibrateTurnToAngle()
 #on_behavior=CalibrateTurnToVideo()
-on_behavior=CalibrateFBToDistance()
+#on_behavior=CalibrateFBToDistance()
 
 try:
     #This is the behavior execution loop
