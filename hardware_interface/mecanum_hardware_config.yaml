@@ -13,4 +13,4 @@ hardware:
         bl_motor: 4
         br_motor: -2
     magnetometer:
-        type: GratbotMagnetometer
+        type: Magnetometer
