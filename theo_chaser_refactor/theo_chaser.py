@@ -25,6 +25,8 @@ from behaviors.GratbotBehavior import GratbotBehaviorStatus
 from behaviors.CalibrateTurning import CalibrateTurnToAngle
 from behaviors.CalibrateTurning import CalibrateTurnToVideo
 from behaviors.CalibrateFB import CalibrateFBToDistance
+from behaviors.Automapper import TurnFixedAmount
+from behaviors.Automapper import ForwardFixedAmount
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -69,10 +71,16 @@ sensor_fusion.load_config("sensor_fusion_config.yml")
 display_loop=DisplayLoop(sensor_fusion)
 
 
-myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
-myloop.should_loop=True
+square_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(1.57),GratbotBehavior_Wait(0.5),ForwardFixedAmount(0.2)])
+square_loop.should_loop=True
+on_behavior=square_loop
+#automapper_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(0.1)])
+#automapper_loop.should_loop=True
+#on_behavior=automapper_loop
+#myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
+#myloop.should_loop=True
 #on_behavior=CalibrateMagsensor()
-on_behavior=myloop
+#on_behavior=myloop
 #on_behavior=CalibrateTurnToAngle()
 #on_behavior=CalibrateTurnToVideo()
 #on_behavior=CalibrateFBToDistance()

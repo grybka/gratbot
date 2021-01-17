@@ -72,8 +72,11 @@ class CalibrateFBToDistance(GratbotBehavior):
             print("failed, restarting")
             return GratbotBehaviorStatus.FAILED
         if ret==GratbotBehaviorStatus.COMPLETED:
-            delta_dist=sensors.short_term_memory["end_distance"]["average_distance"]-sensors.short_term_memory["start_distance"]["average_distance"]
+            #note the swapped minus signs because it's distance to the wall
+            delta_dist=-sensors.short_term_memory["end_distance"]["average_distance"]+sensors.short_term_memory["start_distance"]["average_distance"]
+            print("delta dist {}".format(delta_dist))
             self.delta_dists.append(delta_dist)
+            print("translation magnitude {}".format(sensors.short_term_memory["last_translation"][0]))
             self.fb_magnitudes.append(sensors.short_term_memory["last_translation"][0])
             #fit
             print("number of elems {}".format(len(self.fb_magnitudes)))

@@ -12,6 +12,7 @@ import yaml
 import matplotlib
 import matplotlib.pyplot as plt
 from GratbotMap import GratbotMap
+import logging
 
 class TurnPredictor():
     def __init__(self):
@@ -42,10 +43,10 @@ class TurnPredictor():
         self.video_turn_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
 
         test_x=np.linspace(-1,1,100)
-        test_y=self.predict_video_from_motion(test_x)
+        test_y,unc=self.predict_video_from_motion(test_x)
         fig,ax=plt.subplots()
         ax.plot(turns,vids,'*')
-        ax.plot(test_x,test_y)
+        ax.errorbar(text_x,test_y,yerr=unc)
         ax.set(xlabel="Turn Magnitude",ylabel="Video Change")
         ax.grid()
         plt.show()
@@ -56,19 +57,25 @@ class TurnPredictor():
         self.compass_turn_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
 
         test_x=np.linspace(-1,1,100)
-        test_y=self.predict_compass_from_motion(test_x)
+        test_y,unc=self.predict_compass_from_motion(test_x)
         fig,ax=plt.subplots()
         ax.plot(turns,comps,'*')
         ax.plot(test_x,test_y)
+        ax.errorbar(test_x,test_y,yerr=unc)
         ax.set(xlabel="Turn Magnitude",ylabel="Compass Change")
         ax.grid()
         plt.show()
 
     def predict_video_from_motion(self,turn):
-        return turn*self.video_turn_slope
+        return turn*self.video_turn_slope, turn*self.video_turn_slope_unc
 
     def predict_compass_from_motion(self,turn):
-        return turn*self.compass_turn_slope
+        return turn*self.compass_turn_slope, turn*self.compass_turn_slope_unc
+
+    def predict_turn_for_compass_angle(self,compass_angle):
+        val=compass_angle/self.compass_turn_slope
+        val_unc=val*(self.compass_turn_slope_unc/self.compass_turn_slope)
+        return val,val_unc
 
     def show_plot(self,x,y,m,b):
         test_x=np.linspace(-1,1,100)
@@ -79,43 +86,62 @@ class TurnPredictor():
         ax.set(xlabel="Turn Magnitude",ylabel="Angle Change")
         ax.grid()
         plt.show()
+
+    def get_max_turn_angle(self):
+        r,_=self.predict_compass_from_motion(1.0)
+        return r
 
 class FBPredictor():
 
     def __init__(self):
         self.ultrasonic_motion_slope=1
         self.ultrasonic_motion_slope_unc=1
+        self.ultrasonic_motion_inherent_unc=1
 
     def load_from_dict(self,dat):
-        if "fb_predictor" not in dat:
-            return False
-        self.video_turn_slope=dat["fb_predictor"]["ultrasonic_motion_slope"]
-        self.video_turn_slope_unc=dat["fb_predictor"]["ultrasonic_motion_slope_unc"]
+        try:
+            self.ultrasonic_motion_slope=dat["fb_predictor"]["ultrasonic_motion_slope"]
+            self.ultrasonic_motion_slope_unc=dat["fb_predictor"]["ultrasonic_motion_slope_unc"]
+            self.ultrasonic_motion_inherent_unc=dat["fb_predictor"]["ultrasonic_motion_inherent_unc"]
+        except:
+            logging.warning("Unable to load FB predictor info")
 
     def save_to_dict(self,dat):
         dat["fb_predictor"]={}
         dat["fb_predictor"]["ultrasonic_motion_slope"]=self.ultrasonic_motion_slope
         dat["fb_predictor"]["ultrasonic_motion_slope_unc"]=self.ultrasonic_motion_slope_unc
+        dat["fb_predictor"]["ultrasonic_motion_inherent_unc"]=self.ultrasonic_motion_inherent_unc
         return dat
 
     def fit_calibration(self,fbs,ults):
+        fbs=np.array(fbs)
+        ults=np.array(ults)
         def lin_fitfcn(x,m):
             return x*m
         popt, pcov = curve_fit(lin_fitfcn, fbs, ults)
+        sigma=np.sqrt(np.sum((lin_fitfcn(fbs,popt[0])-ults)**2)/len(fbs))
         self.ultrasonic_motion_slope=np.asscalar(popt[0])
         self.ultrasonic_motion_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
+        self.ultrasonic_motion_inherent_unc=np.asscalar(sigma)
+
 
         test_x=np.linspace(-1,1,100)
-        test_y=self.predict_ultrasonic_from_motion(test_x)
+        test_y,testy_uncs=self.predict_ultrasonic_from_motion(test_x)
         fig,ax=plt.subplots()
         ax.plot(fbs,ults,'*')
-        ax.plot(test_x,test_y)
+        #ax.plot(test_x,test_y)
+        ax.errorbar(test_x,test_y,yerr=testy_uncs)
         ax.set(xlabel="FB Magnitude",ylabel="Ultrasonic Change")
         ax.grid()
         plt.show()
 
     def predict_ultrasonic_from_motion(self,fb):
-        return fb*self.ultrasonic_motion_slope
+        return fb*self.ultrasonic_motion_slope,np.sqrt((fb*self.ultrasonic_motion_slope_unc)**2+self.ultrasonic_motion_inherent_unc**2)
+
+    def predict_motion_from_ultrasonic(self,dist):
+        val=dist/self.ultrasonic_motion_slope
+        val_unc=val*(self.ultrasonic_motion_slope_unc/self.ultrasonic_motion_slope)
+        return val,val_unc
 
     def show_plot(self,x,y,m,b):
         test_x=np.linspace(-1,1,100)
@@ -126,6 +152,10 @@ class FBPredictor():
         ax.set(xlabel="Turn Magnitude",ylabel="Angle Change")
         ax.grid()
         plt.show()
+
+    def get_max_fb_dist(self):
+        r,_=self.predict_ultrasonic_from_motion(1.0)
+        return r
 
 class GratbotSensorFusion():
     def __init__(self):
@@ -150,6 +180,10 @@ class GratbotSensorFusion():
         self.save_lock=threading.Lock()
         self.map=GratbotMap()
 
+        #sensor warning times
+        self.compass_off_until=time.time()
+        self.motor_compass_disruption_time=0.16 #seconds
+
     def save_config(self,fname):
         output_config={}
         output_config["b_field_correction"]=self.b_field_correction
@@ -171,8 +205,15 @@ class GratbotSensorFusion():
     def update(self,comms):
         resp=comms.update()
         self.gratbot_state.update(resp)
-        self.gratbot_state["compass_heading"]=self.get_compass_heading()
-        self.map.update_with_compass(self.get_compass_heading())
+        if "magnetometer/b_field" in resp:
+            if time.time()>self.compass_off_until:
+                self.gratbot_state["compass_heading"]=self.get_compass_heading()
+                self.map.update_pose_with_compass(self.get_compass_heading())
+            else:
+                pass # do not update compass if it has been disabled due to motion
+        if "ultrasonic_sensor/last_measurement" in resp:
+            self.map.update_map_with_ultrasonic(resp["ultrasonic_sensor/last_measurement"]["average_distance"],
+resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         if self.save_updates:
             resp["compass_heading"]=self.get_compass_heading()
             resp["timestamp"]=time.time()
@@ -260,7 +301,60 @@ class GratbotSensorFusion():
     #step 3, I can use those two to create an object to angle mapping
 
 
-    #for motion
+    #for motio
+    def send_command_turn_angle(self,comms,turn_angle):
+        #print("command to turn {} degrees".format(360*turn_angle/(2*np.pi)))
+        turn_mag,turn_mag_unc=self.turn_predictor.predict_turn_for_compass_angle(turn_angle)
+        #feed it backwards so I know my uncertainty
+        angle,angle_unc=self.turn_predictor.predict_compass_from_motion(turn_mag)
+        translation=[0,0,turn_mag]
+        self.short_term_memory["last_translation"]=translation
+        #Warn compass will be disrupted
+        self.compass_off_until=time.time()+self.motor_compass_disruption_time
+        #TODO warn video will be disrupted
+
+        #adjust pose belief
+        cov=np.zeros([3,3])
+        cov[2][2]=angle_unc**2
+        #print("informing pose to change to turn {} degrees".format(360*angle/(2*np.pi)))
+        self.map.change_pose_with_offset(np.array([0,0,angle]),cov)
+
+        self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
+
+    def send_command_forward_meters(self,comms,dist):
+        print("received command to go forward {}".format(dist))
+        fb,fb_unc=self.fb_predictor.predict_motion_from_ultrasonic(dist)
+        print("thats a translation of {}".format(fb))
+        newdist,newdist_unc=self.fb_predictor.predict_ultrasonic_from_motion(fb)
+        translation=[fb,0,0]
+        self.short_term_memory["last_translation"]=translation
+        #Warn compass will be disrupted
+        self.compass_off_until=time.time()+self.motor_compass_disruption_time
+        #TODO warn video will be disrupted
+
+        #adjust pose belief
+        dx=-dist*np.cos(self.map.pose[2])
+        dy=dist*np.sin(self.map.pose[2])
+        dxdr=-np.cos(self.map.pose[2])
+        dydr=np.sin(self.map.pose[2])
+        dxdtheta=dist*np.sin(self.map.pose[2])
+        dydtheta=dist*np.cos(self.map.pose[2])
+        sigma_r=newdist_unc*newdist_unc
+        sigma_theta=self.map.pose_covariance[2][2]
+        sigma_xx=sigma_r*(dxdr*dxdr)+sigma_theta*(dxdtheta*dxdtheta)
+        sigma_yy=sigma_r*(dydr*dydr)+sigma_theta*(dydtheta*dydtheta)
+        sigma_xy=sigma_r*(dxdr*dydr)+sigma_theta*(dydr*dydtheta)
+        cov=np.zeros([3,3])
+        cov[0][0]=sigma_xx
+        cov[1][1]=sigma_yy
+        cov[0][1]=sigma_xy
+        cov[1][0]=sigma_xy
+        cov[2][2]=0.0001 #hardcoding some turn drift
+        print("updating pose to go forward {},{}".format(dx,dy))
+        self.map.change_pose_with_offset(np.array([dx,dy,0]),cov)
+
+        self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
+
     def send_command(self,comms,address,value):
         comms.set(address,value)
         if self.save_updates:
