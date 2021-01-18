@@ -1,6 +1,10 @@
 import time
+import math
+import numpy as np
 import threading
 import RPi.GPIO as GPIO
+from GratbotSpimescape import GratbotSpimescape
+from GratbotSpimescape import _all_gratbot_spimescapes
 
 class GratbotUltrasonicSensor(GratbotSpimescape):
     def __init__(self,datastruct,hardware):
@@ -105,4 +109,6 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
 
     def __del__(self):
         self.end_called=true
-        threading.join(self.thread)
+        self.thread.join()
+
+_all_gratbot_spimescapes["GratbotUltrasonicSensor"]=GratbotUltrasonicSensor

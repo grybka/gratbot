@@ -2,9 +2,8 @@ import time
 import board
 import busio
 import adafruit_lis3mdl
-from hardware import GratbotSpimescape
-from hardware import create_hardware_item
-from hardware import _all_gratbot_spimescapes
+from GratbotSpimescape import GratbotSpimescape
+from GratbotSpimescape import _all_gratbot_spimescapes
 
 class GratbotMagnetometer(GratbotSpimescape):
     def __init__(self, datastruct, hardware):

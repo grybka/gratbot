@@ -7,6 +7,7 @@ import sys
 import json
 
 sys.path.append('hardware')
+from GratbotSpimescape import create_hardware
 import GratbotSpimescape
 import lis3mdl_compass_interface
 import MecanumDrive
@@ -70,7 +71,8 @@ if __name__ == "__main__":
     config_file=open("config/mecanum_hardware_config.yaml","r")
     config_data=yaml.safe_load(config_file)
     config_file.close()
-    GratbotServer.robot=hardware.create_hardware(config_data["hardware"])
+    GratbotServer.robot=create_hardware(config_data["hardware"])
+    logging.info("robot is {}".format(GratbotServer.robot))
 
     # Create the server, binding to localhost on port 9999
     server=None

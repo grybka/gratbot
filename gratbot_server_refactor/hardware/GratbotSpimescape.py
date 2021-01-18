@@ -1,3 +1,5 @@
+import logging
+
 _all_gratbot_spimescapes={}
 
 class GratbotSpimescape:

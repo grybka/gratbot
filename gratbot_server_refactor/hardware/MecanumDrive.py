@@ -1,7 +1,10 @@
 import time
 import threading
+import board
+import numpy as np
 from adafruit_motorkit import MotorKit
-from hardware import _all_gratbot_spimescapes
+from GratbotSpimescape import GratbotSpimescape
+from GratbotSpimescape import _all_gratbot_spimescapes
 
 class GratbotMecanumDrive(GratbotSpimescape):
     def __init__(self,datastruct,hardware):
@@ -91,7 +94,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.br_motor.throttle=0
 
     def __del__(self):
-        self.end_called=true
-        threading.join(self.thread)
+        self.end_called=True
+        self.thread.join()
 
 _all_gratbot_spimescapes["GratbotMecanumDrive"]=GratbotMecanumDrive
