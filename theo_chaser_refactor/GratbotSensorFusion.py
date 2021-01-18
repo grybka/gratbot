@@ -20,12 +20,17 @@ class TurnPredictor():
         self.video_turn_slope_unc=1
         self.compass_turn_slope=1
         self.compass_turn_slope_unc=1
+        self.compass_turn_inherent_unc=1
 
     def load_from_dict(self,dat):
-        self.video_turn_slope=dat["turn_predictor"]["video_turn_slope"]
-        self.video_turn_slope_unc=dat["turn_predictor"]["video_turn_slope_unc"]
-        self.compass_turn_slope=dat["turn_predictor"]["compass_turn_slope"]
-        self.compass_turn_slope_unc=dat["turn_predictor"]["compass_turn_slope_unc"]
+        try:
+            self.video_turn_slope=dat["turn_predictor"]["video_turn_slope"]
+            self.video_turn_slope_unc=dat["turn_predictor"]["video_turn_slope_unc"]
+            self.compass_turn_slope=dat["turn_predictor"]["compass_turn_slope"]
+            self.compass_turn_slope_unc=dat["turn_predictor"]["compass_turn_slope_unc"]
+            self.compass_turn_inherent_unc=dat["turn_predictor"]["compass_turn_inherent_unc"]
+        except:
+            logging.warning("Unable to load turn predictor")
 
     def save_to_dict(self,dat):
         dat["turn_predictor"]={}
@@ -33,9 +38,13 @@ class TurnPredictor():
         dat["turn_predictor"]["video_turn_slope_unc"]=self.video_turn_slope_unc
         dat["turn_predictor"]["compass_turn_slope"]=self.compass_turn_slope
         dat["turn_predictor"]["compass_turn_slope_unc"]=self.compass_turn_slope_unc
+        dat["turn_predictor"]["compass_turn_inherent_unc"]=self.compass_turn_inherent_unc
         return dat
 
     def fit_calibration(self,turns,vids,comps):
+        turns=np.array(turns)
+        vids=np.array(vids)
+        comps=np.array(comps)
         def lin_fitfcn(x,m):
             return x*m
         popt, pcov = curve_fit(lin_fitfcn, turns, vids)
@@ -46,15 +55,17 @@ class TurnPredictor():
         test_y,unc=self.predict_video_from_motion(test_x)
         fig,ax=plt.subplots()
         ax.plot(turns,vids,'*')
-        ax.errorbar(text_x,test_y,yerr=unc)
+        ax.errorbar(test_x,test_y,yerr=unc)
         ax.set(xlabel="Turn Magnitude",ylabel="Video Change")
         ax.grid()
         plt.show()
 
 
         popt, pcov = curve_fit(lin_fitfcn, turns, comps)
+        sigma=np.sqrt(np.sum((lin_fitfcn(turns,popt[0])-comps)**2)/len(comps))
         self.compass_turn_slope=np.asscalar(popt[0])
         self.compass_turn_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
+        self.compass_turn_inherent_unc=np.asscalar(sigma)
 
         test_x=np.linspace(-1,1,100)
         test_y,unc=self.predict_compass_from_motion(test_x)
@@ -70,7 +81,9 @@ class TurnPredictor():
         return turn*self.video_turn_slope, turn*self.video_turn_slope_unc
 
     def predict_compass_from_motion(self,turn):
-        return turn*self.compass_turn_slope, turn*self.compass_turn_slope_unc
+        val=turn*self.compass_turn_slope
+        unc=np.sqrt( (turn*self.compass_turn_slope_unc)**2+self.compass_turn_inherent_unc**2)
+        return val,unc
 
     def predict_turn_for_compass_angle(self,compass_angle):
         val=compass_angle/self.compass_turn_slope
@@ -305,6 +318,9 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
     def send_command_turn_angle(self,comms,turn_angle):
         #print("command to turn {} degrees".format(360*turn_angle/(2*np.pi)))
         turn_mag,turn_mag_unc=self.turn_predictor.predict_turn_for_compass_angle(turn_angle)
+        if abs(turn_mag)>1: #turn as far as you can but no more
+            print("requesting turn too far")
+            turn_mag=np.sign(turn_mag)*1.0
         #feed it backwards so I know my uncertainty
         angle,angle_unc=self.turn_predictor.predict_compass_from_motion(turn_mag)
         translation=[0,0,turn_mag]
@@ -322,9 +338,12 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
 
     def send_command_forward_meters(self,comms,dist):
-        print("received command to go forward {}".format(dist))
+        #print("received command to go forward {}".format(dist))
         fb,fb_unc=self.fb_predictor.predict_motion_from_ultrasonic(dist)
-        print("thats a translation of {}".format(fb))
+        if abs(fb)>1:
+            print("Trying to go too far, {}".format(fb))
+            fb=np.sign(fb)*1.0
+        #print("thats a translation of {}".format(fb))
         newdist,newdist_unc=self.fb_predictor.predict_ultrasonic_from_motion(fb)
         translation=[fb,0,0]
         self.short_term_memory["last_translation"]=translation

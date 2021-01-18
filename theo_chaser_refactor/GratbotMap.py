@@ -19,6 +19,9 @@ class GratbotMap():
         self.heading_offset=0
         self.sigma_too_big=1e10
 
+    def get_heading(self):
+        return self.pose[2],np.sqrt(self.pose_covariance[2][2])
+
     def update_pose_with_measurement(self,x_vec,x_cov): #x,y,angle and covariance
         #use this if I made a measurement of the pose, not a change
         mu_1=x_vec

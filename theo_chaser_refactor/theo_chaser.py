@@ -27,7 +27,7 @@ from behaviors.CalibrateTurning import CalibrateTurnToVideo
 from behaviors.CalibrateFB import CalibrateFBToDistance
 from behaviors.Automapper import TurnFixedAmount
 from behaviors.Automapper import ForwardFixedAmount
-
+from behaviors.Automapper import TurnToHeading
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.INFO)
@@ -71,7 +71,12 @@ sensor_fusion.load_config("sensor_fusion_config.yml")
 display_loop=DisplayLoop(sensor_fusion)
 
 
-square_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(1.57),GratbotBehavior_Wait(0.5),ForwardFixedAmount(0.2)])
+#square_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(1.57),GratbotBehavior_Wait(0.5),ForwardFixedAmount(0.2)])
+sensor_fusion.save_updates=True
+square_loop=GratbotBehavior_Series([TurnToHeading(0,0.05),ForwardFixedAmount(0.2),
+                                   TurnToHeading(np.pi/2,0.05),ForwardFixedAmount(0.2),
+                                   TurnToHeading(np.pi,0.05),ForwardFixedAmount(0.2),
+                                   TurnToHeading(3*np.pi/2,0.05),ForwardFixedAmount(0.2)])
 square_loop.should_loop=True
 on_behavior=square_loop
 #automapper_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(0.1)])

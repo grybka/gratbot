@@ -187,7 +187,7 @@ sensors.short_term_memory["stop_x"]-sensors.short_term_memory["start_x"])
             #motion
             self.turn_magnitudes.append(sensors.short_term_memory["last_translation"][2])
             #fit
-            if len(self.turn_magnitudes)>30:
+            if len(self.turn_magnitudes)>20:
                 sensors.turn_predictor.fit_calibration(self.turn_magnitudes,self.delta_vision,self.delta_angles)
             #print("number of elems {}".format(len(self.turn_magnitudes)))
             #    [m,b]=np.polyfit(self.turn_magnitudes,self.delta_angles,1)
