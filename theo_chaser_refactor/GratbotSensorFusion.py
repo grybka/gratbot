@@ -13,162 +13,23 @@ import matplotlib
 import matplotlib.pyplot as plt
 from GratbotMap import GratbotMap
 import logging
-
-class TurnPredictor():
-    def __init__(self):
-        self.video_turn_slope=1
-        self.video_turn_slope_unc=1
-        self.compass_turn_slope=1
-        self.compass_turn_slope_unc=1
-        self.compass_turn_inherent_unc=1
-
-    def load_from_dict(self,dat):
-        try:
-            self.video_turn_slope=dat["turn_predictor"]["video_turn_slope"]
-            self.video_turn_slope_unc=dat["turn_predictor"]["video_turn_slope_unc"]
-            self.compass_turn_slope=dat["turn_predictor"]["compass_turn_slope"]
-            self.compass_turn_slope_unc=dat["turn_predictor"]["compass_turn_slope_unc"]
-            self.compass_turn_inherent_unc=dat["turn_predictor"]["compass_turn_inherent_unc"]
-        except:
-            logging.warning("Unable to load turn predictor")
-
-    def save_to_dict(self,dat):
-        dat["turn_predictor"]={}
-        dat["turn_predictor"]["video_turn_slope"]=self.video_turn_slope
-        dat["turn_predictor"]["video_turn_slope_unc"]=self.video_turn_slope_unc
-        dat["turn_predictor"]["compass_turn_slope"]=self.compass_turn_slope
-        dat["turn_predictor"]["compass_turn_slope_unc"]=self.compass_turn_slope_unc
-        dat["turn_predictor"]["compass_turn_inherent_unc"]=self.compass_turn_inherent_unc
-        return dat
-
-    def fit_calibration(self,turns,vids,comps):
-        turns=np.array(turns)
-        vids=np.array(vids)
-        comps=np.array(comps)
-        def lin_fitfcn(x,m):
-            return x*m
-        popt, pcov = curve_fit(lin_fitfcn, turns, vids)
-        self.video_turn_slope=np.asscalar(popt[0])
-        self.video_turn_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
-
-        test_x=np.linspace(-1,1,100)
-        test_y,unc=self.predict_video_from_motion(test_x)
-        fig,ax=plt.subplots()
-        ax.plot(turns,vids,'*')
-        ax.errorbar(test_x,test_y,yerr=unc)
-        ax.set(xlabel="Turn Magnitude",ylabel="Video Change")
-        ax.grid()
-        plt.show()
+from LinearPredictors import TurnPredictor,LinearTurnPredictor,LinearFBPredictor
 
 
-        popt, pcov = curve_fit(lin_fitfcn, turns, comps)
-        sigma=np.sqrt(np.sum((lin_fitfcn(turns,popt[0])-comps)**2)/len(comps))
-        self.compass_turn_slope=np.asscalar(popt[0])
-        self.compass_turn_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
-        self.compass_turn_inherent_unc=np.asscalar(sigma)
-
-        test_x=np.linspace(-1,1,100)
-        test_y,unc=self.predict_compass_from_motion(test_x)
-        fig,ax=plt.subplots()
-        ax.plot(turns,comps,'*')
-        ax.plot(test_x,test_y)
-        ax.errorbar(test_x,test_y,yerr=unc)
-        ax.set(xlabel="Turn Magnitude",ylabel="Compass Change")
-        ax.grid()
-        plt.show()
-
-    def predict_video_from_motion(self,turn):
-        return turn*self.video_turn_slope, turn*self.video_turn_slope_unc
-
-    def predict_compass_from_motion(self,turn):
-        val=turn*self.compass_turn_slope
-        unc=np.sqrt( (turn*self.compass_turn_slope_unc)**2+self.compass_turn_inherent_unc**2)
-        return val,unc
-
-    def predict_turn_for_compass_angle(self,compass_angle):
-        val=compass_angle/self.compass_turn_slope
-        val_unc=val*(self.compass_turn_slope_unc/self.compass_turn_slope)
-        return val,val_unc
-
-    def show_plot(self,x,y,m,b):
-        test_x=np.linspace(-1,1,100)
-        test_y=test_x*m
-        fig,ax=plt.subplots()
-        ax.plot(x,y,'*')
-        ax.plot(test_x,test_y)
-        ax.set(xlabel="Turn Magnitude",ylabel="Angle Change")
-        ax.grid()
-        plt.show()
-
-    def get_max_turn_angle(self):
-        r,_=self.predict_compass_from_motion(1.0)
-        return r
 
 class FBPredictor():
-
     def __init__(self):
-        self.ultrasonic_motion_slope=1
-        self.ultrasonic_motion_slope_unc=1
-        self.ultrasonic_motion_inherent_unc=1
-
+        pass
     def load_from_dict(self,dat):
-        try:
-            self.ultrasonic_motion_slope=dat["fb_predictor"]["ultrasonic_motion_slope"]
-            self.ultrasonic_motion_slope_unc=dat["fb_predictor"]["ultrasonic_motion_slope_unc"]
-            self.ultrasonic_motion_inherent_unc=dat["fb_predictor"]["ultrasonic_motion_inherent_unc"]
-        except:
-            logging.warning("Unable to load FB predictor info")
-
+        pass
     def save_to_dict(self,dat):
-        dat["fb_predictor"]={}
-        dat["fb_predictor"]["ultrasonic_motion_slope"]=self.ultrasonic_motion_slope
-        dat["fb_predictor"]["ultrasonic_motion_slope_unc"]=self.ultrasonic_motion_slope_unc
-        dat["fb_predictor"]["ultrasonic_motion_inherent_unc"]=self.ultrasonic_motion_inherent_unc
-        return dat
-
-    def fit_calibration(self,fbs,ults):
-        fbs=np.array(fbs)
-        ults=np.array(ults)
-        def lin_fitfcn(x,m):
-            return x*m
-        popt, pcov = curve_fit(lin_fitfcn, fbs, ults)
-        sigma=np.sqrt(np.sum((lin_fitfcn(fbs,popt[0])-ults)**2)/len(fbs))
-        self.ultrasonic_motion_slope=np.asscalar(popt[0])
-        self.ultrasonic_motion_slope_unc=np.asscalar(np.sqrt(pcov[0][0]))
-        self.ultrasonic_motion_inherent_unc=np.asscalar(sigma)
-
-
-        test_x=np.linspace(-1,1,100)
-        test_y,testy_uncs=self.predict_ultrasonic_from_motion(test_x)
-        fig,ax=plt.subplots()
-        ax.plot(fbs,ults,'*')
-        #ax.plot(test_x,test_y)
-        ax.errorbar(test_x,test_y,yerr=testy_uncs)
-        ax.set(xlabel="FB Magnitude",ylabel="Ultrasonic Change")
-        ax.grid()
-        plt.show()
-
+        pass
     def predict_ultrasonic_from_motion(self,fb):
-        return fb*self.ultrasonic_motion_slope,np.sqrt((fb*self.ultrasonic_motion_slope_unc)**2+self.ultrasonic_motion_inherent_unc**2)
-
+        pass
     def predict_motion_from_ultrasonic(self,dist):
-        val=dist/self.ultrasonic_motion_slope
-        val_unc=val*(self.ultrasonic_motion_slope_unc/self.ultrasonic_motion_slope)
-        return val,val_unc
-
-    def show_plot(self,x,y,m,b):
-        test_x=np.linspace(-1,1,100)
-        test_y=test_x*m
-        fig,ax=plt.subplots()
-        ax.plot(x,y,'*')
-        ax.plot(test_x,test_y)
-        ax.set(xlabel="Turn Magnitude",ylabel="Angle Change")
-        ax.grid()
-        plt.show()
-
+        pass
     def get_max_fb_dist(self):
-        r,_=self.predict_ultrasonic_from_motion(1.0)
-        return r
+        pass
 
 class GratbotSensorFusion():
     def __init__(self):
@@ -179,8 +40,8 @@ class GratbotSensorFusion():
         self.user_frame_lock=threading.Lock()
         self.user_frame=None
         self.short_term_memory={}
-        self.turn_predictor=TurnPredictor()
-        self.fb_predictor=FBPredictor()
+        self.turn_predictor=LinearTurnPredictor()
+        self.fb_predictor=LinearFBPredictor()
         #calibrations here
         #should I keep them in a yaml file or something?
         #self.b_field_correction=np.array([242.8,-238.2,-997.7]) #next to motor
@@ -196,10 +57,13 @@ class GratbotSensorFusion():
         #sensor warning times
         self.compass_off_until=time.time()
         self.motor_compass_disruption_time=0.16 #seconds
+        self.video_off_until_time=time.time()
+        #self.motor_video_disruption_time=0.16 #seconds
+        self.motor_video_disruption_time=0.35 #seconds, saccade time
 
     def save_config(self,fname):
         output_config={}
-        output_config["b_field_correction"]=self.b_field_correction
+        output_config["b_field_correction"]=self.b_field_correction.tolist()
         output_config=self.turn_predictor.save_to_dict(output_config)
         output_config=self.fb_predictor.save_to_dict(output_config)
         print("output config: {}".format(output_config))
@@ -208,12 +72,15 @@ class GratbotSensorFusion():
         f.close()
 
     def load_config(self,fname):
-        f=open(fname,'r')
-        cfg=yaml.load(f,Loader=yaml.FullLoader)
-        f.close()
-        self.b_field_correction=cfg["b_field_correction"]
-        self.turn_predictor.load_from_dict(cfg)
-        self.fb_predictor.load_from_dict(cfg)
+        try:
+            f=open(fname,'r')
+            cfg=yaml.load(f,Loader=yaml.FullLoader)
+            f.close()
+            self.b_field_correction=np.array(cfg["b_field_correction"])
+            self.turn_predictor.load_from_dict(cfg)
+            self.fb_predictor.load_from_dict(cfg)
+        except:
+            logging.warning("Unable to load config file, starting from scratch")
 
     def update(self,comms):
         resp=comms.update()
@@ -252,6 +119,11 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         self.last_video_frame_lock.acquire()
         mystery_status,self.last_video_frame=self.video.get_latest_frame()
         self.last_video_frame_lock.release()
+        if self.last_video_frame.shape!=(480,640,3):
+            logging.warning("warning video of wrong shape, skipping frame shape was {}".format(self.last_video_frame.shape))
+            return
+        if time.time()<self.video_off_until_time:
+            return
         self.tracker.update(self.last_video_frame)
         self.user_frame_lock.acquire()
         self.user_frame=self.last_video_frame
@@ -317,6 +189,7 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
     #for motio
     def send_command_turn_angle(self,comms,turn_angle):
         #print("command to turn {} degrees".format(360*turn_angle/(2*np.pi)))
+        turn_speed=0.6
         turn_mag,turn_mag_unc=self.turn_predictor.predict_turn_for_compass_angle(turn_angle)
         if abs(turn_mag)>1: #turn as far as you can but no more
             print("requesting turn too far")
@@ -328,6 +201,10 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         #Warn compass will be disrupted
         self.compass_off_until=time.time()+self.motor_compass_disruption_time
         #TODO warn video will be disrupted
+        self.video_off_until_time=time.time()+self.motor_video_disruption_time
+
+        #do actual turn
+        self.send_command(comms, ["drive","translate"],[0,0,np.sign(turn_mag)*turn_speed,abs(turn_mag)/turn_speed])
 
         #adjust pose belief
         cov=np.zeros([3,3])
@@ -335,7 +212,10 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         #print("informing pose to change to turn {} degrees".format(360*angle/(2*np.pi)))
         self.map.change_pose_with_offset(np.array([0,0,angle]),cov)
 
-        self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
+        #adjust video belief
+        #self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
+        vid_x,vid_x_unc=self.turn_predictor.predict_video_from_motion(turn_mag)
+        self.tracker.adjust_all_tracks(self,vid_x,0,0,0,vid_x_unc,0,0,0)
 
     def send_command_forward_meters(self,comms,dist):
         #print("received command to go forward {}".format(dist))
@@ -350,6 +230,7 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         #Warn compass will be disrupted
         self.compass_off_until=time.time()+self.motor_compass_disruption_time
         #TODO warn video will be disrupted
+        self.video_off_until_time=time.time()+self.motor_video_disruption_time
 
         #adjust pose belief
         dx=-dist*np.cos(self.map.pose[2])
@@ -371,6 +252,8 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         cov[2][2]=0.0001 #hardcoding some turn drift
         print("updating pose to go forward {},{}".format(dx,dy))
         self.map.change_pose_with_offset(np.array([dx,dy,0]),cov)
+
+        #TODO adjust video belief (not really necessary I think)
 
         self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
 

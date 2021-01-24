@@ -14,17 +14,39 @@ import sys,os,traceback
 
 import logging
 
-class FBRandomAmount(GratbotBehavior):
-    def __init__(self,left_magnitude=-1,right_magnitude=1):
-        super().__init__()
-        self.left_magnitude=left_magnitude
-        self.right_magnitude=right_magnitude
+class IsUltrasonic(GratbotBehavior):
+    def __init__(self,greaterthan_not_lessthan,value):
+        self.greaterthan_not_lessthan=greaterthan_not_lessthan
+        self.value=value
 
     def act(self,comms,sensors):
-        translation=[random.uniform(self.left_magnitude,self.right_magnitude),0,0]
+        mycase=(sensors.gratbot_state["ultrasonic_sensor/last_measurement"]["average_distance"]>self.value)
+        print("distance {} vs {}".format(sensors.gratbot_state["ultrasonic_sensor/last_measurement"]["average_distance"],self.value))
+        if self.greaterthan_not_lessthan:
+            mycase = not mycase
+        if mycase:
+            print("Returning Complete")
+            return GratbotBehaviorStatus.COMPLETED
+        else:
+            print("Returning Failed")
+            return GratbotBehaviorStatus.FAILED
+
+class FBRandomAmount(GratbotBehavior):
+    def __init__(self,forward_magnitude=0.5,back_magnitude=-0.5):
+        super().__init__()
+        self.forward_magnitude=forward_magnitude
+        self.back_magnitude=back_magnitude
+        self.speed=0.6
+
+    def act(self,comms,sensors):
+        mag=random.uniform(self.back_magnitude,self.forward_magnitude)
+        print("fb between {} and {} I get {}".format(self.back_magnitude,self.forward_magnitude,mag))
+        translation=[self.speed*np.sign(mag),0,0,np.abs(mag)/self.speed]
         sensors.short_term_memory["last_translation"]=translation
         #comms.set( ["drive","translate"],sensors.interpret_translation(translation))
-        sensors.send_command(comms, ["drive","translate"],sensors.interpret_translation(translation))
+        print("moving {}".format(translation))
+        sensors.send_command(comms, ["drive","translate"],translation)
+        #sensors.send_command(comms, ["drive","translate"],sensors.interpret_translation(translation))
         return GratbotBehaviorStatus.COMPLETED
 
 class CalibrateFBToDistance(GratbotBehavior):

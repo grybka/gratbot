@@ -6,46 +6,47 @@ from filterpy.common import Q_discrete_white_noise
 from scipy.optimize import linear_sum_assignment
 import uuid
 
+
 class VTTrackedObject:
     def __init__(self,x,y,w,h,label):
         print("new tracked object at {} {} {} {} {}".format(x,y,w,h,label))
         self.label=label
         self.kfx = KalmanFilter(dim_x=2,dim_z=1) #xxpos, xvel,      xmeas
         self.kfy = KalmanFilter(dim_x=2,dim_z=1) #xxpos, xvel,      xmeas
-        self.kfw = KalmanFilter(dim_x=2,dim_z=1) #xxpos, xvel,      xmeas
-        self.kfh = KalmanFilter(dim_x=2,dim_z=1) #xxpos, xvel,      xmeas
+        self.kfw = KalmanFilter(dim_x=1,dim_z=1) #xxpos,       xmeas
+        self.kfh = KalmanFilter(dim_x=1,dim_z=1) #xxpos,       xmeas
         self.kfx.x=np.array([x, 0]) # initially at 0,0 with 0 velocity
         self.kfy.x=np.array([y, 0])
-        self.kfw.x=np.array([w, 0]) # initially at 0,0 with 0 velocity
-        self.kfh.x=np.array([h, 0]) # initially at 0,0 with 0 velocity
+        self.kfw.x=np.array([w]) # initially at 0,0 with 0 velocity
+        self.kfh.x=np.array([h]) # initially at 0,0 with 0 velocity
         #transition matrix (x=x0+v*t)
         self.kfx.F=np.array([ [1.0,1.0],
                 [0.0,1.0] ])
         self.kfy.F=np.array([ [1.0,1.0],
                 [0.0,1.0] ])
-        self.kfw.F=np.array([ [1.0,1.0],
-                [0.0,1.0] ])
-        self.kfh.F=np.array([ [1.0,1.0],
-                [0.0,1.0] ])
+        self.kfw.F=np.array([ [1.0] ])
+        self.kfh.F=np.array([ [1.0] ])
         #measurement function (only position)
         self.kfx.H=np.array([[1.0,0.0]])
         self.kfy.H=np.array([[1.0,0.0]])
-        self.kfw.H=np.array([[1.0,0.0]])
-        self.kfh.H=np.array([[1.0,0.0]])
+        self.kfw.H=np.array([[1.0]])
+        self.kfh.H=np.array([[1.0]])
         #covariance matrix
         self.kfx.P *= 10. #I guess I figure this is big
         self.kfy.P *= 10. #I guess I figure this is big
         self.kfw.P *= 10. #I guess I figure this is big
         self.kfh.P *= 10. #I guess I figure this is big
         #Fundamental maesurement noise
-        self.kfx.R =np.array([[0.1]])
-        self.kfy.R =np.array([[0.1]])
-        self.kfw.R =np.array([[0.1]])
-        self.kfh.R =np.array([[0.1]])
-        self.kfx.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
-        self.kfy.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
-        self.kfw.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
-        self.kfh.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=0.1)
+        self.kfx.R =np.array([[1e-4]])
+        self.kfy.R =np.array([[1e-4]])
+        self.kfw.R =np.array([[1e-4]])
+        self.kfh.R =np.array([[1e-4]])
+        self.kfx.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=1e-3)
+        self.kfy.Q=Q_discrete_white_noise(dim=2,dt=1.0,var=1e-3)
+        self.kfw.Q=np.array( [ [ 1e-3]])
+        self.kfh.Q=np.array( [ [ 1e-3]])
+        #self.kfw.Q=Q_discrete_white_noise(dim=1,dt=1.0,var=1e-3)
+        #self.kfh.Q=Q_discrete_white_noise(dim=1,dt=1.0,var=1e-3)
 
         self.last_update=[x,y,w,h]
         self.missed_frames=0
@@ -97,12 +98,16 @@ class VisualTracker:
         self.object_tagger=Theo_Chaser_Object_Tagger()
         self.tracked_objects=[]
         self.id_names_hash=["Franz","Brunhilda","Steve","Persepolis","Legolas","Senator","Doublewide","Convolution","Beaucephalus","Microencephalus","Enchilada","Buttercup","Malferious","Ferrous","Titiana","Europa","Malpractice","Daedelus","Dad-elus","Cheesemonger","Burgertime","ForgetMeNot","Nevar4get","Allowance","Betrayal","Elvis"]
+        #self.camera_hfov=48.8*(2*np.pi)/360 #from spec sheet
+        self.camera_hfov=45.0*(2*np.pi)/360 #corrected by hand
+        self.camera_wfov=62.2*(2*np.pi)/360 #from spec sheet
+        self.object_heights={ "stop sign": [0.081,0.005]}
 
     def get_cost(self,tracked_object,vision_object):
         vision_bbox=[vision_object["startx"],vision_object["endx"],vision_object["starty"],vision_object["endy"]]
         overlap=tracked_object.get_bounding_box_overlap(vision_bbox)
         cost=-overlap
-        wrong_class_penalty=0.2
+        wrong_class_penalty=0.4
         if vision_object["label"]!=tracked_object.label:
             cost+=wrong_class_penalty
         return cost
@@ -179,3 +184,33 @@ class VisualTracker:
                 return obj
         print("{} not found".format(id))
         return None
+
+    def predict_angle_from_track(self,track):
+        #I assume here that my camera points straight ahead
+        pred=track.kfx.x[0]
+        dpred=np.sqrt(track.kfx.P[0][0])
+        print("pred {} dpred {}".format(pred,dpred))
+        angle_guess=pred*self.camera_wfov
+        dangle_guess=dpred*self.camera_wfov
+        return angle_guess,dangle_guess
+
+    def predict_dist_from_track(self,track):
+        if track.label in self.object_heights:
+            h=self.object_heights[track.label][0]
+            dh=self.object_heights[track.label][1]
+            pred=track.kfh.x[0]
+            dpred=np.sqrt(track.kfh.P[0][0])
+            dist_guess=h/np.tan(pred*self.camera_hfov)
+            dist_guess_unc=dist_guess*np.sqrt( (dh/h)**2+ (dpred/pred)**2 )
+            return dist_guess,dist_guess_unc
+        else:
+            return None,None
+
+
+    def adjust_all_tracks(self,x,y,w,h,dx,dy,dw,dh):
+        #TODO Handle WH better
+        for obj in self.tracked_objects:
+            obj.kfx.x+=x
+            obj.kfx.P[0][0]=obj.kfx.P[0][0]+dx*dx
+            obj.kfy.x+=y
+            obj.kfy.P[0][0]=obj.kfx.P[0][0]+dy*dy

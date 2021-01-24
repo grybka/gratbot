@@ -21,10 +21,16 @@ from behaviors.CalibrateMagsensor import CalibrateMagsensorPrintField
 from behaviors.GratbotBehavior import GratbotBehavior_Wait
 from behaviors.GratbotBehavior import GratbotBehavior_Series
 from behaviors.GratbotBehavior import GratbotBehaviorStatus
-
+from behaviors.GratbotBehavior import GratbotChoice
+from behaviors.GratbotBehavior import GratbotDoUntil
 from behaviors.CalibrateTurning import CalibrateTurnToAngle
 from behaviors.CalibrateTurning import CalibrateTurnToVideo
+from behaviors.CalibrateTurning import TurnRandomTime
+from behaviors.CalibrateTurning import TurnRandomAndBack
+from behaviors.CalibrateTurning import PrintTrackInfo
 from behaviors.CalibrateFB import CalibrateFBToDistance
+from behaviors.CalibrateFB import IsUltrasonic
+from behaviors.CalibrateFB import FBRandomAmount
 from behaviors.Automapper import TurnFixedAmount
 from behaviors.Automapper import ForwardFixedAmount
 from behaviors.Automapper import TurnToHeading
@@ -63,7 +69,7 @@ class DisplayLoop:
 # connect to bot controls
 logging.info("Connecting to Gratbot comms")
 gratbot_comms = GratbotCommsMk2("10.0.0.4", 9999)
-gratbot_comms.set(["ultrasonic_sensor","update_frequency"],2)
+gratbot_comms.set(["ultrasonic_sensor","update_frequency"],4)
 
 
 sensor_fusion=GratbotSensorFusion()
@@ -73,19 +79,37 @@ display_loop=DisplayLoop(sensor_fusion)
 
 #square_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(1.57),GratbotBehavior_Wait(0.5),ForwardFixedAmount(0.2)])
 sensor_fusion.save_updates=True
-square_loop=GratbotBehavior_Series([TurnToHeading(0,0.05),ForwardFixedAmount(0.2),
-                                   TurnToHeading(np.pi/2,0.05),ForwardFixedAmount(0.2),
-                                   TurnToHeading(np.pi,0.05),ForwardFixedAmount(0.2),
-                                   TurnToHeading(3*np.pi/2,0.05),ForwardFixedAmount(0.2)])
-square_loop.should_loop=True
-on_behavior=square_loop
+#square_loop=GratbotBehavior_Series([TurnToHeading(0,0.05),ForwardFixedAmount(0.2),
+#                                   TurnToHeading(np.pi/2,0.05),ForwardFixedAmount(0.2),
+#                                   TurnToHeading(np.pi,0.05),ForwardFixedAmount(0.2),
+#                                   TurnToHeading(3*np.pi/2,0.05),ForwardFixedAmount(0.2)])
+#square_loop.should_loop=True
+#on_behavior=square_loop
+#turn_random_loop=GratbotBehavior_Series([TurnRandomTime(),GratbotBehavior_Wait(1.0)])
+#turn_random_loop=GratbotBehavior_Series([TurnRandomAndBack(),GratbotBehavior_Wait(1.0)])
+#turn_random_loop.should_loop=True
+#on_behavior=turn_random_loop
+#####forward backard
+fb_forward=FBRandomAmount(0.3,0)
+fb_backward=FBRandomAmount(0,-0.3)
+fb_mid=FBRandomAmount(0.3,-0.3)
+#fb_choice=GratbotChoice(IsUltrasonic(True,1.5),fb_backward,GratbotChoice(IsUltrasonic(False,0.5),fb_forward,fb_mid))
+#fb_loop=GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_choice])
+goback=GratbotDoUntil(IsUltrasonic(False,1.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_backward]))
+goforward=GratbotDoUntil(IsUltrasonic(True,0.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_forward]))
+fb_loop=GratbotBehavior_Series([ goback,goforward])
+fb_loop.should_loop=True
+#on_behavior=fb_loop
+#fb_loop=GratbotBehavior_Series([GratbotBehavior_Wait(1.0),GratbotChoice(IsUltrasonic(True,))])
+
 #automapper_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(0.1)])
 #automapper_loop.should_loop=True
 #on_behavior=automapper_loop
 #myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
-#myloop.should_loop=True
+myloop=GratbotBehavior_Series([PrintTrackInfo(),GratbotBehavior_Wait(0.5)])
+myloop.should_loop=True
 #on_behavior=CalibrateMagsensor()
-#on_behavior=myloop
+on_behavior=myloop
 #on_behavior=CalibrateTurnToAngle()
 #on_behavior=CalibrateTurnToVideo()
 #on_behavior=CalibrateFBToDistance()
@@ -104,7 +128,8 @@ try:
                 on_behavior=None
 
 except KeyboardInterrupt:
-    logging.warning("Keyboard Exception Program Ended, exiting")
+    logging.warning("Keyboard Exception Program Ended, saving config and exiting")
+    sensor_fusion.save_config("sensor_fusion_config.yml")
 except Exception as e:
     print("Exception: {}".format(e))
     exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -112,6 +137,5 @@ except Exception as e:
     print(exc_type, fname, exc_tb.tb_lineno)
     traceback.print_exc(file=sys.stdout)
 finally:
-    sensor_fusion.save_config("sensor_fusion_config.yml")
     display_loop.stop()
     sensor_fusion.stop()

@@ -59,15 +59,16 @@ class GratbotBehavior_Loop(GratbotBehavior):
     def __init__(self,sub_behavior,ntimes):
         self.sub_behavior=sub_behavior
         self.count=0
+        self.ntimes=ntimes
 
     def act(self,comms,sensors):
-        if self.count>=ntimes:
+        if self.count>=self.ntimes and self.ntimes!=-1:
             return GratbotBehaviorStatus.COMPLETED
         ret=self.sub_behavior.act(comms,sensors)
         if ret==GratbotBehaviorStatus.COMPLETED:
             self.sub_behavior.reset()
             self.count+=1
-            if self.count>=ntimes:
+            if self.count>=self.ntimes and self.ntimes!=-1:
                 return GratbotBehaviorStatus.COMPLETED
             else:
                 return GratbotBehaviorStatus.INPROGRESS
@@ -133,3 +134,40 @@ class GratbotBehavior_CopyMemory(GratbotBehavior):
             traceback.print_exc(file=sys.stdout)
             return GratbotBehaviorStatus.FAILED
         return GratbotBehaviorStatus.COMPLETED
+
+class GratbotChoice(GratbotBehavior):
+    def __init__(self,test_behavior,do_if_completed,do_if_failed):
+        self.test_behavior=test_behavior
+        self.do_if_completed=do_if_completed
+        self.do_if_failed=do_if_failed
+        self.reset()
+
+    def act(self,comms,sensors):
+        if self.chosen==None:
+            x=self.test_behavior.act(comms,sensors)
+            if x==GratbotBehaviorStatus.INPROGRESS:
+                return GratbotBehaviorStatus.INPROGRESS
+            if x==GratbotBehaviorStatus.COMPLETED:
+                self.chosen=self.do_if_completed
+            elif x==GratbotBehaviorStatus.FAILED:
+                self.chosen=self.do_if_failed
+        return self.chosen.act(comms,sensors)
+
+    def reset(self):
+        self.chosen=None
+
+class GratbotDoUntil(GratbotBehavior):
+    def __init__(self,test_behavior,keep_doing):
+        self.test_behavior=test_behavior
+        self.keep_doing=keep_doing
+
+    def act(self,comms,sensors):
+        ret=self.keep_doing.act(comms,sensors)
+        if ret==GratbotBehaviorStatus.COMPLETED:
+            if self.test_behavior.act(comms,sensors)==GratbotBehaviorStatus.COMPLETED:
+                return GratbotBehaviorStatus.COMPLETED
+            else:
+                self.keep_doing.reset()
+        if ret==GratbotBehaviorStatus.FAILED:
+            return GratbotBehaviorStatus.FAILED
+        return GratbotBehaviorStatus.INPROGRESS
