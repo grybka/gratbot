@@ -14,22 +14,13 @@ import matplotlib.pyplot as plt
 from GratbotMap import GratbotMap
 import logging
 from LinearPredictors import TurnPredictor,LinearTurnPredictor,LinearFBPredictor
+import uncertainties
+from uncertainties import ufloat
+from BayesianArray import BayesianArray
+
+import cv2 as cv
 
 
-
-class FBPredictor():
-    def __init__(self):
-        pass
-    def load_from_dict(self,dat):
-        pass
-    def save_to_dict(self,dat):
-        pass
-    def predict_ultrasonic_from_motion(self,fb):
-        pass
-    def predict_motion_from_ultrasonic(self,dist):
-        pass
-    def get_max_fb_dist(self):
-        pass
 
 class GratbotSensorFusion():
     def __init__(self):
@@ -97,6 +88,7 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         if self.save_updates:
             resp["compass_heading"]=self.get_compass_heading()
             resp["timestamp"]=time.time()
+            resp["pose"]=[ self.map.pose.vals.tolist(),self.map.pose.covariance.tolist()]
             self.save_lock.acquire()
             f=open(self.save_filename,"a")
             f.write(json.dumps(resp)+"\n")
@@ -115,6 +107,12 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
             f.close()
             self.save_lock.release()
 
+    def get_last_video_frame(self):
+        self.last_video_frame_lock.acquire()
+        ret=self.last_video_frame
+        self.last_video_frame_lock.release()
+        return ret
+
     def update_video(self):
         self.last_video_frame_lock.acquire()
         mystery_status,self.last_video_frame=self.video.get_latest_frame()
@@ -125,6 +123,9 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         if time.time()<self.video_off_until_time:
             return
         self.tracker.update(self.last_video_frame)
+        #update beliefs about objects
+        self.map.update_with_vid_objects(self.tracker)
+
         self.user_frame_lock.acquire()
         self.user_frame=self.last_video_frame
         self.user_frame=self.tracker.draw_bboxes(self.user_frame)
@@ -166,6 +167,11 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
                 self.b_field_correction=np.array(data["b_field_correction"])
             f.close()
 
+    def save_frame(self):
+        fname=time.strftime("images/image_%Y%m%d-%H%M%S.png")
+        frame=self.get_last_video_frame()
+        cv.imwrite(fname, frame)
+
     #specialized functions here
     def get_corrected_bfield(self):
         if "magnetometer/b_field" in self.gratbot_state:
@@ -191,20 +197,22 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         #print("command to turn {} degrees".format(360*turn_angle/(2*np.pi)))
         turn_speed=0.6
         turn_mag,turn_mag_unc=self.turn_predictor.predict_turn_for_compass_angle(turn_angle)
-        if abs(turn_mag)>1: #turn as far as you can but no more
+        max_mag=1.0/turn_speed
+        if abs(turn_mag)>max_mag: #turn as far as you can but no more
             print("requesting turn too far")
-            turn_mag=np.sign(turn_mag)*1.0
+            turn_mag=np.sign(turn_mag)*max_mag
         #feed it backwards so I know my uncertainty
         angle,angle_unc=self.turn_predictor.predict_compass_from_motion(turn_mag)
         translation=[0,0,turn_mag]
         self.short_term_memory["last_translation"]=translation
+        turn_duration=abs(turn_mag)/turn_speed
         #Warn compass will be disrupted
-        self.compass_off_until=time.time()+self.motor_compass_disruption_time
+        self.compass_off_until=time.time()+self.motor_compass_disruption_time+turn_duration
         #TODO warn video will be disrupted
         self.video_off_until_time=time.time()+self.motor_video_disruption_time
 
         #do actual turn
-        self.send_command(comms, ["drive","translate"],[0,0,np.sign(turn_mag)*turn_speed,abs(turn_mag)/turn_speed])
+        self.send_command(comms, ["drive","translate"],[0,0,np.sign(turn_mag)*turn_speed,turn_duration])
 
         #adjust pose belief
         cov=np.zeros([3,3])
@@ -215,47 +223,41 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         #adjust video belief
         #self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
         vid_x,vid_x_unc=self.turn_predictor.predict_video_from_motion(turn_mag)
-        self.tracker.adjust_all_tracks(self,vid_x,0,0,0,vid_x_unc,0,0,0)
+        self.tracker.adjust_all_tracks(vid_x,0,0,0,vid_x_unc,0,0,0)
 
     def send_command_forward_meters(self,comms,dist):
         #print("received command to go forward {}".format(dist))
+        fb_speed=0.6
+        max_mag=1.0/fb_speed
         fb,fb_unc=self.fb_predictor.predict_motion_from_ultrasonic(dist)
-        if abs(fb)>1:
+        if abs(fb)>max_mag:
             print("Trying to go too far, {}".format(fb))
-            fb=np.sign(fb)*1.0
+            fb=np.sign(fb)*max_mag
         #print("thats a translation of {}".format(fb))
         newdist,newdist_unc=self.fb_predictor.predict_ultrasonic_from_motion(fb)
         translation=[fb,0,0]
         self.short_term_memory["last_translation"]=translation
+        duration=abs(fb)/fb_speed
         #Warn compass will be disrupted
-        self.compass_off_until=time.time()+self.motor_compass_disruption_time
+        self.compass_off_until=time.time()+self.motor_compass_disruption_time+duration
         #TODO warn video will be disrupted
         self.video_off_until_time=time.time()+self.motor_video_disruption_time
 
         #adjust pose belief
-        dx=-dist*np.cos(self.map.pose[2])
-        dy=dist*np.sin(self.map.pose[2])
-        dxdr=-np.cos(self.map.pose[2])
-        dydr=np.sin(self.map.pose[2])
-        dxdtheta=dist*np.sin(self.map.pose[2])
-        dydtheta=dist*np.cos(self.map.pose[2])
-        sigma_r=newdist_unc*newdist_unc
-        sigma_theta=self.map.pose_covariance[2][2]
-        sigma_xx=sigma_r*(dxdr*dxdr)+sigma_theta*(dxdtheta*dxdtheta)
-        sigma_yy=sigma_r*(dydr*dydr)+sigma_theta*(dydtheta*dydtheta)
-        sigma_xy=sigma_r*(dxdr*dydr)+sigma_theta*(dydr*dydtheta)
-        cov=np.zeros([3,3])
-        cov[0][0]=sigma_xx
-        cov[1][1]=sigma_yy
-        cov[0][1]=sigma_xy
-        cov[1][0]=sigma_xy
-        cov[2][2]=0.0001 #hardcoding some turn drift
-        print("updating pose to go forward {},{}".format(dx,dy))
-        self.map.change_pose_with_offset(np.array([dx,dy,0]),cov)
+        uvec=np.array(self.map.get_pose_unit_vector_as_ufloat())
+        udist=ufloat(newdist,newdist_unc)
+        displacement=udist*uvec
+        displacement=np.append(displacement,ufloat(0,0.01)) #no change in angle, some drift
+        self.map.pose=self.map.pose+BayesianArray.from_ufloats(displacement)
+
+        #print("updating pose to go forward {},{}".format(dx,dy))
+        #self.map.change_pose_with_offset(np.array([dx,dy,0]),cov)
 
         #TODO adjust video belief (not really necessary I think)
+        tosend=[np.sign(fb)*fb_speed,0,0,duration]
+        print("sending forward {}".format(tosend))
 
-        self.send_command(comms, ["drive","translate"],self.interpret_translation(translation))
+        self.send_command(comms, ["drive","translate"],tosend)
 
     def send_command(self,comms,address,value):
         comms.set(address,value)

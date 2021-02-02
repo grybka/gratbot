@@ -43,6 +43,17 @@ class PrintTrackInfo(GratbotBehavior):
                 print("Distance {}".format(ufloat(d,dd)))
         return GratbotBehaviorStatus.COMPLETED
 
+class PrintMapInfo(GratbotBehavior):
+    def __init__(self):
+        super().__init__()
+
+    def act(self,comms,sensors):
+        print("Map Objects:")
+        for key in sensors.map.tracked_objects:
+            obj=sensors.map.tracked_objects[key]
+            print("{}".format(obj))
+        return GratbotBehaviorStatus.COMPLETED
+
 class TurnRandomTime(GratbotBehavior):
     def __init__(self,min_time=0.02,max_time=0.5,do_left=True,do_right=True):
         super().__init__()

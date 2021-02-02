@@ -171,3 +171,12 @@ class GratbotDoUntil(GratbotBehavior):
         if ret==GratbotBehaviorStatus.FAILED:
             return GratbotBehaviorStatus.FAILED
         return GratbotBehaviorStatus.INPROGRESS
+
+class TakePhoto(GratbotBehavior):
+    def __init__(self):
+        pass
+
+    def act(self,comms,sensors):
+        sensors.save_frame()
+        
+        return GratbotBehaviorStatus.COMPLETED

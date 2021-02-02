@@ -158,7 +158,22 @@ class LinearTurnPredictor(TurnPredictor):
         r,_=self.predict_compass_from_motion(1.0)
         return r
 
-class LinearFBPredictor():
+
+class FBPredictor():
+    def __init__(self):
+        pass
+    def load_from_dict(self,dat):
+        pass
+    def save_to_dict(self,dat):
+        pass
+    def predict_ultrasonic_from_motion(self,fb):
+        pass
+    def predict_motion_from_ultrasonic(self,dist):
+        pass
+    def get_max_fb_dist(self):
+        pass
+
+class LinearFBPredictor(FBPredictor):
 
     def __init__(self):
         self.ultrasonic_motion_slope=0.395

@@ -23,11 +23,13 @@ from behaviors.GratbotBehavior import GratbotBehavior_Series
 from behaviors.GratbotBehavior import GratbotBehaviorStatus
 from behaviors.GratbotBehavior import GratbotChoice
 from behaviors.GratbotBehavior import GratbotDoUntil
+from behaviors.GratbotBehavior import TakePhoto
 from behaviors.CalibrateTurning import CalibrateTurnToAngle
 from behaviors.CalibrateTurning import CalibrateTurnToVideo
 from behaviors.CalibrateTurning import TurnRandomTime
 from behaviors.CalibrateTurning import TurnRandomAndBack
 from behaviors.CalibrateTurning import PrintTrackInfo
+from behaviors.CalibrateTurning import PrintMapInfo
 from behaviors.CalibrateFB import CalibrateFBToDistance
 from behaviors.CalibrateFB import IsUltrasonic
 from behaviors.CalibrateFB import FBRandomAmount
@@ -79,11 +81,21 @@ display_loop=DisplayLoop(sensor_fusion)
 
 #square_loop=GratbotBehavior_Series([GratbotBehavior_Wait(0.5),TurnFixedAmount(1.57),GratbotBehavior_Wait(0.5),ForwardFixedAmount(0.2)])
 sensor_fusion.save_updates=True
-#square_loop=GratbotBehavior_Series([TurnToHeading(0,0.05),ForwardFixedAmount(0.2),
-#                                   TurnToHeading(np.pi/2,0.05),ForwardFixedAmount(0.2),
-#                                   TurnToHeading(np.pi,0.05),ForwardFixedAmount(0.2),
-#                                   TurnToHeading(3*np.pi/2,0.05),ForwardFixedAmount(0.2)])
-#square_loop.should_loop=True
+def do_side(angle):
+    return GratbotBehavior_Series([TurnToHeading(angle-np.pi/4,0.10),
+                                   GratbotBehavior_Wait(1.0),
+                                   TakePhoto(),
+                                   TurnToHeading(angle,0.10),
+                                   GratbotBehavior_Wait(1.0),
+                                   TakePhoto(),
+                                   ForwardFixedAmount(1.0),
+                                   GratbotBehavior_Wait(1.0),
+                                   TakePhoto()])
+square_loop=GratbotBehavior_Series([do_side(0),
+                                    do_side(np.pi/2),
+                                    do_side(np.pi),
+                                    do_side(3*np.pi/2)])
+square_loop.should_loop=True
 #on_behavior=square_loop
 #turn_random_loop=GratbotBehavior_Series([TurnRandomTime(),GratbotBehavior_Wait(1.0)])
 #turn_random_loop=GratbotBehavior_Series([TurnRandomAndBack(),GratbotBehavior_Wait(1.0)])
@@ -95,10 +107,10 @@ fb_backward=FBRandomAmount(0,-0.3)
 fb_mid=FBRandomAmount(0.3,-0.3)
 #fb_choice=GratbotChoice(IsUltrasonic(True,1.5),fb_backward,GratbotChoice(IsUltrasonic(False,0.5),fb_forward,fb_mid))
 #fb_loop=GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_choice])
-goback=GratbotDoUntil(IsUltrasonic(False,1.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_backward]))
-goforward=GratbotDoUntil(IsUltrasonic(True,0.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_forward]))
-fb_loop=GratbotBehavior_Series([ goback,goforward])
-fb_loop.should_loop=True
+#goback=GratbotDoUntil(IsUltrasonic(False,1.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_backward]))
+#goforward=GratbotDoUntil(IsUltrasonic(True,0.5),GratbotBehavior_Series([GratbotBehavior_Wait(1.0),fb_forward]))
+#fb_loop=GratbotBehavior_Series([ goback,goforward])
+#fb_loop.should_loop=True
 #on_behavior=fb_loop
 #fb_loop=GratbotBehavior_Series([GratbotBehavior_Wait(1.0),GratbotChoice(IsUltrasonic(True,))])
 
@@ -106,10 +118,17 @@ fb_loop.should_loop=True
 #automapper_loop.should_loop=True
 #on_behavior=automapper_loop
 #myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),GratbotBehavior_Wait(0.5)])
-myloop=GratbotBehavior_Series([PrintTrackInfo(),GratbotBehavior_Wait(0.5)])
-myloop.should_loop=True
+#myloop=GratbotBehavior_Series([CalibrateMagsensorPrintField(),PrintTrackInfo(),PrintMapInfo(),GratbotBehavior_Wait(0.5)])
+#myloop=GratbotBehavior_Series([TurnToHeading(0,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(0.2,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(0.4,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(0.2,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(0.0,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(-0.2,0.10),GratbotBehavior_Wait(0.7),
+#                               TurnToHeading(-0.4,0.10),GratbotBehavior_Wait(0.7)])
+#myloop.should_loop=True
 #on_behavior=CalibrateMagsensor()
-on_behavior=myloop
+on_behavior=square_loop
 #on_behavior=CalibrateTurnToAngle()
 #on_behavior=CalibrateTurnToVideo()
 #on_behavior=CalibrateFBToDistance()

@@ -78,19 +78,19 @@ class TurnToHeading(GratbotBehavior):
         if time.time()<self.wait_until:
             return GratbotBehaviorStatus.INPROGRESS
         heading,heading_unc=sensors.map.get_heading()
-        print("Planning turn to {}, measured {} +- {}".format(self.target_heading,heading,heading_unc))
+        #print("Planning turn to {}, measured {} +- {}".format(self.target_heading,heading,heading_unc))
         #if I am within my desired uncertainty of heading, and that uncertainty is less than target, I'm done
         if abs(self.min_angle_difference(self.target_heading,heading))<self.target_uncertainty and heading_unc<self.target_uncertainty:
-            print("I'm there")
+            #print("I'm there")
             return GratbotBehaviorStatus.COMPLETED
         #if I don't know my heading well enough, wait until it settles
         if heading_unc>self.target_uncertainty:
-            print("Uncertainty too high, waiting")
+            #print("Uncertainty too high, waiting")
             self.wait_until=time.time()+self.compass_wait_time
             return GratbotBehaviorStatus.INPROGRESS
         #I know my heading well but it isn't where I want
         delta_angle=self.min_angle_difference(self.target_heading,heading)
-        print("turning {}".format(delta_angle))
+        #print("turning {}".format(delta_angle))
         sensors.send_command_turn_angle(comms,delta_angle)
         self.wait_until=time.time()+self.motor_wait_time
         return GratbotBehaviorStatus.INPROGRESS
@@ -103,23 +103,26 @@ class ForwardFixedAmount(GratbotBehavior):
     def __init__(self,dist): #in meters
         super().__init__()
         self.dist=dist
+        self.motor_wait_time=0.1
         self.reset()
 
     def act(self,comms,sensors):
         if time.time()<self.retry_in:
             return GratbotBehaviorStatus.INPROGRESS
-        max_dist=sensors.fb_predictor.get_max_fb_dist()
-        print("distance remaining {}".format(self.dist_remaining))
-        if abs(max_dist)>abs(self.dist_remaining):
-            sensors.send_command_forward_meters(comms,self.dist_remaining)
+        if self.dist_remaining<=0:
             self.reset()
             return GratbotBehaviorStatus.COMPLETED
+        max_dist=sensors.fb_predictor.get_max_fb_dist()
+        #print("distance remaining {}".format(self.dist_remaining))
+        if abs(max_dist)>abs(self.dist_remaining):
+            sensors.send_command_forward_meters(comms,self.dist_remaining)
+            self.dist_remaining-=self.dist_remaining
         else:
             tomove=np.sign(self.dist_remaining)*abs(max_dist)
             self.dist_remaining-=tomove
             sensors.send_command_forward_meters(comms,tomove)
-            self.retry_in=time.time()+0.1
-            return GratbotBehaviorStatus.INPROGRESS
+        self.retry_in=time.time()+self.motor_wait_time
+        return GratbotBehaviorStatus.INPROGRESS
 
     def reset(self):
         self.dist_remaining=self.dist

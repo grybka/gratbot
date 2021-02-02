@@ -5,6 +5,7 @@ from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 from scipy.optimize import linear_sum_assignment
 import uuid
+from id_to_name import id_to_name
 
 
 class VTTrackedObject:
@@ -50,7 +51,9 @@ class VTTrackedObject:
 
         self.last_update=[x,y,w,h]
         self.missed_frames=0
+        self.seen_frames=0
         self.id=uuid.uuid1()
+        self.associated_map_object=None
 
     def predict(self):
         self.kfx.predict()
@@ -68,6 +71,7 @@ class VTTrackedObject:
         self.kfh.update([h])
         self.label=label
         self.missed_frames=0
+        self.seen_frames+=1
 
 
     def get_predictions(self): #return x,y,w,h
@@ -97,11 +101,11 @@ class VisualTracker:
     def __init__(self):
         self.object_tagger=Theo_Chaser_Object_Tagger()
         self.tracked_objects=[]
-        self.id_names_hash=["Franz","Brunhilda","Steve","Persepolis","Legolas","Senator","Doublewide","Convolution","Beaucephalus","Microencephalus","Enchilada","Buttercup","Malferious","Ferrous","Titiana","Europa","Malpractice","Daedelus","Dad-elus","Cheesemonger","Burgertime","ForgetMeNot","Nevar4get","Allowance","Betrayal","Elvis"]
+        #self.id_names_hash=["Franz","Brunhilda","Steve","Persepolis","Legolas","Senator","Doublewide","Convolution","Beaucephalus","Microencephalus","Enchilada","Buttercup","Malferious","Ferrous","Titiana","Europa","Malpractice","Daedelus","Dad-elus","Cheesemonger","Burgertime","ForgetMeNot","Nevar4get","Allowance","Betrayal","Elvis"]
         #self.camera_hfov=48.8*(2*np.pi)/360 #from spec sheet
         self.camera_hfov=45.0*(2*np.pi)/360 #corrected by hand
         self.camera_wfov=62.2*(2*np.pi)/360 #from spec sheet
-        self.object_heights={ "stop sign": [0.081,0.005]}
+        self.object_heights={ "stop sign": [0.081,0.005], "sports ball": [0.115,0.01]}
 
     def get_cost(self,tracked_object,vision_object):
         vision_bbox=[vision_object["startx"],vision_object["endx"],vision_object["starty"],vision_object["endy"]]
@@ -146,6 +150,8 @@ class VisualTracker:
         for obj in self.tracked_objects:
             if obj.missed_frames>=max_missed_frames:
                 to_drop.append(obj)
+            elif obj.missed_frames>obj.seen_frames:
+                to_drop.append(obj)
         for obj in to_drop:
             self.tracked_objects.remove(obj)
 
@@ -162,7 +168,11 @@ class VisualTracker:
             #print("drawing box at {} {} {} {}".format(sx,sy,ex,ey))
             cv.rectangle(video_frame,(int(sx),int(sy)),(int(ex),int(ey)),(0,255,0),2)
             #text = "{} {}".format(obj.label,obj.missed_frames)
-            text = "{} {}".format(self.id_names_hash[hash(obj.id)%len(self.id_names_hash)],obj.missed_frames)
+            #text = "{} {}".format(self.id_names_hash[hash(obj.id)%len(self.id_names_hash)],obj.missed_frames)
+            name="unknown"
+            if obj.associated_map_object is not None:
+                name=id_to_name(obj.associated_map_object)
+            text = "{} {}".format(name,obj.label)
             Y = int(sy - 10 if sy - 10 > 10 else sy + 10)
             cv.putText(video_frame, text, (int(sx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
         return video_frame
@@ -189,7 +199,7 @@ class VisualTracker:
         #I assume here that my camera points straight ahead
         pred=track.kfx.x[0]
         dpred=np.sqrt(track.kfx.P[0][0])
-        print("pred {} dpred {}".format(pred,dpred))
+        #print("pred {} dpred {}".format(pred,dpred))
         angle_guess=pred*self.camera_wfov
         dangle_guess=dpred*self.camera_wfov
         return angle_guess,dangle_guess
@@ -204,7 +214,7 @@ class VisualTracker:
             dist_guess_unc=dist_guess*np.sqrt( (dh/h)**2+ (dpred/pred)**2 )
             return dist_guess,dist_guess_unc
         else:
-            return None,None
+            return 5,100
 
 
     def adjust_all_tracks(self,x,y,w,h,dx,dy,dw,dh):
@@ -213,4 +223,4 @@ class VisualTracker:
             obj.kfx.x+=x
             obj.kfx.P[0][0]=obj.kfx.P[0][0]+dx*dx
             obj.kfy.x+=y
-            obj.kfy.P[0][0]=obj.kfx.P[0][0]+dy*dy
+            obj.kfy.P[0][0]=obj.kfy.P[0][0]+dy*dy
