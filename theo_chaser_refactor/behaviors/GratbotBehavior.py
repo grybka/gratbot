@@ -24,6 +24,32 @@ class GratbotBehavior:
         #in case I want to call this twice, reset to as if it had just been started
         pass
 
+class GratbotBehavior_DoUntilComplete(GratbotBehavior):
+    def __init__(self,step_array):
+        super().__init__()
+        self.step_array=step_array
+        self.on_step=0
+        self.return_value=GratbotBehaviorStatus.FAILED
+
+    def act(self,comms,sensors):
+        if self.on_step>=len(self.step_array): #just in case its empty, really
+            return self.return_value
+        step_status=self.step_array[self.on_step].act(comms,sensors)
+        if step_status==GratbotBehaviorStatus.FAILED:
+            self.on_step+=1
+            return GratbotBehaviorStatus.INPROGRESS
+        if step_status==GratbotBehaviorStatus.COMPLETED:
+            self.return_value=GratbotBehaviorStatus.COMPLETED
+            return self.return_value
+        return GratbotBehaviorStatus.INPROGRESS
+
+    def reset(self):
+        self.on_step=0
+        self.return_value=GratbotBehaviorStatus.FAILED
+        for i in range(len(self.step_array)):
+            self.step_array[i].reset()
+
+
 class GratbotBehavior_Series(GratbotBehavior):
     #Do a bunch of steps in order, abort on fail
     def __init__(self,step_array):
@@ -178,5 +204,5 @@ class TakePhoto(GratbotBehavior):
 
     def act(self,comms,sensors):
         sensors.save_frame()
-        
+
         return GratbotBehaviorStatus.COMPLETED

@@ -15,21 +15,33 @@ import sys,os,traceback
 import logging
 
 class IsUltrasonic(GratbotBehavior):
-    def __init__(self,greaterthan_not_lessthan,value):
-        self.greaterthan_not_lessthan=greaterthan_not_lessthan
+    GREATERTHAN=1
+    LESSTHAN=2
+    def __init__(self,comparator,value):
+        self.comparator=comparator
         self.value=value
 
     def act(self,comms,sensors):
         mycase=(sensors.gratbot_state["ultrasonic_sensor/last_measurement"]["average_distance"]>self.value)
         print("distance {} vs {}".format(sensors.gratbot_state["ultrasonic_sensor/last_measurement"]["average_distance"],self.value))
-        if self.greaterthan_not_lessthan:
-            mycase = not mycase
-        if mycase:
-            print("Returning Complete")
-            return GratbotBehaviorStatus.COMPLETED
-        else:
-            print("Returning Failed")
-            return GratbotBehaviorStatus.FAILED
+
+        x=sensors.gratbot_state["ultrasonic_sensor/last_measurement"]["average_distance"]
+        if self.comparator==IsUltrasonic.GREATERTHAN:
+            if x>self.value:
+                print("{} {} IsUltrasonic Returning Complete".format(x,self.value))
+                return GratbotBehaviorStatus.COMPLETED
+            else:
+                print("{} {} IsUltrasonic Returning Failed".format(x,self.value))
+                return GratbotBehaviorStatus.FAILED
+        if self.comparator==IsUltrasonic.LESSTHAN:
+            if x<self.value:
+                print("{} {} IsUltrasonic Returning Complete".format(x,self.value))
+                return GratbotBehaviorStatus.COMPLETED
+            else:
+                print("{} {} IsUltrasonic Returning Failed".format(x,self.value))
+                return GratbotBehaviorStatus.FAILED
+        logging.error("Undefined comparotor for IsUltrasonic")
+        return GratbotBehaviorStatus.FAILED
 
 class FBRandomAmount(GratbotBehavior):
     def __init__(self,forward_magnitude=0.5,back_magnitude=-0.5):

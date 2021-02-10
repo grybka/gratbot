@@ -137,7 +137,7 @@ class GratbotMap():
             heading=heading-2*np.pi
         if abs(self.pose.vals[2]-(heading+2*np.pi)) < abs(self.pose.vals[2]-heading):
             heading=heading+2*np.pi
-        compass_error=0.01 #1 cm error
+        compass_error=0.20 #10 degree error, sadly
         spot=BayesianArray([0,0,heading],[[self.sigma_too_big,0,0],[0,self.sigma_too_big,0],[0,0,compass_error*compass_error]])
         self.pose=self.pose.updated(spot).min_covariance(self.pose_min_covariance)
         #TODO min covariance

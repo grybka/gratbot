@@ -36,7 +36,8 @@ class GratbotSensorFusion():
         #calibrations here
         #should I keep them in a yaml file or something?
         #self.b_field_correction=np.array([242.8,-238.2,-997.7]) #next to motor
-        self.b_field_correction=np.array([-5.63,118.74,-58.58]) #new position
+        self.b_field_correction=np.array([-5.63,119.74,-58.58]) #new position
+        self.heading_offset=1.40 #radians
         #object perception
         self.tracker=VisualTracker()
         self.save_updates=False
@@ -171,6 +172,14 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
         fname=time.strftime("images/image_%Y%m%d-%H%M%S.png")
         frame=self.get_last_video_frame()
         cv.imwrite(fname, frame)
+        if self.save_updates:
+            item={"saved_frame": fname}
+            item["timestamp"]=time.time()
+            self.save_lock.acquire()
+            f=open(self.save_filename,"a")
+            f.write(json.dumps(item)+"\n")
+            f.close()
+            self.save_lock.release()
 
     #specialized functions here
     def get_corrected_bfield(self):
@@ -180,7 +189,7 @@ resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])
 
     def get_compass_heading(self):
         b=self.get_corrected_bfield()
-        return np.arctan2(b[0],b[1])
+        return -np.arctan2(b[0],b[1])-self.heading_offset
 
     #If I want to turn X degrees, how much do I send to my turn command?
 

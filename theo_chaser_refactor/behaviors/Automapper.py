@@ -115,15 +115,15 @@ class ForwardFixedAmount(GratbotBehavior):
         max_dist=sensors.fb_predictor.get_max_fb_dist()
         #print("distance remaining {}".format(self.dist_remaining))
         if abs(max_dist)>abs(self.dist_remaining):
-            sensors.send_command_forward_meters(comms,self.dist_remaining)
-            self.dist_remaining-=self.dist_remaining
+            sensors.send_command_forward_meters(comms,np.sign(self.dist)*self.dist_remaining)
+            self.dist_remaining=0
         else:
             tomove=np.sign(self.dist_remaining)*abs(max_dist)
-            self.dist_remaining-=tomove
+            self.dist_remaining-=abs(tomove)
             sensors.send_command_forward_meters(comms,tomove)
         self.retry_in=time.time()+self.motor_wait_time
         return GratbotBehaviorStatus.INPROGRESS
 
     def reset(self):
-        self.dist_remaining=self.dist
+        self.dist_remaining=abs(self.dist)
         self.retry_in=time.time()

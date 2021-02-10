@@ -159,6 +159,7 @@ class VisualTracker:
         if video_frame is None:
             logger.warning("Gave me a none video frame")
             return
+        ret_frame=video_frame.copy()
         for obj in self.tracked_objects:
             sxf,exf,syf,eyf=obj.get_extended_bounding_box()
             sx=320+sxf*640
@@ -166,7 +167,7 @@ class VisualTracker:
             ex=320+exf*640
             ey=240+eyf*480
             #print("drawing box at {} {} {} {}".format(sx,sy,ex,ey))
-            cv.rectangle(video_frame,(int(sx),int(sy)),(int(ex),int(ey)),(0,255,0),2)
+            cv.rectangle(ret_frame,(int(sx),int(sy)),(int(ex),int(ey)),(0,255,0),2)
             #text = "{} {}".format(obj.label,obj.missed_frames)
             #text = "{} {}".format(self.id_names_hash[hash(obj.id)%len(self.id_names_hash)],obj.missed_frames)
             name="unknown"
@@ -174,8 +175,8 @@ class VisualTracker:
                 name=id_to_name(obj.associated_map_object)
             text = "{} {}".format(name,obj.label)
             Y = int(sy - 10 if sy - 10 > 10 else sy + 10)
-            cv.putText(video_frame, text, (int(sx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
-        return video_frame
+            cv.putText(ret_frame, text, (int(sx),Y), cv.FONT_HERSHEY_SIMPLEX, 0.7,(0,255,0), 2)
+        return ret_frame
 
     def serialize_tracks(self):
         ret=[]

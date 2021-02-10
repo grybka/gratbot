@@ -43,8 +43,9 @@ class Theo_Chaser_Object_Tagger():
             return
         if video_objects==None:
             video_objects=self.tag_objects(video_frame)
-        self.yv5model.draw_object_bboxes(video_frame,video_objects)
-        return video_frame
+        return_frame=video_frame.copy()
+        self.yv5model.draw_object_bboxes(return_frame,video_objects)
+        return return_frame
 
     def get_obj_loc_width(self,face):
         #converts the start,stop notation into an array of points, center and wh
