@@ -96,7 +96,10 @@ class GratbotMecanumDrive(GratbotSpimescape):
 
     def get_update(self,last_time):
         ret={}
-        ret["motors_active"]=(self.stop_time==0)
+        if self.stop_time==0:
+            ret["motors_active"]=0
+        else:
+            ret["motors_active"]=1
         return ret
 
     def __del__(self):
