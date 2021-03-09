@@ -59,6 +59,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
             kit.motor2.throttle=0
             kit.motor3.throttle=0
             kit.motor4.throttle=0
+            self.stop_time=0
         elif endpoint=="translate":
             updown=np.array([[1,1],[1,1]])
             leftright=np.array([[1,-1],[-1,1]])
@@ -92,6 +93,11 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.fr_motor.throttle=0
         self.bl_motor.throttle=0
         self.br_motor.throttle=0
+
+    def get_update(self,last_time):
+        ret={}
+        ret["motors_active"]=(self.stop_time==0)
+        return ret
 
     def __del__(self):
         self.end_called=True

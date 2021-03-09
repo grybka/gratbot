@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import pinvh
 import uncertainties
 from uncertainties import ufloat
 from uncertainties.umath import *
@@ -17,6 +18,9 @@ class BayesianArray:
 
     def __add__(self,toadd):
         return BayesianArray(self.vals+toadd.vals,self.covariance+toadd.covariance)
+
+    def __sub__(self,toadd):
+        return BayesianArray(self.vals-toadd.vals,self.covariance+toadd.covariance)
 
     def updated(self,x):
         mu_1=self.vals
@@ -47,6 +51,12 @@ class BayesianArray:
         w, v = w[order], v[:,order]
         theta = np.degrees(np.arctan2(*v[:,0][::-1]))
         return self.vals[var1],self.vals[var2],2.*np.sqrt(w[0]),2*np.sqrt(w[1]),theta
+
+    def chi_square_from_point(self,pt):
+        #pt is a numpy array of same length as vals
+        invcov=pinvh(self.covariance)
+        delta=pt-self.vals
+        return np.dot(delta,np.dot(invcov,delta))
 
     @staticmethod
     def from_ufloats(ufloatarray):
