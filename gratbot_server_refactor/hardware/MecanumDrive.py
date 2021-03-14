@@ -19,6 +19,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.br_motor=self.get_kit_motor(datastruct["br_motor"])
         self.br_motor_sign=np.sign(datastruct["br_motor"])
         self.stop_time=0
+        self.motor_active=[0,0,0]
 
         self.end_called=False
         self.thread = threading.Thread(target=self._run_thread)
@@ -34,6 +35,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
                     self.fr_motor.throttle=0
                     self.bl_motor.throttle=0
                     self.br_motor.throttle=0
+                    self.motor_active=[0,0,0]
                     self.stop_time=0
 
     def get_kit_motor(self,integer):
@@ -59,8 +61,10 @@ class GratbotMecanumDrive(GratbotSpimescape):
             kit.motor2.throttle=0
             kit.motor3.throttle=0
             kit.motor4.throttle=0
+            self.motor_active=[0,0,0]
             self.stop_time=0
         elif endpoint=="translate":
+            self.motor_active=[value[0],value[1],value[2]]
             updown=np.array([[1,1],[1,1]])
             leftright=np.array([[1,-1],[-1,1]])
             turn_matrix=np.array([[-1,1],[-1,1]])
@@ -96,10 +100,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
 
     def get_update(self,last_time):
         ret={}
-        if self.stop_time==0:
-            ret["motors_active"]=0
-        else:
-            ret["motors_active"]=1
+        ret["motors_active"]=self.motor_active
         return ret
 
     def __del__(self):

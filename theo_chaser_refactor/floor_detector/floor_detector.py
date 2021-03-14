@@ -10,57 +10,70 @@ from uncertainties import ufloat
 from uncertainties.umath import *
 from uncertainties import unumpy
 
-
 class FloorDetectionNet(torch.nn.Module):
     def __init__(self):
         slice_height=240
         super(FloorDetectionNet, self).__init__()
 
         self.conv = torch.nn.Sequential()
-        self.conv.add_module("conv_1", torch.nn.Conv2d(3, 10, kernel_size=4))
+        self.conv.add_module("conv_1", torch.nn.Conv2d(3, 10, kernel_size=3,padding=[1,1]))
         self.conv.add_module("relu_1", torch.nn.ReLU())
         self.conv.add_module("norm_1",torch.nn.BatchNorm2d(10))
         self.conv.add_module("maxpool_1", torch.nn.MaxPool2d(kernel_size=[1,2]))
-        self.conv.add_module("conv_2", torch.nn.Conv2d(10, 10, kernel_size=4,padding=[3,0]))
+        self.conv.add_module("conv_2", torch.nn.Conv2d(10, 10, kernel_size=3,padding=[1,1]))
         self.conv.add_module("dropout_2", torch.nn.Dropout())
-        self.conv.add_module("maxpool_2", torch.nn.MaxPool2d(kernel_size=[1,4]))
         self.conv.add_module("relu_2", torch.nn.ReLU())
         self.conv.add_module("norm_2",torch.nn.BatchNorm2d(10))
-        self.conv.add_module("maxpool_3", torch.nn.MaxPool2d(kernel_size=[1,3]))
-        self.conv.add_module("conv_3", torch.nn.Conv2d(10, 1, kernel_size=1))
+        self.conv.add_module("maxpool_2", torch.nn.MaxPool2d(kernel_size=[1,5]))
+        self.conv.add_module("conv_3", torch.nn.Conv2d(10, 5, kernel_size=[3,5],padding=[1,2]))
+        self.conv.add_module("relu_3", torch.nn.ReLU())
+        self.conv.add_module("maxpool_3", torch.nn.MaxPool2d(kernel_size=[1,2]))
+        self.conv.add_module("conv_4", torch.nn.Conv2d(5, 1, kernel_size=1))
 
+        #self.linear = torch.nn.Sequential()
+        #self.linear.add_module("linear_1",torch.nn.Linear(slice_height*32,slice_height*32))
+        #self.linear.add_module("relu_1",torch.nn.ReLU())
 
-        #self.fc = torch.nn.Sequential()
-        #self.fc.add_module("fc1", torch.nn.Linear(10*(slice_height-6)*1, slice_height))
-        #self.fc.add_module("relu_3", torch.nn.ReLU())
-        ##self.fc.add_module("dropout_3", torch.nn.Dropout())
-        #self.fc.add_module("fc2", torch.nn.Linear(slice_height, slice_height))
 
     def forward(self, x):
         slice_height=240
-        #print(x.shape)
+
         x = self.conv.forward(x)
         #print(x.shape)
-        #x = x.view(-1, 10*54*1)
-        #x = x.view(-1, 10*(slice_height-6)*1)
-        #return self.fc.forward(x)
-        #return x.view(-1,54)
-        return x.view(-1,slice_height)
 
-    def find_floor_pixel(self,result_array,scale=3.0,start_bin=2):
-        psum=0
-        xsum=0
-        xxsum=0
-        for i in range(start_bin,len(result_array)):
-            p=np.exp(scale*result_array[i])
-            psum+=p
-            xsum+=i*p
-            xxsum+=i*i*p
-        mymean=xsum/psum
-        mystdev=np.sqrt(xxsum/psum-mymean*mymean)
-        if mystdev<1:
-            mystdev=1 #because pixels are quantized
-        return mymean,mystdev
+        return x.view(-1,slice_height,32)
+        #x=x.view(-1,slice_height*32)
+        #x=self.linear.forward(x)
+        #x=x.view(-1,slice_height,32)
+        #return x
+
+    def find_floor_pixels(thing,result_array,scale=4,start_bin=50,stop_bin=230):
+        slice_height=240
+        n_slices=32
+        start_bin=0
+        print(result_array.shape)
+        mean_result=np.zeros(n_slices)
+        stdev_result=np.zeros(n_slices)
+        print(result_array)
+        #scale slice
+        for i in range(n_slices):
+            psum=0
+            xsum=0
+            xxsum=0
+            myscale=np.max(result_array[:,i])
+            for j in range(start_bin,stop_bin):
+                p=np.exp(scale*(result_array[j][i]-myscale))
+                psum+=p
+                xsum+=j*p
+                xxsum+=j*j*p
+            mymean=xsum/psum
+            mystdev=np.sqrt(xxsum/psum-mymean*mymean)
+            if mystdev<1:
+                mystdev=1 #because pixels are quantized
+            mean_result[i]=mymean
+            stdev_result[i]=mystdev
+        return mean_result,stdev_result
+
 
 class FloorDetector:
     def __init__(self):
@@ -73,35 +86,46 @@ class FloorDetector:
         #self.horizon_offset=-77.0 #calibrated in a notebook.  TODO add this in-situ calibration for when camera shakes
         self.horizon_offset=-65.0 #calibrated in a notebook.  TODO add this in-situ calibration for when camera shakes
 
+    def find_floor_pixels(self,result_array,scale=4,start_bin=50,stop_bin=230):
+        slice_height=240
+        n_slices=32
+        start_bin=0
+        print(result_array.shape)
+        mean_result=np.zeros(n_slices)
+        stdev_result=np.zeros(n_slices)
+        print(result_array)
+        #scale slice
+        for i in range(n_slices):
+            psum=0
+            xsum=0
+            xxsum=0
+            myscale=np.max(result_array[:,i])
+            for j in range(start_bin,stop_bin):
+                p=np.exp(scale*(result_array[j][i]-myscale))
+                psum+=p
+                xsum+=j*p
+                xxsum+=j*j*p
+            mymean=xsum/psum
+            mystdev=np.sqrt(xxsum/psum-mymean*mymean)
+            if mystdev<1:
+                mystdev=1 #because pixels are quantized
+            mean_result[i]=mymean
+            stdev_result[i]=mystdev
+        return mean_result,stdev_result
+
     def get_floor_pixels(self,image):
         image_width=int(640)
         slice_width=int(40)
         image_height=480
         slice_height=240
-        #height_slices=[0,30,60,90,120]
-        #break into segments
-        torch_segments=[]
-        for i in range(int(image_width/slice_width)):
-            torch_segments.append(torch.from_numpy(image[image_height-slice_height:image_height,i*slice_width:(i+1)*slice_width,:]).permute(2,0,1).float())
-            #for j in range(len(height_slices)):
-            #    torch_segments.append(torch.from_numpy(image[image_height-slice_height-height_slices[j]:image_height-height_slices[j],i*slice_width:(i+1)*slice_width,:]).permute(2,0,1).float())
-        torch_array=torch.stack(torch_segments)
-        self.model.eval()
-        output=self.model.forward(torch_array)
-        output=output.detach().numpy()
-        centers=[]
-        means=[]
-        stdevs=[]
-        for i in range(int(image_width/slice_width)):
-            centers.append((i+0.5)*slice_width)
-            m,s=self.model.find_floor_pixel(output[i])
-            m+=slice_height
-            means.append(m)
-            stdevs.append(s)
-        means=np.array(means)
-        stdevs=np.array(stdevs)
-        centers=np.array(centers)
-        return centers,means,stdevs
+        n_slices=32
+
+        reduced_image=image[image_height-slice_height:image_height,:,:]
+        X=torch.from_numpy(reduced_image).permute(2,0,1).float().unsqueeze(0)
+        print("my shape {}".format(X.shape))
+        Y=self.model.forward(X)
+        print("my Y shape {}".format(Y.shape))
+        return self.find_floor_pixels(Y[0])
 
     def get_distance_from_pixels(self,centers,means,stdevs,image_width,image_height,x_unc=0):
         means_with_unc=unumpy.uarray(means,stdevs)

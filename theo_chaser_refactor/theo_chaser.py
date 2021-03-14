@@ -106,22 +106,30 @@ def turn_and_photo(angle):
                                    TakePhoto(),
                                    ])
 
-octoloop=GratbotBehavior_Series([turn_and_photo(0),
-                                 turn_and_photo(np.pi/4),
-                                 turn_and_photo(np.pi/2),
-                                 turn_and_photo(3*np.pi/4),
-                                 turn_and_photo(np.pi),
-                                 turn_and_photo(5*np.pi/4),
-                                 turn_and_photo(6*np.pi/4),
-                                 turn_and_photo(7*np.pi/4)])
-octoloop.should_loop=True
-sixteenloop_list=[]
+
+def straight_and_photo():
+    return GratbotBehavior_Series([ForwardFixedAmount(0.75),
+                                   GratbotBehavior_Wait(2.0),
+                                   TakePhoto(),
+                                   ])
+
+
+mapping_loop_list=[]
 for i in range(16):
-    sixteenloop_list.append(turn_and_photo(i*np.pi/8))
-sixteenloop=GratbotBehavior_Series(sixteenloop_list)
-sixteenloop.should_loop=True
-on_behavior=sixteenloop
-#on_behavior=octoloop
+    mapping_loop_list.append(turn_and_photo(i*np.pi/8))
+mapping_loop=GratbotBehavior_Series(mapping_loop_list)
+
+driving_loop_list=[]
+on_angle=0
+for i in range(4):
+    for j in range(4):
+        on_angle=on_angle+np.pi/8
+        driving_loop_list.append(turn_and_photo(on_angle))
+    driving_loop_list.append(straight_and_photo())
+driving_loop=GratbotBehavior_Series(driving_loop_list)
+
+on_behavior=GratbotBehavior_Series([mapping_loop,driving_loop])
+
 
 #on_behavior=square_loop
 #turn_random_loop=GratbotBehavior_Series([TurnRandomTime(),GratbotBehavior_Wait(1.0)])

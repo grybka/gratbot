@@ -23,8 +23,9 @@ import cv2 as cv
 
 
 class GratbotSensorFusion():
-    def __init__(self):
-        self.video=GratbotUV4LConnection("http://10.0.0.4:8080/stream/video.mjpeg")
+    def __init__(self,video_on=True):
+        if video_on:
+            self.video=GratbotUV4LConnection("http://10.0.0.4:8080/stream/video.mjpeg")
         self.gratbot_state={}
         self.last_video_frame_lock=threading.Lock()
         self.last_video_frame=None
@@ -78,11 +79,11 @@ class GratbotSensorFusion():
         resp=comms.update()
         self.gratbot_state.update(resp)
         if "magnetometer/b_field" in resp:
-            if time.time()>self.compass_off_until:
-                self.gratbot_state["compass_heading"]=self.get_compass_heading()
-                self.map.update_pose_with_compass(self.get_compass_heading())
-            else:
-                pass # do not update compass if it has been disabled due to motion
+            #if time.time()>self.compass_off_until:
+            self.gratbot_state["compass_heading"]=self.get_compass_heading()
+            self.map.update_pose_with_compass(self.get_compass_heading())
+            #else:
+            #    pass # do not update compass if it has been disabled due to motion
         if "ultrasonic_sensor/last_measurement" in resp:
             self.map.update_map_with_ultrasonic(resp["ultrasonic_sensor/last_measurement"]["average_distance"],
 resp["ultrasonic_sensor/last_measurement"]["stdev_distance"])

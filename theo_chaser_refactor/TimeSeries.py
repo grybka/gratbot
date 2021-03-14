@@ -50,9 +50,11 @@ class TimeSeries:
             return TimeSeries()
         return TimeSeries(self.times[indices-1],self.data[indices-1],title=self.title,ylabel=self.ylabel)
 
-    def plot(self):
+    def plot(self,start_time=None,stop_time=None):
         fig, ax = plt.subplots()
         ax.set(xlabel='time', ylabel=self.ylabel,title=self.title)
+        if start_time is not None:
+            plt.xlim(start_time,stop_time)
         ax.plot(self.times,self.data)
         #ax.vlines(turns_t,np.min(headings),np.max(headings),color="C1")
         fig.show()

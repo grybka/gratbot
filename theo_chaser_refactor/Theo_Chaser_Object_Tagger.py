@@ -5,7 +5,7 @@ import logging
 import numpy as np
 
 class Theo_Chaser_Object_Tagger():
-    def __init__(self):
+    def __init__(self,display):
         #self.model_file="C:/Users/grybk/projects/yolov5/yolov5/runs/exp28/weights/last.pt"
         self.model_file="C:/Users/grybk/projects/yolov5/yolov5/weights/yolov5m.pt"
         self.video_width=640
