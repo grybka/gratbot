@@ -39,7 +39,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
     def measure_distance(self,max_distance=4.0):
         #returns distance in meters
         timeout=0.05
-        max_wait=2*max_distance/self.sound_speed
+        max_wait=3*max_distance/self.sound_speed
         GPIO.output(self.trigger_pin,GPIO.HIGH)
         time.sleep(0.000015)
         GPIO.output(self.trigger_pin,GPIO.LOW)
@@ -90,7 +90,7 @@ class GratbotUltrasonicSensor(GratbotSpimescape):
         return { "average_distance": self.last_avg, "stdev_distance": self.last_stdev, "timestamp": self.last_timestamp, "n_averages": self.n_averages }
 
     def get(self,endpoint):
-        time_budget=0.07
+        time_budget=0.10
         print("get called")
         if endpoint=="last_measurement":
             "last measurement queried"

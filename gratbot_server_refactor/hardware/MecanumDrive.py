@@ -22,6 +22,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.motor_active=[0,0,0]
 
         self.end_called=False
+        self.motor_lock=threading.Lock()
         self.thread = threading.Thread(target=self._run_thread)
         self.thread.daemon = True
         self.thread.start()
@@ -31,12 +32,13 @@ class GratbotMecanumDrive(GratbotSpimescape):
             time.sleep(0.005)
             if self.stop_time!=0:
                 if time.time()>self.stop_time:
-                    self.fl_motor.throttle=0
-                    self.fr_motor.throttle=0
-                    self.bl_motor.throttle=0
-                    self.br_motor.throttle=0
-                    self.motor_active=[0,0,0]
-                    self.stop_time=0
+                    with self.motor_lock:
+                        self.fl_motor.throttle=0
+                        self.fr_motor.throttle=0
+                        self.bl_motor.throttle=0
+                        self.br_motor.throttle=0
+                        self.motor_active=[0,0,0]
+                        self.stop_time=0
 
     def get_kit_motor(self,integer):
         if abs(integer)==1:
@@ -57,26 +59,27 @@ class GratbotMecanumDrive(GratbotSpimescape):
 
     def set(self,endpoint,value):
         if endpoint=="stop":
-            kit.motor1.throttle=0
-            kit.motor2.throttle=0
-            kit.motor3.throttle=0
-            kit.motor4.throttle=0
-            self.motor_active=[0,0,0]
-            self.stop_time=0
+            with self.motor_lock:
+                kit.motor1.throttle=0
+                kit.motor2.throttle=0
+                kit.motor3.throttle=0
+                kit.motor4.throttle=0
+                self.motor_active=[0,0,0]
+                self.stop_time=0
         elif endpoint=="translate":
-            self.motor_active=[value[0],value[1],value[2]]
             updown=np.array([[1,1],[1,1]])
             leftright=np.array([[1,-1],[-1,1]])
             turn_matrix=np.array([[-1,1],[-1,1]])
             sum_matrix=updown*value[0]+leftright*value[1]+turn_matrix*value[2]
-            if len(value)>3:
-                self.stop_time=time.time()+value[3]
-            else:
-                self.stop_time=0
-
-            #normalize
+             #normalize
             sum_matrix=sum_matrix/max(np.max(abs(sum_matrix)),1.0)
-            self.drive_motors(sum_matrix)
+            with self.motor_lock:
+                self.motor_active=[value[0],value[1],value[2]]
+                if len(value)>3:
+                    self.stop_time=time.time()+value[3]
+                else:
+                    self.stop_time=0
+                self.drive_motors(sum_matrix)
         elif endpoint=="front_left":
             value=np.clip(value,-1,1)
             self.fl_motor.throttle=float(value)*self.fl_motor_sign
@@ -100,7 +103,8 @@ class GratbotMecanumDrive(GratbotSpimescape):
 
     def get_update(self,last_time):
         ret={}
-        ret["motors_active"]=self.motor_active
+        with self.motor_lock:
+            ret["motors_active"]=self.motor_active
         return ret
 
     def __del__(self):
