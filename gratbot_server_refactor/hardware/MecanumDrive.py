@@ -5,6 +5,7 @@ import numpy as np
 from adafruit_motorkit import MotorKit
 from GratbotSpimescape import GratbotSpimescape
 from GratbotSpimescape import _all_gratbot_spimescapes
+import queue
 
 class GratbotMecanumDrive(GratbotSpimescape):
     def __init__(self,datastruct,hardware):
@@ -18,8 +19,11 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.bl_motor_sign=np.sign(datastruct["bl_motor"])
         self.br_motor=self.get_kit_motor(datastruct["br_motor"])
         self.br_motor_sign=np.sign(datastruct["br_motor"])
+        self.start_time=0
         self.stop_time=0
         self.motor_active=[0,0,0]
+
+        self.activity_queue=queue.SimpleQueue()
 
         self.end_called=False
         self.motor_lock=threading.Lock()
@@ -37,7 +41,9 @@ class GratbotMecanumDrive(GratbotSpimescape):
                         self.fr_motor.throttle=0
                         self.bl_motor.throttle=0
                         self.br_motor.throttle=0
+                        queue.put([self.start_time,time.time(),self.motor_active])
                         self.motor_active=[0,0,0]
+                        self.start_time=time.time()
                         self.stop_time=0
 
     def get_kit_motor(self,integer):
@@ -64,6 +70,8 @@ class GratbotMecanumDrive(GratbotSpimescape):
                 kit.motor2.throttle=0
                 kit.motor3.throttle=0
                 kit.motor4.throttle=0
+                queue.put([self.start_time,time.time(),self.motor_active])
+                self.start_time=time.time()
                 self.motor_active=[0,0,0]
                 self.stop_time=0
         elif endpoint=="translate":
@@ -74,6 +82,8 @@ class GratbotMecanumDrive(GratbotSpimescape):
              #normalize
             sum_matrix=sum_matrix/max(np.max(abs(sum_matrix)),1.0)
             with self.motor_lock:
+                queue.put([self.start_time,time.time(),self.motor_active])
+                self.start_time=time.time()
                 self.motor_active=[value[0],value[1],value[2]]
                 if len(value)>3:
                     self.stop_time=time.time()+value[3]
@@ -104,7 +114,14 @@ class GratbotMecanumDrive(GratbotSpimescape):
     def get_update(self,last_time):
         ret={}
         with self.motor_lock:
-            ret["motors_active"]=self.motor_active
+            #I want to know what the motors have been doing, and how long they have been doing it since the last update
+
+            #ret["motors_active"]=self.motor_active
+            activity_list=[]
+            while not self.activity_queue.empty()==False:
+                activity_list.append(queue.get())
+            activity_list.append([self.start_time,time.time(),self.motor_active])
+            ret["motor_activity"]=activity_list
         return ret
 
     def __del__(self):
