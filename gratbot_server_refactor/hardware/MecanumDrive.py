@@ -22,8 +22,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
         self.start_time=0
         self.stop_time=0
         self.motor_active=[0,0,0]
-
-        self.activity_queue=queue.SimpleQueue()
+        #self.activity_queue=queue.SimpleQueue()
 
         self.end_called=False
         self.motor_lock=threading.Lock()
@@ -41,7 +40,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
                         self.fr_motor.throttle=0
                         self.bl_motor.throttle=0
                         self.br_motor.throttle=0
-                        queue.put([self.start_time,time.time(),self.motor_active])
+                        #queue.put([self.start_time,time.time(),self.motor_active])
                         self.motor_active=[0,0,0]
                         self.start_time=time.time()
                         self.stop_time=0
@@ -70,7 +69,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
                 kit.motor2.throttle=0
                 kit.motor3.throttle=0
                 kit.motor4.throttle=0
-                queue.put([self.start_time,time.time(),self.motor_active])
+                #queue.put([self.start_time,time.time(),self.motor_active])
                 self.start_time=time.time()
                 self.motor_active=[0,0,0]
                 self.stop_time=0
@@ -116,12 +115,12 @@ class GratbotMecanumDrive(GratbotSpimescape):
         with self.motor_lock:
             #I want to know what the motors have been doing, and how long they have been doing it since the last update
 
-            #ret["motors_active"]=self.motor_active
-            activity_list=[]
-            while not self.activity_queue.empty()==False:
-                activity_list.append(queue.get())
-            activity_list.append([self.start_time,time.time(),self.motor_active])
-            ret["motor_activity"]=activity_list
+            ret["motors_active"]=self.motor_active
+            #activity_list=[]
+            #while not self.activity_queue.empty()==False:
+            #    activity_list.append(queue.get())
+            #activity_list.append([self.start_time,time.time(),self.motor_active])
+            #ret["motor_activity"]=activity_list
         return ret
 
     def __del__(self):
