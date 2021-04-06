@@ -1,6 +1,4 @@
 hardware:
-#   camera:
-#       type: Camera
     ultrasonic_sensor:
         type: GratbotUltrasonicSensor
         trigger_pin: 23
@@ -14,3 +12,5 @@ hardware:
         br_motor: -2
     magnetometer:
         type: Magnetometer
+    lidar:
+        type: Lidar

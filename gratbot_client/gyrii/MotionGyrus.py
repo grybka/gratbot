@@ -4,6 +4,7 @@ from uncertainties import ufloat
 from underpinnings.BayesianArray import BayesianArray
 import time
 
+from gyrii.underpinnings.GratbotLogger import gprint
 #1)  keep track of change in pose when motors are actvie
 #2)  TODO periodically learn the expected velocity given motors
 #3)  TODO report to the pose tracker what velocity to expect
@@ -40,11 +41,11 @@ def fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc):
 
 
 def get_rot_matrix2(theta):
-    return np.array([[-np.sin(theta),np.cos(theta)],[np.cos(theta),np.sin(theta)]])
+    return np.array([[np.sin(cos),np.sin(theta)],[-np.sin(theta),np.cos(theta)]])
 
 def get_rot_matrix3(theta):
-    return np.array([[-np.sin(theta),np.cos(theta),0],
-                     [np.cos(theta),np.sin(theta),0],
+    return np.array([[np.cos(theta),np.sin(theta),0],
+                     [-np.sin(theta),np.cos(theta),0],
                      [0,0,1]])
 
 class MotionEstimationGyrus(ThreadedGyrus):
@@ -110,8 +111,8 @@ class MotionEstimationGyrus(ThreadedGyrus):
     def predict_pose_offset_ahead(self,ahead_power):
         predicted_ahead_change=ahead_power*self.ahead_slope
         predicted_ahead_change_unc=abs(ahead_power*self.ahead_slope_unc)
-        pose_offset_ahead=BayesianArray(np.array([predicted_ahead_change,0,0]),np.array( [ [predicted_ahead_change_unc**2,0,0],
-                                                               [0,0,0],
+        pose_offset_ahead=BayesianArray(np.array([0,predicted_ahead_change,0]),np.array( [ [0,0,0],
+                                                               [0,predicted_ahead_change_unc**2,0],
                                                                [0,0,0]]))
         pose_offset=pose_offset_ahead.applymatrix(get_rot_matrix3(self.last_pose[2]))
         return pose_offset
@@ -162,7 +163,6 @@ class MotionEstimationGyrus(ThreadedGyrus):
                 angle=message["move_command"]["angle"]
                 self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "turn","magnitude": angle/self.turn_slope}},"motor_command")
             if message["move_command"]["type"]=="ahead":
-                print(message["move_command"])
                 distance=message["move_command"]["distance"]
                 self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "ahead","magnitude": distance/self.ahead_slope}},"motor_command")
 
@@ -194,16 +194,16 @@ class MotionEstimationGyrus(ThreadedGyrus):
                     self.turn_slope_unc=abs(self.min_fraction_turn_slope_unc*self.turn_slope)
                 #print("after turn slope {}".format(ufloat(self.turn_slope,self.turn_slope_unc)))
             if axis==0: #ahead
-                print(xs)
-                print(ys)
-                print("learning ahead")
+                #print(xs)
+                #print(ys)
+                gprint("learning ahead")
                 m_prior=self.ahead_slope
                 m_prior_unc=self.ahead_slope_unc
-                print("before ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
+                gprint("before ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
                 self.ahead_slope,self.ahead_slope_unc,chisq=fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc)
                 if self.ahead_slope_unc/max(abs(self.ahead_slope),1e-3)<self.min_fraction_ahead_slope_unc:
                     self.ahead_slope_unc=abs(self.min_fraction_ahead_slope_unc*self.ahead_slope)
-                print("after ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
+                gprint("after ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
         else:
             #print("not enough examples to learn axis {}".format(axis))
             pass

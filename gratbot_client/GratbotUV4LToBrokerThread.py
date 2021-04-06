@@ -16,7 +16,8 @@ class GratbotUV4LToBrokerThread:
         if not self.simulation_mode:
             self.cap = cv.VideoCapture(stream_address)
         else: #SIMULATION MODE
-            self.sim_frame=cv.imread("images/image_20210324-144207.png")
+            #self.sim_frame=cv.imread("images/image_20210324-144207.png")
+            self.sim_frame=cv.imread("images/image_20210324-144157.png")
         self.thread = threading.Thread(target=self._reader)
         self.thread.daemon = True
         self.thread.start()

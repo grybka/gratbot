@@ -29,4 +29,6 @@ class MapDisplayGyrus(ThreadedGyrus):
             if message["timestamp"]>self.skip_until_time:
                 gmap_image=self.occupancy_map.occupancy_to_image(self.last_pose)
                 self.display_loop.update_image("Map",gmap_image)
+                #frontier_image=self.occupancy_map.frontier_to_image()
+                #self.display_loop.update_image("Frontier",frontier_image)
                 self.skip_until_time=time.time()+self.seconds_per_frame

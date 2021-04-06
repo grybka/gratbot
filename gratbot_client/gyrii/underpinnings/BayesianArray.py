@@ -64,7 +64,7 @@ class BayesianArray:
         w, v = np.linalg.eigh(cov)
         order = w.argsort()[::-1]
         w, v = w[order], v[:,order]
-        theta = np.degrees(np.arctan2(*v[:,0][::-1]))
+        theta = np.arctan2(*v[:,0][::-1])
         return self.vals[var1],self.vals[var2],2.*np.sqrt(w[0]),2*np.sqrt(w[1]),theta
 
     def chi_square_from_point(self,pt):

@@ -33,6 +33,9 @@ class LidarMeasurement:
         self.angles=angles
         self.angle_uncs=angle_uncs
 
+    def to_exact(self):
+        return ExactLidarMeasurement(self.dists,self.angles)
+
     def sample_to_exact(self):
         return ExactLidarMeasurement(np.random.normal(self.dists,self.dist_uncs),np.random.normal(self.angles,self.angle_uncs))
 
@@ -105,7 +108,7 @@ class OccupancyMap2:
             exactlidar=mlidar.sample_to_exact()
             self.apply_exact_lidar_measurement(exactpose,exactlidar,weight=weight)
 
-    def apply_exact_lidar_measurement(self,exactpose,exactlidar,weight=1):
+    def exact_lidar_to_cells(self,exactpose,exactlidar):
         end_pts=exactlidar.to_xypoints(exactpose)
         start_cell=self.coord_to_cell(exactpose[0:2])
         end_cells=self.coords_to_cells(end_pts)
@@ -114,10 +117,78 @@ class OccupancyMap2:
             all_cells.update(bresenham(start_cell,e,returnset=True))
         end_cells_set=set(end_cells)
         free_cells=all_cells.difference(end_cells_set)
+        return end_cells,free_cells
+
+    def get_lidar_pose_map(self,exactpose,exactlidar,n_x,n_y):
+        end_cells,free_cells=self.exact_lidar_to_cells(exactpose,exactlidar)
+        xs=np.linspace(exactpose[0]-n_x*self.resolution,exactpose[0]+n_x*self.resolution,2*n_x+1)
+        ys=np.linspace(exactpose[1]-n_y*self.resolution,exactpose[1]+n_y*self.resolution,2*n_y+1)
+        ret=np.zeros([2*n_x+1,2*n_y+1])
+        for i in range(-n_x,n_x+1):
+            for j in range(-n_y,n_y+1):
+                ret[i+n_x,j+n_y]=self.get_cell_score(free_cells,end_cells,i,j)
+        return xs,ys,ret
+
+    def pose_map_to_pose_prediction(self,xs,ys,posemap):
+        sum_x=0
+        sum_y=0
+        sum_xx=0
+        sum_xy=0
+        sum_yy=0
+        sum_p=0
+        #offset=np.min(posemap) # we will arbitrarily set this to zero
+        #poffset=np.exp(np.min(posemap))
+        mymax=np.max(posemap)
+        for i in range(posemap.shape[0]):
+            for j in range(posemap.shape[1]):
+                p=np.exp(posemap[i,j]-mymax)
+                sum_p+=p
+                sum_x+=p*xs[i]
+                sum_y+=p*ys[j]
+                sum_yy+=p*ys[j]*ys[j]
+                sum_xx+=p*xs[i]*xs[i]
+                sum_xy+=p*xs[i]*ys[j]
+        xmean=sum_x/sum_p
+        ymean=sum_y/sum_p
+        xxmean=abs(sum_xx/sum_p-xmean*xmean)
+        yymean=abs(sum_yy/sum_p-ymean*ymean)
+        xymean=sum_xy/sum_p-xmean*ymean
+        #TODO there is really no reason not to do this with angles too
+        return BayesianArray(np.array([xmean,ymean,0]),np.array([[xxmean,xymean,0],[xymean,yymean,0],[0,0,1000]]))
+
+    def get_cell_score(self,free_cells,end_cells,x_offset,y_offset):
+        score=0
+        with self.gridmap_occupied_lock:
+            for cell in free_cells:
+                #score-=self.gridmap_logodds[cell[0]+x_offset,cell[1]+y_offset]
+                newx=max(0,min(cell[0]+x_offset,self.npoints_x-1))
+                newy=max(0,min(cell[1]+y_offset,self.npoints_y-1))
+                lp=-self.gridmap_logodds[newx,newy]
+                #score+=np.log( 1-1/(1+np.exp(lp)))
+                #score-=self.gridmap_logodds[cell[0]+x_offset,cell[1]+y_offset]
+                if lp<-1:
+                    score+=lp
+                else:
+                    score+=np.log( 1-1/(1+np.exp(lp)))
+            for cell in end_cells:
+                #score+=self.gridmap_logodds[cell[0]+x_offset,cell[1]+y_offset]
+
+                newx=max(0,min(cell[0]+x_offset,self.npoints_x-1))
+                newy=max(0,min(cell[1]+y_offset,self.npoints_y-1))
+                lp=self.gridmap_logodds[newx,newy]
+                #score+=np.log( 1-1/(1+np.exp(lp)))
+                if lp<-1:
+                    score+=lp
+                else:
+                    score+=np.log( 1-1/(1+np.exp(lp)))
+        return score
+
+    def apply_exact_lidar_measurement(self,exactpose,exactlidar,weight=1):
+        end_cells,free_cells=self.exact_lidar_to_cells(exactpose,exactlidar)
         with self.gridmap_occupied_lock:
             for cell in free_cells:
                 self.gridmap_logodds[cell[0],cell[1]]=np.clip(self.gridmap_logodds[cell[0],cell[1]]+weight*self.free_logodds,-self.logodds_clip,self.logodds_clip)
-            for cell in set(end_cells):
+            for cell in end_cells:
                 self.gridmap_logodds[cell[0],cell[1]]=np.clip(self.gridmap_logodds[cell[0],cell[1]]+weight*self.occupied_logodds,-self.logodds_clip,self.logodds_clip)
 
     def occupancy_to_image(self,pose):
@@ -129,4 +200,22 @@ class OccupancyMap2:
         startpt=(center[0],self.npoints_y-center[1]) #remember I have to flip the y axis
         arrowpt=self.coord_to_cell(pose.vals[0:2]+np.array([0.2*sin(pose.vals[2]),0.2*cos(pose.vals[2])]))
         cv.arrowedLine(map_image,startpt,(arrowpt[0],self.npoints_y-arrowpt[1]),(255,255,255),1, cv.LINE_AA, 0, 0.3)
+        return cv.resize(map_image,(600,600))
+
+    def get_frontiers(self):
+        #find all points that lay in boundary of known and unknown
+        with self.gridmap_occupied_lock:
+            unknown_mask=abs(self.gridmap_logodds)<0.5
+            wall_mask=self.gridmap_logodds>0.5
+            free_mask=self.gridmap_logodds<-0.5
+        #ideally I want points that are unknown and adjacent to free cells but not adjacent to wall cells
+        wall_mask_bleed=wall_mask | np.roll(wall_mask,1,axis=0) | np.roll(wall_mask,-1,axis=0) | np.roll(wall_mask,1,axis=1) | np.roll(wall_mask,-1,axis=1)
+        free_mask_bleed=free_mask | np.roll(free_mask,1,axis=0) | np.roll(free_mask,-1,axis=0) | np.roll(free_mask,1,axis=1) | np.roll(free_mask,-1,axis=1)
+        frontier= unknown_mask  & free_mask_bleed & np.logical_not(wall_mask_bleed)
+        return frontier
+
+    def frontier_to_image(self):
+        frontiers=self.get_frontiers()
+        ret=255*frontiers.T[::-1,:]
+        map_image=cv.applyColorMap(ret.astype(np.uint8),cv.COLORMAP_HOT)
         return cv.resize(map_image,(600,600))

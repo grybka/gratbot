@@ -199,7 +199,7 @@ class FloorDetectorGyrus(ThreadedGyrus):
             self.broker.publish(mymessage,"floor_detector_measurement")
             if self.debugshow==True:
                 self.show_debug_plots(x_angles,dists,image)
-            self.clear_frames_before=time.time() #maybe I should record elapsed time
+            self.clear_frames_before=time.time()+0.5 #maybe I should record elapsed time
 
     def prune_dists_and_angles(self,x_angles,dists):
         #remove any pair of points that vary by too much or are too far away

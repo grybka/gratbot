@@ -12,6 +12,7 @@ import GratbotSpimescape
 import lis3mdl_compass_interface
 import MecanumDrive
 import UltrasonicSensor
+import RPILidar
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)

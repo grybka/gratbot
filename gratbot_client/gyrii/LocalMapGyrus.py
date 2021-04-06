@@ -9,8 +9,10 @@ from uncertainties.umath import *
 from uncertainties import unumpy
 import scipy
 import scipy.signal
+import cv2 as cv
 
 from matplotlib import pyplot as plt
+from gyrii.underpinnings.GratbotLogger import gprint
 
 
 
@@ -21,6 +23,7 @@ class LocalMapGyrus(ThreadedGyrus):
         self.npoints_y=npoints_y
         self.debugshow=debugshow
         self.gridmap=OccupancyMap2(resolution,npoints_x,npoints_y)
+        self.lidar_localization_score_cutoff=-50
         #self.gridmap=OccupancyMap(resolution,npoints_x,npoints_y)
         #self.gridmap_free=0.9*np.ones([self.npoints_x,self.npoints_y])
         #self.gridmap_occupied=0.1*np.ones([self.npoints_x,self.npoints_y])
@@ -47,7 +50,8 @@ class LocalMapGyrus(ThreadedGyrus):
             #if message["ultrasonic_sensor/last_measurement"]["average_distance"]>2.0:
             if message["ultrasonic_sensor/last_measurement"]["average_distance"]>1.5:
                 return [] #ultrasonic measure becomes untrustworthy beyond a meter and a bit
-            print("Ultrasonic Distance: {}".format(message["ultrasonic_sensor/last_measurement"]["average_distance"]))
+            #gprint("Ultrasonic Distance: {}".format(message["ultrasonic_sensor/last_measurement"]["average_distance"]))
+            return []
             angle_unc=7*2*np.pi/360 #+/- 7 degree uncertainty for ultrasonic measurement
             #this works, btu I can't figure out what to use it for
             #range_guess=self.gridmap.guess_range_to_wall(self.last_pose)
@@ -56,11 +60,8 @@ class LocalMapGyrus(ThreadedGyrus):
             #print("LogSumExplored {}".format(lsc))
             m=LidarMeasurement([message["ultrasonic_sensor/last_measurement"]["average_distance"]],[message["ultrasonic_sensor/last_measurement"]["stdev_distance"]],[0],[angle_unc])
             if self.state=="both" or self.state=="mapping":
-                self.gridmap.apply_lidar_measurement(self.last_pose,m)
-                #point=m.to_xypoints(self.last_pose)[0]
-                #self.gridmap.mark_pt_with_cov_blocked(point)
-                #self.gridmap.mark_explored(self.last_pose,m)
-            if self.state=="both" or self.state=="localization":
+                self.gridmap.apply_lidar_measurement(self.last_pose,m) #record map
+            if False: #if self.state=="both" or self.state=="localization":
                 xs,ys,mymap=self.gridmap.calculate_eval_map(self.last_pose.vals,[0.5,0.5,0],m)
                 if self.debugshow:
                     print("xs and ys {} {}".format(xs,ys))
@@ -77,28 +78,22 @@ class LocalMapGyrus(ThreadedGyrus):
             mes=message["floor_detector_measurement"]
             #this part marks up my map
             m=LidarMeasurement(mes["dists"],mes["dists_unc"],mes["x_angles"],mes["x_angles_unc"])
-            print("Lidar Distance: {}".format(mes["dists"][int(len(mes["dists"])/2)]))
+            #gprint("Lidar Distance: {}".format(mes["dists"][int(len(mes["dists"])/2)]))
             last_pose=BayesianArray.from_object(mes["last_pose"]) #NOTE THIS IS DIFFERENT FROM WHAT THE CURRENT POSE IS
-            if self.state=="both" or self.state=="mapping":
-                self.gridmap.apply_lidar_measurement(last_pose,m)
-                #points=m.to_xypoints(last_pose)
-                #for p in points:
-                #    self.gridmap.mark_pt_with_cov_blocked(p)
-                #self.gridmap.mark_explored(self.last_pose,points)
-#                self.gridmap.mark_explored(last_pose,m)
-                #This is a good time to update my map
-                #if self.display_loop is not None:
-                #    self.display_loop.update_image("Map",self.gridmap.occupancy_to_image(self.last_pose))
+            #gprint("Local Map Pose {}".format(last_pose.get_as_ufloat()))
             if self.state=="both" or self.state=="localization":
-                #TODO this is more difficult, I need to make sure I'm not trying to localize an old place after I've moved
-                xs,ys,mymap=self.gridmap.calculate_eval_map(self.last_pose.vals,[0.5,0.5,0],m)
-                #ret.append({"timestamp": message["timestamp"],"offsetmap": [mymap,xs,ys]})
-                pose_no_cov=self.gridmap.eval_map_to_point(xs,ys,mymap)
-                try:
-                    print("Floor Pose estimate {},{}".format(pose_no_cov.get_as_ufloat()[0],pose_no_cov.get_as_ufloat()[1]))
-                    self.broker.publish({"pose_measurement": pose_no_cov.to_object(),"timestamp": message["timestamp"],"notes": "floor_lidar"},"pose_measurement")
-                except:
-                    print("error converting floor pose estimate {}".format(pose_no_cov))
+                xs,ys,posemap=self.gridmap.get_lidar_pose_map(last_pose.vals,m.to_exact(),5,5)
+                if np.max(posemap)>self.lidar_localization_score_cutoff:
+                    #gprint("min max posemap {} {}".format(np.min(posemap),np.max(posemap)))
+                    pred=self.gridmap.pose_map_to_pose_prediction(xs,ys,posemap)
+                    min_unc=self.gridmap.resolution
+                    min_pred_cov=np.array([[min_unc*min_unc,0,0],
+                                           [0,min_unc*min_unc,0],
+                                           [0,0,0]])
+                    pred.covariance+=min_pred_cov
+                    self.broker.publish({"pose_measurement": pred.to_object(),"timestamp": message["timestamp"],"notes": "floor lidar"},"pose_measurement")
+            if self.state=="both" or self.state=="mapping":
+                self.gridmap.apply_lidar_measurement(last_pose,m) #record map
 
     def get_pose_measurement_logprob(self,pose,measurement):
         points=measurement.to_xypoints(pose)
