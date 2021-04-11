@@ -70,10 +70,10 @@ class MotionEstimationGyrus(ThreadedGyrus):
         self.turn_record=[]
         self.ahead_record=[]
 
-        self.turn_slope=0 #in units of meters per turn-magnitude-second
+        self.turn_slope=-2.2 #in units of meters per turn-magnitude-second #-2.2
         self.turn_slope_unc=10 #for max uncertainty, at start
         self.min_fraction_turn_slope_unc=0.1
-        self.ahead_slope=0
+        self.ahead_slope=0.33 # 0.33
         self.ahead_slope_unc=1.0
         self.min_fraction_ahead_slope_unc=0.1
         super().__init__(broker)
@@ -124,11 +124,23 @@ class MotionEstimationGyrus(ThreadedGyrus):
     def get_name(self):
         return "MotionGyrus"
 
+    def same_pose(self,a,b,x_thresh,t_thresh):
+        delta=np.array(a)-np.array(b)
+        if abs(delta[2])>t_thresh:
+            return False
+        dx=np.sqrt(delta[0]**2+delta[1]**2)
+        if dx>x_thresh:
+            return False
+        return True
+
+
     def read_message(self,message):
         ret=[]
         if "latest_pose" in message:
             the_pose=BayesianArray.from_object(message["latest_pose"])
-            self.pose_history.append([message["timestamp"],the_pose]) #save to recent history for fitting
+            #if message["pose_notes"]=="pose_is_stable":
+            #    if len(self.pose_history)==0 or not self.same_pose(self.pose_history[-1][1].vals,the_pose.vals,0.02,0.02):
+            #        self.pose_history.append([message["timestamp"],the_pose]) #save to recent history for fitting
             self.last_pose=np.array(message["latest_pose"]["vals"])
             self.last_pose_covariance=np.array(message["latest_pose"]["covariance"])
             #extract potential tecahable moments every few seconds
@@ -136,11 +148,12 @@ class MotionEstimationGyrus(ThreadedGyrus):
             if message["timestamp"]>self.last_history_extraction+check_every_n_seconds:
                 self.extract_recent_motor_induced_pose_changes()
                 self.last_history_extraction=message["timestamp"]
-                self.learn_if_you_can(0)
-                self.learn_if_you_can(2)
+                #self.learn_if_you_can(0)
+                #self.learn_if_you_can(2)
 
         if "drive/motors_active" in message:
-            motors_active=message["drive/motors_active"]
+            motors_active=message["drive/motors_active"][0:3]
+            duration=message["drive/motors_active"][3]
             self.motor_history.append([message["timestamp"],motors_active])
             self.previous_motor_activity=motors_active
             if motors_active!=[0,0,0]:
@@ -187,7 +200,7 @@ class MotionEstimationGyrus(ThreadedGyrus):
             if axis==2: #turn
                 #print("learning turns")
                 m_prior=self.turn_slope
-                m_prior_unc=self.turn_slope_unc
+                m_prior_unc=max(self.turn_slope_unc,abs(0.1*self.turn_slope))
                 #print("before turn slope {}".format(ufloat(self.turn_slope,self.turn_slope_unc)))
                 self.turn_slope,self.turn_slope_unc,chisq=fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc)
                 if self.turn_slope_unc/max(abs(self.turn_slope),1e-3)<self.min_fraction_turn_slope_unc:
@@ -198,7 +211,7 @@ class MotionEstimationGyrus(ThreadedGyrus):
                 #print(ys)
                 gprint("learning ahead")
                 m_prior=self.ahead_slope
-                m_prior_unc=self.ahead_slope_unc
+                m_prior_unc=max(self.ahead_slope_unc,0.1*self.ahead_slope)
                 gprint("before ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
                 self.ahead_slope,self.ahead_slope_unc,chisq=fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc)
                 if self.ahead_slope_unc/max(abs(self.ahead_slope),1e-3)<self.min_fraction_ahead_slope_unc:

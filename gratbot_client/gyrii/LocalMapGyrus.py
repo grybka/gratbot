@@ -10,7 +10,7 @@ from uncertainties import unumpy
 import scipy
 import scipy.signal
 import cv2 as cv
-
+import time
 from matplotlib import pyplot as plt
 from gyrii.underpinnings.GratbotLogger import gprint
 
@@ -29,13 +29,16 @@ class LocalMapGyrus(ThreadedGyrus):
         #self.gridmap_occupied=0.1*np.ones([self.npoints_x,self.npoints_y])
         #self.gridmap_prob=0.1*np.ones([self.npoints_x,self.npoints_y])
         self.last_pose=None
+        self.last_pose_stable=False
         #self.last_pose=BayesianArray(ndim=3)
         self.state="both" #could be mapping or localization or both.  TODO push this into the messages, and not this state
         self.display_loop=display_loop
+        self.clear_messages_before=0
+        self.mapping_time_spacing=0.05
         super().__init__(broker)
 
     def get_keys(self):
-        return [ "latest_pose","ultrasonic_sensor/last_measurement","floor_detector_measurement" ]
+        return [ "latest_pose","ultrasonic_sensor/last_measurement","floor_detector_measurement","lidar/lidar_scan" ]
 
     def get_name(self):
         return "LocalMapGyrus"
@@ -44,7 +47,49 @@ class LocalMapGyrus(ThreadedGyrus):
         ret=[]
         if "latest_pose" in message:
             self.last_pose=BayesianArray.from_object(message["latest_pose"])
+            if message["pose_notes"]=="pose_is_stable":
+                self.last_pose_stable=True
+            else:
+                self.last_pose_stable=False
+        if message["timestamp"]<self.clear_messages_before:
+            return #clear old data
+        if "lidar/lidar_scan" in message:
+            if self.last_pose==None:
+                return [] #useless until I've gotten a pose update
+            scan_data=message["lidar/lidar_scan"]
+            angles=[ np.radians(x[1]) for x in scan_data ]
+            angle_unc=np.radians(1.0)*np.ones(len(angles))
+            dists=[ x[2]/1000 for x in scan_data ]
+            dist_uncs=0.01*np.ones(len(angles))
+            m=LidarMeasurement(dists,dist_uncs,angles,angle_unc)
+
+            if self.state=="both" or self.state=="localization":
+                #xs,ys,posemap=self.gridmap.get_lidar_pose_map(self.last_pose.vals,m.to_exact(),5,5)
+                xs,ys,ts,posemap=self.gridmap.get_lidar_pose_map_end_cells_only(self.last_pose.vals,m.to_exact_downsample(30),5,5,4)
+                #if np.max(posemap)>self.lidar_localization_score_cutoff:
+                if True:
+                    #gprint("min max posemap {} {}".format(np.min(posemap),np.max(posemap)))
+                    pred=self.gridmap.pose_map_to_pose_prediction_with_angles(xs,ys,ts,posemap)
+                    min_unc=self.gridmap.resolution/2
+                    min_ang_unc=2*np.pi/360  #one degree uncertainty
+                    min_pred_cov=np.array([[min_unc*min_unc,0,0],
+                                           [0,min_unc*min_unc,0],
+                                           [0,0,min_ang_unc*min_ang_unc]])
+                    pred.covariance+=min_pred_cov
+                    #####
+                    lp=self.last_pose.get_as_ufloat()
+                    pp=pred.get_as_ufloat()
+                    #gprint("Last Pose {}, {}, {}".format(lp[0],lp[1],lp[2]))
+                    #gprint("Pose prediction {}, {}, {}".format(pp[0],pp[1],pp[2]))
+                    #####
+                    self.broker.publish({"pose_measurement": pred.to_object(),"timestamp": message["timestamp"],"notes": "lidar"},"pose_measurement")
+            if (self.state=="both" or self.state=="mapping") and self.last_pose_stable:
+                self.gridmap.apply_lidar_measurement(self.last_pose,m) #record map
+            self.clear_messages_before=time.time()+self.mapping_time_spacing
+
+
         if "ultrasonic_sensor/last_measurement" in message:
+            return
             if self.last_pose==None:
                 return [] #useless until I've gotten a pose update
             #if message["ultrasonic_sensor/last_measurement"]["average_distance"]>2.0:
@@ -73,6 +118,7 @@ class LocalMapGyrus(ThreadedGyrus):
                 except:
                     print("error converting ultrapose estimate {}".format(pose_no_cov))
         if "floor_detector_measurement" in message:
+            return
             if self.last_pose==None:
                 return [] #useless until I've gotten a pose update
             mes=message["floor_detector_measurement"]

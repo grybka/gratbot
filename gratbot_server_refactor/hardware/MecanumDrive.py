@@ -114,8 +114,11 @@ class GratbotMecanumDrive(GratbotSpimescape):
         ret={}
         with self.motor_lock:
             #I want to know what the motors have been doing, and how long they have been doing it since the last update
-
-            ret["motors_active"]=self.motor_active
+            nowtime=time.time()
+            duration=nowtime-self.start_time
+            if last_time>self.start_time:
+                duration=nowtime-last_time
+            ret["motors_active"]=[self.motor_active[0],self.motor_active[1],self.motor_active[2],duration]
             #activity_list=[]
             #while not self.activity_queue.empty()==False:
             #    activity_list.append(queue.get())

@@ -3,6 +3,7 @@ from Gyrus import ThreadedGyrus
 from underpinnings.BayesianArray import BayesianArray
 import time
 import numpy as np
+from gyrii.underpinnings.GratbotLogger import gprint
 
 class PoseTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
@@ -13,7 +14,9 @@ class PoseTrackerGyrus(ThreadedGyrus):
         #regular kalman filters use a process variance that adds with time
         #I'm instead going to stick with a minimum variance
         #self.pose_min_covariance=np.array([0.05**2,0.05*0.05,0.05**2]) #5cm, 3 degrees
-        self.pose_min_covariance=np.array([0.02**2,0.02*0.05,0.05**2]) #2cm, 3 degrees
+        self.pose_min_covariance=np.array([0.02**2,0.02*0.05,0.01**2]) #2cm, 1 degrees
+        self.pose_how_often=0.1
+        self.time_pose_record=[ [time.time(),self.pose] ]
         super().__init__(broker)
         #self.velocity_min_covariance=np.array([5e-3**2,5e-3**2,9e-4**2]) #0.5 cm/s , 0.5 degree per second
         #the other thing this doesn't do that a full kalman filter would is
@@ -67,7 +70,30 @@ class PoseTrackerGyrus(ThreadedGyrus):
     def get_pose_message(self,timestamp=None):
         if timestamp==None:
             timestamp=time.time()
-        return {"timestamp": timestamp,"latest_pose": self.pose.to_object()}
+        if timestamp-self.time_pose_record[-1][0]<self.pose_how_often:
+            return
+        #conditions for a pose to be considered stable
+        #1)  hasn't changed in the last half second
+        #2)  uncertainty is no more than 10 percent greater than min uncertainty
+        self.time_pose_record.append([ timestamp,self.pose])
+        while (timestamp-self.time_pose_record[0][0])>2: #remove anything beyond a full two second
+            self.time_pose_record.pop(0)
+        xs=[ x[1].vals[0] for x in self.time_pose_record]
+        ys=[ x[1].vals[1] for x in self.time_pose_record]
+        ts=[ x[1].vals[2] for x in self.time_pose_record]
+        dx=np.max(xs)-np.min(xs)
+        dy=np.max(ys)-np.min(ys)
+        dt=np.max(ts)-np.min(ts)
+        twodegrees=np.radians(2)
+        if abs(dx)<0.02 and abs(dy)<0.02 and abs(dt)<twodegrees and np.sqrt(self.pose.covariance[2][2])<twodegrees:
+            m={"timestamp": timestamp,"latest_pose": self.pose.to_object(),"pose_notes": "pose_is_stable"}
+            self.broker.publish(m,"latest_pose")
+        else:
+            #gprint("pose not stable {} {} {} {}".format(abs(dx),abs(dy),abs(dt), np.sqrt(self.pose.covariance[2][2]) ))
+            #gprint("vs not stable {} {} {} {}".format(0.02,0.02,twodegrees,twodegrees))
+            #gprint("pose t is {}".format(self.pose.vals[2]))
+            m= {"timestamp": timestamp,"latest_pose": self.pose.to_object(),"pose_notes": "none"}
+            self.broker.publish(m,"latest_pose")
 
     def read_message(self,message):
         #TODO suppose I receive a pose measurement with a timestamp from before the last pose offset
@@ -75,13 +101,14 @@ class PoseTrackerGyrus(ThreadedGyrus):
         if "pose_measurement" in message:
             update=BayesianArray.from_object(message["pose_measurement"])
             self.update_with_pose_measurement(update)
-            self.broker.publish(self.get_pose_message(timestamp=message["timestamp"]),"latest_pose")
+            #self.broker.publish(self.get_pose_message(timestamp=message["timestamp"]),"latest_pose")
+            self.get_pose_message(timestamp=message["timestamp"])
 
         if "pose_offset" in message:
             update=BayesianArray.from_object(message["pose_offset"])
             self.pose.vals+=update.vals
             self.pose.covariance+=update.covariance
-            self.broker.publish(self.get_pose_message(timestamp=message["timestamp"]),"latest_pose")
+            self.get_pose_message(timestamp=message["timestamp"])
 #        if "velocity_delta" in message:
 #            update=BayesianArray.from_object(message["velocity_delta"])
 #            self.update_with_velocity_offset(update)

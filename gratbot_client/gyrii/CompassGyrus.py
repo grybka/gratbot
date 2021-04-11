@@ -4,9 +4,13 @@ import time
 
 class Compass(ThreadedGyrus):
     def __init__(self,broker):
-        self.b_field_correction=np.array([-5.63,119.74,-58.58]) #new position
+        #self.b_field_correction=np.array([-5.63,119.74,-58.58]) #new position
+        self.b_field_correction=np.array([2.78,123.61,-58.58]) #new position
+        self.nonlinear_term=-0.446
         self.heading_offset=1.4 #radians
-        self.compass_uncertainty=10*2*np.pi/360 #10 degrees
+        #self.compass_uncertainty=10*2*np.pi/360 #10 degrees
+        #self.compass_uncertainty=20*2*np.pi/360 #20 degrees
+        self.compass_uncertainty=0.3 #about 17 degrees
         self.compass_dead_after_motor_start=0.1#time over which compass should not read after motor start
         self.last_motor_reading=0
         self.last_motor_start_time=0
@@ -21,6 +25,7 @@ class Compass(ThreadedGyrus):
         myconfig={}
         myconfig["b_field_correction"]=self.b_field_correction.tolist()
         myconfig["heading_offset"]=self.heading_offset
+        myconfig["nonlinear_term"]=self.nonlinear_term
         output_config["Compass"]=myconfig
         return output_config
 
@@ -29,6 +34,7 @@ class Compass(ThreadedGyrus):
             myconfig=config["Compass"]
             self.b_field_correction=np.array(myconfig["b_field_correction"])
             self.heading_offset=myconfig["heading_offset"]
+            self.nonlinear_term=myconfig["nonlinear_term"]
         except:
             print("Failed to load compass config")
 
@@ -46,8 +52,10 @@ class Compass(ThreadedGyrus):
         if "magnetometer/b_field" in message:
             if time.time()<self.last_compass_report+self.compass_report_period:
                 return #don't over report the compass
+            self.last_compass_report=time.time()
             b=np.array(message["magnetometer/b_field"])-self.b_field_correction #corrected b field
-            compass_heading=-np.arctan2(b[0],b[1])-self.heading_offset
+            compass_heading_uncorrected=-np.arctan2(b[0],b[1])
+            compass_heading=compass_heading_uncorrected+self.nonlinear_term*np.sin(compass_heading_uncorrected)-self.heading_offset
             #wrap the angle to -pi,pi
             if compass_heading<-np.pi:
                 compass_heading=compass_heading+2*np.pi

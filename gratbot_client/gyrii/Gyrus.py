@@ -18,11 +18,10 @@ class Gyrus:
 import threading,queue
 
 class ThreadedGyrus:
-    def __init__(self,broker=None,no_thread=False):
+    def __init__(self,broker=None):
         self.broker=broker
         if self.broker is not None:
             self.broker.subscribe(self.get_keys(),self.get_name())
-        if not no_thread:
             self.thread = threading.Thread(target=self._thread_loop)
             self.should_quit = False
             self.thread.daemon = True

@@ -39,6 +39,11 @@ class LidarMeasurement:
     def sample_to_exact(self):
         return ExactLidarMeasurement(np.random.normal(self.dists,self.dist_uncs),np.random.normal(self.angles,self.angle_uncs))
 
+    def to_exact_downsample(self,ntotal):
+        down=max(int(len(self.dists)/ntotal),1)
+        mydists=self.dists[::down]
+        myangles=self.angles[::down]
+        return ExactLidarMeasurement(mydists,myangles)
 
     def to_xypoints(self,pose): #pose is a BayesianArray
         [posex,posey,posetheta]=pose.get_as_ufloat()
@@ -108,6 +113,11 @@ class OccupancyMap2:
             exactlidar=mlidar.sample_to_exact()
             self.apply_exact_lidar_measurement(exactpose,exactlidar,weight=weight)
 
+    def exact_lidar_to_end_cells(self,exactpose,exactlidar):
+        end_pts=exactlidar.to_xypoints(exactpose)
+        end_cells=self.coords_to_cells(end_pts)
+        return end_cells
+
     def exact_lidar_to_cells(self,exactpose,exactlidar):
         end_pts=exactlidar.to_xypoints(exactpose)
         start_cell=self.coord_to_cell(exactpose[0:2])
@@ -128,6 +138,19 @@ class OccupancyMap2:
             for j in range(-n_y,n_y+1):
                 ret[i+n_x,j+n_y]=self.get_cell_score(free_cells,end_cells,i,j)
         return xs,ys,ret
+
+    def get_lidar_pose_map_end_cells_only(self,exactpose,exactlidar,n_x,n_y,n_t):
+        angle_resolution=0.017
+        xs=np.linspace(exactpose[0]-n_x*self.resolution,exactpose[0]+n_x*self.resolution,2*n_x+1)
+        ys=np.linspace(exactpose[1]-n_y*self.resolution,exactpose[1]+n_y*self.resolution,2*n_y+1)
+        ts=np.linspace(exactpose[2]-n_t*angle_resolution,exactpose[2]+n_t*angle_resolution,2*n_t+1)
+        ret=np.zeros([2*n_x+1,2*n_y+1,2*n_t+1])
+        for k in range(-n_t,n_t+1):
+            end_cells=self.exact_lidar_to_end_cells(exactpose+np.array([0,0,k*angle_resolution]),exactlidar)
+            for i in range(-n_x,n_x+1):
+                for j in range(-n_y,n_y+1):
+                    ret[i+n_x,j+n_y,k+n_t]=self.get_cell_score_end_cells(end_cells,i,j)
+        return xs,ys,ts,ret
 
     def pose_map_to_pose_prediction(self,xs,ys,posemap):
         sum_x=0
@@ -155,6 +178,64 @@ class OccupancyMap2:
         xymean=sum_xy/sum_p-xmean*ymean
         #TODO there is really no reason not to do this with angles too
         return BayesianArray(np.array([xmean,ymean,0]),np.array([[xxmean,xymean,0],[xymean,yymean,0],[0,0,1000]]))
+
+
+
+    def pose_map_to_pose_prediction_with_angles(self,xs,ys,ts,posemap):
+        sum_x=0
+        sum_y=0
+        sum_t=0
+        sum_xx=0
+        sum_xy=0
+        sum_yy=0
+        sum_tt=0
+        sum_xt=0
+        sum_yt=0
+        sum_p=0
+        #offset=np.min(posemap) # we will arbitrarily set this to zero
+        #poffset=np.exp(np.min(posemap))
+        mymax=np.max(posemap)
+        for i in range(posemap.shape[0]):
+            for j in range(posemap.shape[1]):
+                for k in range(posemap.shape[2]):
+                    p=np.exp(posemap[i,j,k]-mymax)
+                    sum_p+=p
+                    sum_x+=p*xs[i]
+                    sum_y+=p*ys[j]
+                    sum_t+=p*ts[k]
+                    sum_yy+=p*ys[j]*ys[j]
+                    sum_xx+=p*xs[i]*xs[i]
+                    sum_xy+=p*xs[i]*ys[j]
+                    sum_tt+=p*ts[k]*ts[k]
+                    sum_xt+=p*xs[i]*ts[k]
+                    sum_yt+=p*ys[j]*ts[k]
+        xmean=sum_x/sum_p
+        ymean=sum_y/sum_p
+        tmean=sum_t/sum_p
+        xxmean=abs(sum_xx/sum_p-xmean*xmean)
+        yymean=abs(sum_yy/sum_p-ymean*ymean)
+        ttmean=abs(sum_tt/sum_p-tmean*tmean)
+        xymean=sum_xy/sum_p-xmean*ymean
+        xtmean=sum_xt/sum_p-xmean*tmean
+        ytmean=sum_yt/sum_p-ymean*tmean
+        #TODO there is really no reason not to do this with angles too
+        return BayesianArray(np.array([xmean,ymean,tmean]),np.array([[xxmean,xymean,xtmean],[xymean,yymean,ytmean],[xtmean,ytmean,ttmean]]))
+
+    def get_cell_score_end_cells(self,end_cells,x_offset,y_offset):
+        score=0
+        with self.gridmap_occupied_lock:
+            for cell in end_cells:
+                #score+=self.gridmap_logodds[cell[0]+x_offset,cell[1]+y_offset]
+
+                newx=max(0,min(cell[0]+x_offset,self.npoints_x-1))
+                newy=max(0,min(cell[1]+y_offset,self.npoints_y-1))
+                lp=self.gridmap_logodds[newx,newy]
+                #score+=np.log( 1-1/(1+np.exp(lp)))
+                if lp<-1:
+                    score+=lp
+                else:
+                    score+=np.log( 1-1/(1+np.exp(lp)))
+        return score
 
     def get_cell_score(self,free_cells,end_cells,x_offset,y_offset):
         score=0

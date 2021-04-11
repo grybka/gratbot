@@ -2,6 +2,7 @@ from Behavior import GratbotBehavior
 from Behavior import GratbotBehaviorStatus
 import time
 import cv2 as cv
+from gyrii.underpinnings.GratbotLogger import gprint,gprint_low
 
 class PrintState(GratbotBehavior):
     def __init__(self,state_name):
@@ -9,9 +10,11 @@ class PrintState(GratbotBehavior):
 
     def act(self,**kwargs):
         if self.state_name not in kwargs["short_term_memory"]:
-            print("Error, {} not in memory".format(self.state_name))
+            #print("Error, {} not in memory".format(self.state_name))
+            gprint_low("Error, {} not in memory".format(self.state_name))
         else:
-            print("{}: {}".format(self.state_name,kwargs["short_term_memory"][self.state_name][self.state_name]))
+            #print("{}: {}".format(self.state_name,kwargs["short_term_memory"][self.state_name][self.state_name]))
+            gprint_low("{}: {}".format(self.state_name,kwargs["short_term_memory"][self.state_name][self.state_name]))
         return GratbotBehaviorStatus.COMPLETED
 
     def reset(self):
