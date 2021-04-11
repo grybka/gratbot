@@ -1,7 +1,9 @@
 
 from GratbotSpimescape import GratbotSpimescape
 from GratbotSpimescape import _all_gratbot_spimescapes
-from adafruit_circuitpython_rplidar import RPLidar
+from adafruit_rplidar import RPLidar
+import threading
+import time
 
 #datasheet notes
 #distance range 0.15 to 12
@@ -11,8 +13,10 @@ class RPILidarA1(GratbotSpimescape):
 
     def __init__(self, datastruct, hardware):
         #maybe /dev/ttyUSB0?
-        self.lidar=RPLidar(None,datastruct["usb_port_name"])
-        print("Lidar initiazised with info {}".format(lidar.get_info()))
+        #self.lidar=RPLidar(None,datastruct["usb_port_name"])
+        self.lidar=RPLidar(None,"/dev/ttyUSB0")
+        print("Lidar may be initialized, how would I know?")
+        #print("Lidar initiazised with info {}".format(self.lidar.get_info()))
 
         self.end_called=False
         self.last_scan=[] #array of quality,angle,distance
@@ -26,7 +30,7 @@ class RPILidarA1(GratbotSpimescape):
     def _run_thread(self):
         while not self.end_called:
             try:
-                for scan in lidar.iter_scans():
+                for scan in self.lidar.iter_scans():
                     with self.data_lock:
                         self.last_scan=scan
                         self.last_update=time.time()

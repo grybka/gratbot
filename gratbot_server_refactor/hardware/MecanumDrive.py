@@ -81,7 +81,7 @@ class GratbotMecanumDrive(GratbotSpimescape):
              #normalize
             sum_matrix=sum_matrix/max(np.max(abs(sum_matrix)),1.0)
             with self.motor_lock:
-                queue.put([self.start_time,time.time(),self.motor_active])
+                #queue.put([self.start_time,time.time(),self.motor_active])
                 self.start_time=time.time()
                 self.motor_active=[value[0],value[1],value[2]]
                 if len(value)>3:
