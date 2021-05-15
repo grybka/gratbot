@@ -50,6 +50,12 @@ class BayesianArray:
     def __str__(self):
         return str(self.vals)+"("+str(self.covariance)+")"
 
+    def pretty_str(self):
+        ret=""
+        for i in range(len(self.vals)):
+            ret+=" {}".format(ufloat(self.vals[i],np.sqrt(self.covariance[i][i])))
+        return ret
+
     def to_object(self):
         return {"vals": self.vals.tolist(),"covariance": self.covariance.tolist()}
 
@@ -66,6 +72,12 @@ class BayesianArray:
         w, v = w[order], v[:,order]
         theta = np.arctan2(*v[:,0][::-1])
         return self.vals[var1],self.vals[var2],2.*np.sqrt(w[0]),2*np.sqrt(w[1]),theta
+
+    def chi_square_from_pose(self,pose):
+        sum_covariance=self.covariance+pose.covariance
+        invcov=pinvh(sum_covariance)
+        delta=pose.vals-self.vals
+        return np.dot(delta,np.dot(invcov,delta))
 
     def chi_square_from_point(self,pt):
         #pt is a numpy array of same length as vals

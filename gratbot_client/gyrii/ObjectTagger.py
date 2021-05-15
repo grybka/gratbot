@@ -20,6 +20,10 @@ class ObjectTaggerGyrus(ThreadedGyrus):
         self.clear_frames_before=0
         self.show_detections=show_detections
         super().__init__(broker)
+        #profiling
+        self.n_sample=10
+        self.time_sum=0
+        self.sample_sum=0
 
 
     def get_keys(self):
@@ -47,7 +51,16 @@ class ObjectTaggerGyrus(ThreadedGyrus):
         if "camera_frame" in message:
             if message["timestamp"]<self.clear_frames_before:
                 return
+
+            start_time=time.time()
             video_objects=self.tag_objects(message["camera_frame"])
+            self.time_sum+=time.time-start_time
+            self.sample_sum+=1
+            if self.sample_sum>=self.n_sample:
+                gprint("average tagger time {} ms".format(1000*self.time_sum/self.sample_sum))
+                self.sample_sum=0
+                self.time_sum=0
+
             #gprint("number of video objects: {}".format(len(video_objects)))
             mymessage={"timestamp":message["timestamp"],"video_object_tags": video_objects}
             self.broker.publish(mymessage,"video_object_tags")

@@ -22,7 +22,7 @@ class MessageBroker:
         self.queues={}
         self.queue_sizes={}
 
-    def subscribe(self,keys,queue_name,queue_size=100):
+    def subscribe(self,keys,queue_name,queue_size=200):
         if queue_name in self.queues:
             raise Exception("Queue already exists")
         self.queues[queue_name]=BrokerQueue(queue_name,queue_size)
@@ -37,11 +37,14 @@ class MessageBroker:
             raise Exception("You messed up your message and keys order")
         if isinstance(keys, str):
             keys=[ keys ]
+        queues_to_deliver_to=set()
         for key in keys:
             if key not in self.key_to_queue_map:
                 continue
             for q in self.key_to_queue_map[key]:
-                q.aggressive_put(message)
+                queues_to_deliver_to.add(q)
+        for q in queues_to_deliver_to:
+            q.aggressive_put(message)
 
     def receive(self,queue_name,timeout=0.1,block=True):
         return self.queues[queue_name].get(block=block,timeout=timeout)

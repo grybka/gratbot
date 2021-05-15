@@ -1,0 +1,14 @@
+Compass:
+  b_field_correction:
+  - 2.78
+  - 123.61
+  - -58.58
+  heading_offset: 1.4
+  nonlinear_term: -0.446
+MotionGyrus: {}
+#LocalMap:
+#  map_filename: "config/wide_map.npy"
+#  resolution: 0.1
+#  Pose:
+#  location: [ 0, 0, 0 ]
+#  uncertainty: [ 2.0, 2.0, 4.0 ]

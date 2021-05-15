@@ -1,8 +1,8 @@
 from Gyrus import ThreadedGyrus
 from underpinnings.BayesianArray import BayesianArray
 #from underpinnings.OccupancyMap import OccupancyMap
-from underpinnings.OccupancyMap2 import OccupancyMap2
-from underpinnings.OccupancyMap2 import LidarMeasurement
+from underpinnings.OccupancyMap2 import OccupancyMap2,LocalizationException
+from underpinnings.OccupancyMap2 import LidarMeasurement, ExactLidarMeasurement
 import numpy as np
 from uncertainties import ufloat
 from uncertainties.umath import *
@@ -32,17 +32,51 @@ class LocalMapGyrus(ThreadedGyrus):
         self.last_pose_stable=False
         #self.last_pose=BayesianArray(ndim=3)
         self.state="both" #could be mapping or localization or both.  TODO push this into the messages, and not this state
+        self.localization_state="off"
         self.display_loop=display_loop
         self.clear_messages_before=0
         self.mapping_time_spacing=0.05
+        self.l_spread_size_sigma=0
         super().__init__(broker)
 
     def get_keys(self):
-        return [ "latest_pose","ultrasonic_sensor/last_measurement","floor_detector_measurement","lidar/lidar_scan" ]
+        #return [ "latest_pose","ultrasonic_sensor/last_measurement","floor_detector_measurement","lidar/lidar_scan","localization_state" ]
+        return [ "latest_pose","lidar/lidar_scan","localization_state" ]
 
     def get_name(self):
         return "LocalMapGyrus"
 
+    def set_localization_state(self,name):
+        self.localization_state=name
+        gprint("changing localization state to {}".format(self.localization_state))
+        if name=="full":
+            self.l_theta_points=48
+            self.l_theta_res=np.radians(2.5)
+            self.l_spread_size_sigma=0
+            self.spread_size_x=40
+            self.spread_size_y=40
+        elif name=="ultrawide":
+            self.l_theta_points=15
+            self.l_theta_res=np.radians(2.0)
+            #self.l_spread_size_sigma=8
+            self.spread_size_x=20
+            self.spread_size_y=20
+        elif name=="wide":
+            self.l_theta_points=5
+            self.l_theta_res=np.radians(1.5)
+            #self.l_spread_size_sigma=5
+            self.spread_size_x=10
+            self.spread_size_y=10
+        elif name=="close":
+            self.l_theta_points=4
+            self.l_theta_res=np.radians(1.0)
+            #self.l_spread_size_sigma=3
+            self.spread_size_x=4
+            self.spread_size_y=4
+        elif name=="off":
+            pass
+        else:
+            gprint("ERROR BAD LOCALIZATION STATE: {}".format(name))
     def read_message(self,message):
         ret=[]
         if "latest_pose" in message:
@@ -51,40 +85,64 @@ class LocalMapGyrus(ThreadedGyrus):
                 self.last_pose_stable=True
             else:
                 self.last_pose_stable=False
-        if message["timestamp"]<self.clear_messages_before:
-            return #clear old data
+        if "localization_state" in message:
+            self.set_localization_state(message["localization_state"])
         if "lidar/lidar_scan" in message:
             if self.last_pose==None:
                 return [] #useless until I've gotten a pose update
+            if message["timestamp"]<self.clear_messages_before:
+                return #drop scans if I get too far behind
+            #gprint("scanning")
             scan_data=message["lidar/lidar_scan"]
-            angles=[ np.radians(x[1]) for x in scan_data ]
-            angle_unc=np.radians(1.0)*np.ones(len(angles))
-            dists=[ x[2]/1000 for x in scan_data ]
-            dist_uncs=0.01*np.ones(len(angles))
-            m=LidarMeasurement(dists,dist_uncs,angles,angle_unc)
+            m=ExactLidarMeasurement([ x[2]/1000 for x in scan_data ],[ np.radians(x[1]) for x in scan_data ])
+            #angles=[ np.radians(x[1]) for x in scan_data ]
+            #angle_unc=np.radians(1.0)*np.ones(len(angles))
+            #dists=[ x[2]/1000 for x in scan_data ]
+            #dist_uncs=0.01*np.ones(len(angles))
+            #m=LidarMeasurement(dists,dist_uncs,angles,angle_unc)
+            innovation_sigma=0 #for keeping track of how far I disagree from current pos
+            localization_exception=False
 
-            if self.state=="both" or self.state=="localization":
-                #xs,ys,posemap=self.gridmap.get_lidar_pose_map(self.last_pose.vals,m.to_exact(),5,5)
-                xs,ys,ts,posemap=self.gridmap.get_lidar_pose_map_end_cells_only(self.last_pose.vals,m.to_exact_downsample(30),5,5,4)
-                #if np.max(posemap)>self.lidar_localization_score_cutoff:
-                if True:
-                    #gprint("min max posemap {} {}".format(np.min(posemap),np.max(posemap)))
-                    pred=self.gridmap.pose_map_to_pose_prediction_with_angles(xs,ys,ts,posemap)
-                    min_unc=self.gridmap.resolution/2
-                    min_ang_unc=2*np.pi/360  #one degree uncertainty
-                    min_pred_cov=np.array([[min_unc*min_unc,0,0],
-                                           [0,min_unc*min_unc,0],
-                                           [0,0,min_ang_unc*min_ang_unc]])
-                    pred.covariance+=min_pred_cov
-                    #####
-                    lp=self.last_pose.get_as_ufloat()
-                    pp=pred.get_as_ufloat()
-                    #gprint("Last Pose {}, {}, {}".format(lp[0],lp[1],lp[2]))
-                    #gprint("Pose prediction {}, {}, {}".format(pp[0],pp[1],pp[2]))
-                    #####
-                    self.broker.publish({"pose_measurement": pred.to_object(),"timestamp": message["timestamp"],"notes": "lidar"},"pose_measurement")
-            if (self.state=="both" or self.state=="mapping") and self.last_pose_stable:
-                self.gridmap.apply_lidar_measurement(self.last_pose,m) #record map
+            if self.localization_state!="off":
+                start_time=time.time()
+                posemap,xs,ys,ts,counts=self.gridmap.get_lidar_pose_map3_withtheta(self.last_pose.vals,m,theta_points=self.l_theta_points,theta_res=self.l_theta_res)
+                try:
+                    if self.l_spread_size_sigma>0:
+                        #gprint("{} {}".format(self.last_pose.covariance[0][0],self.last_pose.covariance[1][1]))
+                        sigma=np.sqrt(max(self.last_pose.covariance[0][0],self.last_pose.covariance[1][1]))
+                        self.spread_size_x=max(int(sigma*self.l_spread_size_sigma/self.gridmap.resolution),2)
+                        self.spread_size_y=self.spread_size_x
+                    newpose,center_score=self.gridmap.pose_map_to_pose_prediction3_with_theta_faster(posemap,xs,ys,ts,counts,center=self.last_pose,spread_size_x=self.spread_size_x,spread_size_y=self.spread_size_y)
+                    last_pose_copy=self.last_pose.copy()
+                    last_pose_copy.covariance+=np.diag([0.05**2,0.05**2,0.01**2])
+                    innovation_sigma=np.sqrt(last_pose_copy.chi_square_from_point(newpose.vals))
+                    gprint("localization type: {} spreadsize {} score: {} innovation_sigma {}".format(self.localization_state,self.spread_size_x,center_score,innovation_sigma))
+                    if np.isnan(innovation_sigma):
+                        raise LocalizationException("sigma is NaN")
+                    if innovation_sigma>10 and self.localization_state!="full":
+                        raise LocalizationException("sigma too high")
+                    if innovation_sigma<5 and self.localization_state=="ultrawide":
+                        self.set_localization_state("wide")
+                    elif innovation_sigma<5 and self.localization_state=="wide":
+                        self.set_localization_state("close")
+                    dt=time.time()-start_time
+                    #wrap angle
+                    gprint("Localizing to {}".format(newpose.pretty_str()))
+                    self.broker.publish({"pose_measurement": newpose.to_object(),"timestamp": message["timestamp"],"notes": "lidar"},"pose_measurement")
+                except LocalizationException as e:
+                        gprint("Localization Exception: {}".format(e.message))
+                        gprint("Pose is : {}".format(self.last_pose.pretty_str()))
+                        localization_exception=True
+                        if self.localization_state=="close":
+                            self.set_localization_state("wide")
+                        elif self.localization_state=="wide":
+                            self.set_localization_state("ultrawide")
+                        else:
+                            gprint("Uh oh, already at {}".format(self.localization_state))
+
+            if (self.state=="both" or self.state=="mapping") and self.last_pose_stable and (not localization_exception):
+                self.gridmap.apply_exact_lidar_measurement3(self.last_pose.vals,m,weight=1)
+                #self.gridmap.apply_lidar_measurement(self.last_pose,m) #record map
             self.clear_messages_before=time.time()+self.mapping_time_spacing
 
 

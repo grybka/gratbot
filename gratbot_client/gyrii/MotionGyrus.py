@@ -13,7 +13,6 @@ from gyrii.underpinnings.GratbotLogger import gprint
 
 
 def fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc):
-    #TODO it is trivial to include a prior on the slope here
     #given motion records and a single dimension, fit to y=m*x
     #returns best fit m, m_unc, chi-square/n
     xxsum=0
@@ -51,6 +50,22 @@ def get_rot_matrix3(theta):
 class MotionEstimationGyrus(ThreadedGyrus):
 
     def __init__(self,broker):
+
+        self.motor_off_covariance=1e-4*np.eye(3)
+        self.motor_on_min_covariance=10.0*np.eye(3)
+
+        #self.offset_slope_matrix=np.array([[0.13,0.45,-0.017],
+        #                                   [0.45,0,0],
+        #                                   [0,0,-2.63]])
+        #I multiply this matrix by my motor activation and get a speed
+        self.motor_to_velocity=np.array([[-0.01090508,  0.42752218, -0.03158485],
+                                [ 0.40995484,  0.01007396,  0.0637292 ],
+                                [-0.03484511, -0.0503116 , -2.93494427]])
+        #self.offset_slope_matrix_unc=self.offset_slope_matrix*0.2
+
+
+
+
         self.previous_motor_activity=[0,0,0]
         self.pose_at_last_motion_start=np.array([0,0,0])
         self.timestamp_at_last_motion_start=0
@@ -64,18 +79,6 @@ class MotionEstimationGyrus(ThreadedGyrus):
         self.last_history_extraction=0 #a timestamp
         self.teachable_moments=[]
 
-
-
-        #self.motion_record=[] # ( change in pose, change in time, motor behavior)
-        self.turn_record=[]
-        self.ahead_record=[]
-
-        self.turn_slope=-2.2 #in units of meters per turn-magnitude-second #-2.2
-        self.turn_slope_unc=10 #for max uncertainty, at start
-        self.min_fraction_turn_slope_unc=0.1
-        self.ahead_slope=0.33 # 0.33
-        self.ahead_slope_unc=1.0
-        self.min_fraction_ahead_slope_unc=0.1
         super().__init__(broker)
 
 
@@ -84,39 +87,15 @@ class MotionEstimationGyrus(ThreadedGyrus):
         #TODO save things other than just the motion record
         output_config={}
         my_config={}
-        my_config["turn_slope"]=float(self.turn_slope)
-        my_config["turn_slope_unc"]=float(self.turn_slope_unc)
-        my_config["ahead_slope"]=float(self.ahead_slope)
-        my_config["ahead_slope_unc"]=float(self.ahead_slope_unc)
         output_config["MotionGyrus"]=my_config
         return output_config
 
     def load_config(self,config):
         try:
             my_config=config["MotionGyrus"]
-            self.turn_slope=my_config["turn_slope"]
-            self.turn_slope_unc=my_config["turn_slope_unc"]
-            self.ahead_slope=my_config["ahead_slope"]
-            self.ahead_slope_unc=my_config["ahead_slope_unc"]
             print("MotionGyus loaded OK")
         except:
             print("Unable to load MotionGyrus info from file")
-
-
-    def predict_pose_offset_turn(self,turn_power):
-        predicted_theta_change=turn_power*self.turn_slope
-        predicted_theta_change_unc=abs(turn_power*self.turn_slope_unc)
-        return BayesianArray(np.array([0,0,predicted_theta_change]),np.array([ [0,0,0],[0,0,0],[0,0,predicted_theta_change_unc**2]]))
-
-    def predict_pose_offset_ahead(self,ahead_power):
-        predicted_ahead_change=ahead_power*self.ahead_slope
-        predicted_ahead_change_unc=abs(ahead_power*self.ahead_slope_unc)
-        pose_offset_ahead=BayesianArray(np.array([0,predicted_ahead_change,0]),np.array( [ [0,0,0],
-                                                               [0,predicted_ahead_change_unc**2,0],
-                                                               [0,0,0]]))
-        pose_offset=pose_offset_ahead.applymatrix(get_rot_matrix3(self.last_pose[2]))
-        return pose_offset
-
 
     def get_keys(self):
         return [ "clock_pulse","latest_pose","move_command","drive/motors_active" ]
@@ -124,162 +103,59 @@ class MotionEstimationGyrus(ThreadedGyrus):
     def get_name(self):
         return "MotionGyrus"
 
-    def same_pose(self,a,b,x_thresh,t_thresh):
-        delta=np.array(a)-np.array(b)
-        if abs(delta[2])>t_thresh:
-            return False
-        dx=np.sqrt(delta[0]**2+delta[1]**2)
-        if dx>x_thresh:
-            return False
-        return True
-
+    def motor_vetor_to_velocity(self,motor_vector):
+            #velocity_vector=np.dot(self.motor_to_velocity,np.dot(get_rot_matrix3(self.last_pose[2]).T,motor_vector))
+            velocity_vector=np.dot(get_rot_matrix3(self.last_pose[2]),np.dot(self.motor_to_velocity,motor_vector))
+            velocity_vector_covariance=np.diag(np.array([0.08**2,0.08**2,0.1**2])) #this is hardcoded.
+            return BayesianArray(velocity_vector,velocity_vector_covariance)
 
     def read_message(self,message):
         ret=[]
         if "latest_pose" in message:
             the_pose=BayesianArray.from_object(message["latest_pose"])
-            #if message["pose_notes"]=="pose_is_stable":
-            #    if len(self.pose_history)==0 or not self.same_pose(self.pose_history[-1][1].vals,the_pose.vals,0.02,0.02):
-            #        self.pose_history.append([message["timestamp"],the_pose]) #save to recent history for fitting
             self.last_pose=np.array(message["latest_pose"]["vals"])
             self.last_pose_covariance=np.array(message["latest_pose"]["covariance"])
-            #extract potential tecahable moments every few seconds
-            check_every_n_seconds=2
-            if message["timestamp"]>self.last_history_extraction+check_every_n_seconds:
-                self.extract_recent_motor_induced_pose_changes()
-                self.last_history_extraction=message["timestamp"]
-                #self.learn_if_you_can(0)
-                #self.learn_if_you_can(2)
 
         if "drive/motors_active" in message:
             motors_active=message["drive/motors_active"][0:3]
             duration=message["drive/motors_active"][3]
             self.motor_history.append([message["timestamp"],motors_active])
             self.previous_motor_activity=motors_active
-            if motors_active!=[0,0,0]:
-                if motors_active[2]!=0:
-                    #print("predicting pose turn")
-                    dt=message["timestamp"]-self.last_motor_activity_timestamp
-                    turn_power=motors_active[2]*dt
-                    pose_offset=self.predict_pose_offset_turn(turn_power)
-                    self.broker.publish({"timestamp": time.time(),"pose_offset": pose_offset.to_object(),"notes": "turn prediction"},"pose_offset")
-                if motors_active[0]!=0: #forward backward
-                    #print("predicting pose ahead")
-                    dt=message["timestamp"]-self.last_motor_activity_timestamp
-                    #print("got an ahead message {}".format(message))
-                    ahead_power=motors_active[0]*dt
-                    pose_offset=self.predict_pose_offset_ahead(ahead_power)
-                    self.broker.publish({"timestamp": time.time(),"pose_offset": pose_offset.to_object(),"notes": "ahead prediction"},"pose_offset")
+            motor_vector=np.array(motors_active)
+            if motors_active[0] !=0 or motors_active[1] !=0 or motors_active[2] !=0:
+                self.broker.publish({"timestamp": time.time(),"pose_is_changing": True},["pose_is_changing"])
+                #velocity_vector=np.dot(self.motor_to_velocity,np.dot(get_rot_matrix3(self.last_pose[2]),motor_vector))
+                #velocity_vector_covariance=np.diag(np.array([0.08**2,0.08**2,0.1**2])) #this is hardcoded.
+                #vel=BayesianArray(velocity_vector,velocity_vector_covariance)
+                vel=self.motor_vetor_to_velocity(motor_vector)
+            else:
+                vel=BayesianArray(np.zeros(3),self.motor_off_covariance)
+            #    self.broker.publish({"timestamp": time.time(),"pose_is_changing": True,"pose_certainty_lost": True},["pose_certainty_lost","pose_is_changing"])
+
+            self.broker.publish({"timestamp": time.time(),"velocity_measurement": vel.to_object(),"notes": "motors active"},"velocity_measurement")
             self.last_motor_activity_timestamp=message["timestamp"]
         if "move_command" in message:
+            speed=0.6 #this is a hack because I'm not consistent about when I have to do this
             if message["move_command"]["type"]=="turn":
                 angle=message["move_command"]["angle"]
-                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "turn","magnitude": angle/self.turn_slope}},"motor_command")
+                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "turn","magnitude": angle/(speed*self.motor_to_velocity[2][2])}},"motor_command")
             if message["move_command"]["type"]=="ahead":
                 distance=message["move_command"]["distance"]
-                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "ahead","magnitude": distance/self.ahead_slope}},"motor_command")
-
-    def learn_if_you_can(self,axis):
-        min_teachable_size=2
-        #self.teachable_moments.append({"delta_pose": elem[3],"delta_time": elem[1]-elem[0],"motor_command": elem[2]})
-        to_use=[]
-        xs=[]
-        ys=[]
-        sigmasquares=[]
-
-        for i in range(len(self.teachable_moments)):
-            t=self.teachable_moments[i]
-            if t["motor_command"][axis]!=0: #
-                to_use.append(i)
-                ys.append(t["delta_pose"].vals[axis])
-                xs.append(t["motor_command"][axis]*t["delta_time"])
-                sigmasquares.append(t["delta_pose"].covariance[axis][axis])
-        if len(xs)>=min_teachable_size:
-            #print("learning from {} examples for axis {}".format(len(xs),axis))
-            self.teachable_moments=[i for j, i in enumerate(self.teachable_moments) if j not in to_use]
-            if axis==2: #turn
-                #print("learning turns")
-                m_prior=self.turn_slope
-                m_prior_unc=max(self.turn_slope_unc,abs(0.1*self.turn_slope))
-                #print("before turn slope {}".format(ufloat(self.turn_slope,self.turn_slope_unc)))
-                self.turn_slope,self.turn_slope_unc,chisq=fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc)
-                if self.turn_slope_unc/max(abs(self.turn_slope),1e-3)<self.min_fraction_turn_slope_unc:
-                    self.turn_slope_unc=abs(self.min_fraction_turn_slope_unc*self.turn_slope)
-                #print("after turn slope {}".format(ufloat(self.turn_slope,self.turn_slope_unc)))
-            if axis==0: #ahead
-                #print(xs)
-                #print(ys)
-                gprint("learning ahead")
-                m_prior=self.ahead_slope
-                m_prior_unc=max(self.ahead_slope_unc,0.1*self.ahead_slope)
-                gprint("before ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
-                self.ahead_slope,self.ahead_slope_unc,chisq=fit_slope(xs,ys,sigmasquares,m_prior,m_prior_unc)
-                if self.ahead_slope_unc/max(abs(self.ahead_slope),1e-3)<self.min_fraction_ahead_slope_unc:
-                    self.ahead_slope_unc=abs(self.min_fraction_ahead_slope_unc*self.ahead_slope)
-                gprint("after ahead slope {}".format(ufloat(self.ahead_slope,self.ahead_slope_unc)))
-        else:
-            #print("not enough examples to learn axis {}".format(axis))
-            pass
-
-
-    def extract_pose_history_between_times(self,start_time,stop_time):
-        return list(filter(lambda x: x[0]>start_time and x[0]<stop_time,self.pose_history))
-
-    def extract_recent_motor_induced_pose_changes(self):
-        #print("motor history length {}".format(len(self.motor_history)))
-        while True:
-            elem=self.get_last_motor_induced_pose_changes()
-            if elem==None:
-                break
-            else:
-                delta_pose_xy=elem[4]-elem[3]
-                delta_pose=delta_pose_xy.applymatrix(get_rot_matrix3(elem[3].vals[2]).T)
-                #wrap delta_pose properly
-                while delta_pose.vals[2]>np.pi:
-                        delta_pose.vals[2]=delta_pose.vals[2]-2*np.pi
-                while delta_pose.vals[2]<-np.pi:
-                        delta_pose.vals[2]=delta_pose.vals[2]+2*np.pi
-                #delta_pose.covariance[2][2]=100
-                self.teachable_moments.append({"delta_pose": delta_pose,"delta_time": elem[1]-elem[0],"motor_command": elem[2]})
-                while self.motor_history[0][0]<elem[1]:
-                    self.motor_history.pop(0)
-                while self.pose_history[0][0]<elem[1]:
-                    self.pose_history.pop(0)
-        #print("motor history length {}".format(len(self.motor_history)))
-        #print("n teachable moments {}".format(len(self.teachable_moments)))
-
-    def get_last_motor_induced_pose_changes(self):
-        #for each motor on period
-        #try to find the best pose measurement in between periods
-        try:
-            first_motor_usage=next(filter(lambda x: x[1]!=[0,0,0],self.motor_history))
-        except:
-            #print("no first motor usage found")
-            return None
-        motor_type=first_motor_usage[1]
-        try:
-            last_motor_usage=next(filter(lambda x: x[1]!=motor_type and x[0]>first_motor_usage[0],self.motor_history))
-        except:
-            #print("no last motor usage found")
-            return None
-        try:
-            end_bound=next(filter(lambda x: x[1]!=[0,0,0] and x[0]>last_motor_usage[0],self.motor_history))
-        except:
-            end_bound=[time.time(),[0,0,0]]
-
-        #print("times are {} to ({},{})".format(first_motor_usage[0],last_motor_usage[0],end_bound[0]))
-        poses_before=self.extract_pose_history_between_times(0,first_motor_usage[0])
-        poses_after=self.extract_pose_history_between_times(last_motor_usage[0],end_bound[0])
-        if len(poses_before)==0:
-            #print("no poses before")
-            return None
-        if len(poses_after)==0:
-            #print("no poses after")
-            return None
-        best_before=poses_before[np.argmin([ np.trace(p[1].covariance) for p in poses_before ])][1]
-        best_after=poses_after[np.argmin([ np.trace(p[1].covariance) for p in poses_after ])][1]
-
-        #delta_pose=best_after-best_before
-        #great, so I have a pose difference, and a motor time
-        #return start time, end time, motor usage, and delta pose
-        return [first_motor_usage[0],last_motor_usage[0],motor_type,best_before,best_after]
+                #gprint("conversion factor is {}".format(self.offset_slope_matrix[0][1]))
+                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "ahead","magnitude": distance/(speed*self.motor_to_velocity[0][1])}},"motor_command")
+            if message["move_command"]["type"]=="slew":
+                distance=message["move_command"]["distance"]
+                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "slew","magnitude": distance/(speed*self.motor_to_velocity[1][0])}},"motor_command")
+            if message["move_command"]["type"]=="complex":
+                gprint("complex move command")
+                dist3vector=np.array(message["move_command"]["distance"])
+                motor3vector=np.dot(np.linalg.pinv(self.motor_to_velocity),dist3vector)
+                maxval=np.max(abs(motor3vector))
+                motor3vector*=speed/maxval
+                duration=maxval/speed
+                gprint("{} and {}".format(motor3vector,duration))
+                if duration>4.0:
+                    gprint("Aborting motion, it requests too long a duration {}".format(duration))
+                    return
+                motor4vector=[ motor3vector[0],motor3vector[1],motor3vector[2],duration]
+                self.broker.publish({"timestamp": time.time(),"motor_command": {"type": "translate","vector": motor4vector}},"motor_command")

@@ -14,7 +14,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return [ "clock_pulse","latest_pose","magnetometer/b_field" ]
+        return [ "clock_pulse","latest_pose","magnetometer/b_field","ultrasonic_sensor/last_measurement","script" ]
 
     def get_name(self):
         return "BehaviorGyrus"
@@ -39,5 +39,8 @@ class BehaviorGyrus(ThreadedGyrus):
         resp=self.on_behavior.act(**the_kwargs)
         if resp==GratbotBehaviorStatus.COMPLETED:
             print("Behavior Completed.  Halting")
+            on_behavior=None
+        if resp==GratbotBehaviorStatus.COMPLETED:
+            print("Behavior Failed.  Halting")
             on_behavior=None
         self.skip_until_time=time.time()
