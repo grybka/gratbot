@@ -7,6 +7,7 @@ import numpy as np
 #from scipy.signal import convolve
 #from scipy.stats import moment
 #from scipy.ndimage import convolve
+from scipy.linalg import pinvh
 from gyrii.underpinnings.GratbotLogger import gprint
 
 class VisualOdometerConvGyrus(ThreadedGyrus):
@@ -23,6 +24,10 @@ class VisualOdometerConvGyrus(ThreadedGyrus):
         self.x_center=80
         self.y_center=50
 
+        self.camera_hfov=48.8*(2*np.pi)/360 #from spec sheet
+        self.camera_wfov=62.2*(2*np.pi)/360 #from spec sheet
+
+
     def get_keys(self):
         return [ "camera_frame" ]
 
@@ -36,6 +41,8 @@ class VisualOdometerConvGyrus(ThreadedGyrus):
                 return
             self.update(message["camera_frame"],message["timestamp"])
             self.clear_frames_before=time.time()
+
+
 
     def update(self,frame,timestamp):
         #reduce frame to BW and downsample

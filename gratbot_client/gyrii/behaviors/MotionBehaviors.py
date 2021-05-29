@@ -53,6 +53,7 @@ class Slew(GratbotBehavior):
         broker.publish({"timestamp": time.time(),"move_command": {"type": "slew","distance": self.distance}},"move_command")
         return GratbotBehaviorStatus.COMPLETED
 
+
 class AbortIfUltrasonicTooClose(GratbotBehavior):
     def __init__(self,ultrasonic_panic_reading,behavior):
         self.behavior=behavior
@@ -74,9 +75,10 @@ class WaitForStablePose(GratbotBehavior):
         pass
 
     def act(self,**kwargs):
-        posemessage=kwargs["short_term_memory"]["latest_pose"]
-        if posemessage["pose_notes"]=="pose_is_stable":
-            return GratbotBehaviorStatus.COMPLETED
+        if "latest_pose" in kwargs["short_term_memory"]:
+            posemessage=kwargs["short_term_memory"]["latest_pose"]
+            if posemessage["pose_notes"]=="pose_is_stable":
+                return GratbotBehaviorStatus.COMPLETED
         return GratbotBehaviorStatus.INPROGRESS
 
 class FollowPath(GratbotBehavior):

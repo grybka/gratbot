@@ -3,6 +3,7 @@ from gyrii.behaviors.MotionBehaviors import *
 from gyrii.behaviors.SensorPrintBehaviors import *
 from gyrii.behaviors.ExploreBehavior import *
 from gyrii.behaviors.TextCommandBehavior import *
+from gyrii.behaviors.CalibrateMotionBehavior import *
 
 def get_behavior():
     #myloop=GratbotBehavior_Series([PrintState("magnetometer/b_field"),GratbotBehavior_Wait(1.0)])
@@ -18,6 +19,7 @@ def get_behavior():
     #myloop=GratbotBehavior_Series([GratbotBehavior_Wait(10.0),myloop2])
     #myloop=ExploreBehavior()
     myloop=TextCommandBehavior()
+    #myloop=RandomMotionTrackVisual()
 
     #MotorFixedAmount(-0.4,'ahead')])
     return myloop

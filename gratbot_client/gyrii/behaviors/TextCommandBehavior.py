@@ -2,7 +2,9 @@
 from Behavior import *
 from MotionBehaviors import *
 from ExploreBehavior import ExploreBehavior
+from ChasingBehavior import TrackIfSeenBehavior
 from CalibrateMotionBehavior import CalibrateMotionBehavior
+from CalibrateMotionBehavior import RandomMotionTrackVisual
 from underpinnings.BayesianArray import BayesianArray
 from gyrii.underpinnings.GratbotLogger import gprint,gprint_low
 import threading
@@ -20,7 +22,7 @@ class TextCommandBehavior(GratbotBehavior):
         tokens=command.split()
         lt=len(tokens)
         try:
-            if tokens[0]=="turn" or tokens[0][0]=='t':
+            if tokens[0]=="turn" or tokens[0]=='t':
                 gprint("Turning {} Degrees".format(float(tokens[1])))
                 angle=np.radians(float(tokens[1]))
                 self.sub_behavior=Turn(angle)
@@ -55,6 +57,8 @@ class TextCommandBehavior(GratbotBehavior):
                 ...
             elif tokens[0]=="goto":
                 pass
+            elif tokens[0]=="track":
+                self.sub_behavior=TrackIfSeenBehavior("sports ball")
             elif tokens[0]=="pose" or tokens[0][0]=='p':
                 pose=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose"]["latest_pose"])
                 vel=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose_vel"]["latest_pose_vel"])
@@ -69,6 +73,8 @@ class TextCommandBehavior(GratbotBehavior):
                 key=tokens[1]
                 value=tokens[2]
                 kwargs["broker"].publish({"timestamp": time.time(),key: value},[key])
+            elif tokens[0]=="calibrate":
+                self.sub_behavior=RandomMotionTrackVisual()
             else:
                 gprint("Could not process command {}".format(command))
         except Exception as e:

@@ -33,14 +33,15 @@ from MessageLoggerGyrus import MessageLoggerGyrus
 from LocalMapGyrus2 import LocalMapGyrus
 from FloorWallGyrus import FloorDetectorGyrus
 from MapDisplayGyrus import MapDisplayGyrus
-#from ObjectTagger import ObjectTaggerGyrus
-from VisualTracker import VisualTrackerGyrus
+from ObjectTagger2 import ObjectTaggerGyrus
+from VisualTracker2 import VisualTrackerGyrus
 from ObjectMap import ObjectMapGyrus
-from VisualOdometer import VisualOdometerGyrus
+#from VisualOdometer import VisualOdometerGyrus
 from VisualOdometerConv import VisualOdometerConvGyrus
 from VisualMotionTrackingGyrus import VisualMotionTrackingGyrus
 from LidarMotion import LidarICPTracker
 from ScaledDownVisualGyrus import ScaledDownVisualGyrus
+from LowLevelSensorPredictor import LowLevelSensorPredictor
 
 from gyrii.underpinnings.OccupancyMap2 import OccupancyMap2,LocalizationException
 from gyrii.underpinnings import GratbotLogger
@@ -158,17 +159,19 @@ localmapgyrus=LocalMapGyrus(broker,shared_objects,display_loop=display_loop)
 localmapgyrus.state="both"
 gyrii.append(localmapgyrus)
 gyrii.append(BehaviorGyrus(broker,get_behavior(),pass_kwargs={"broker": broker,"shared_objects": shared_objects,"text_input": textinput}))
-#gyrii.append(VisualTrackerGyrus(broker,display_loop))
+gyrii.append(VisualTrackerGyrus(broker,display_loop))
 #gyrii.append(FloorDetectorGyrus(broker,checkpoint_fname="floor_detector_sliced.pt",debugshow=False,min_distance=0.1))
 #gyrii.append(MapDisplayGyrus(broker,localmapgyrus.gridmap,display_loop))
 gyrii.append(MapDisplayGyrus(broker,shared_objects,display_loop))
+gyrii.append(LowLevelSensorPredictor(broker))
 #gyrii.append(ObjectMapGyrus(broker,display_loop=display_loop))
 #gyrii.append(VisualOdometerGyrus(broker,display=display_loop))
 #gyrii.append(FaceRecognizer(display_loop))
 #gyrii.append(VisualOdometerConvGyrus(broker,display=display_loop))
 #gyrii.append(VisualMotionTrackingGyrus(broker,display=display_loop))
 #gyrii.append(LidarICPTracker(broker,display=display_loop))
-gyrii.append(ScaledDownVisualGyrus(broker,display=display_loop))
+#gyrii.append(ScaledDownVisualGyrus(broker,display=display_loop))
+#gyrii.append(ObjectTaggerGyrus(broker,display=display_loop))
 
 #last_update=time.time()
 #update_spacing=0.03 #in seconds
