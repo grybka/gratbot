@@ -97,6 +97,8 @@ display_loop=DisplayLoop()
 class ClockLoop:
     def __init__(self,broker):
         self.broker=broker
+        self.clock_pulse_period=0.05
+        #self.clock_pulse_period=0.1
         self.keep_going=True
         self.frame_lock=threading.Lock()
         self.thread = threading.Thread(target=self._run)
@@ -105,8 +107,8 @@ class ClockLoop:
 
     def _run(self):
         while self.keep_going:
-            time.sleep(0.1)
-            broker.publish({"timestamp": time.time(),"clock_pulse": 0.1},"clock_pulse")
+            time.sleep(self.clock_pulse_period)
+            broker.publish({"timestamp": time.time(),"clock_pulse": self.clock_pulse_period},"clock_pulse")
 
     def stop(self):
         self.keep_going=False

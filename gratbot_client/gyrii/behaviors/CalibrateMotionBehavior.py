@@ -14,7 +14,7 @@ class CalibrateMotionBehavior(GratbotBehavior):
         #ahead_motion=[0.2,-0.2,0.4,-0.4,0.5,-0.5]
         #for am in ahead_motion:
         #    motion_list.append(self.wrap_motion_act(MoveAhead(am)))
-        turn_motion=[0.2,-0.2,0.3,-0.3,0.4,-0.4]
+        turn_motion=[0.2,-0.2,0.4,-0.4,0.6,-0.6,0.8,-0.8]
         for i in range(100):
              motion_list.append(self.wrap_motion_act(Turn(random.choice(turn_motion))))
 

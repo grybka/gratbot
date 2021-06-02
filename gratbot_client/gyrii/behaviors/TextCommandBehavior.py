@@ -49,7 +49,8 @@ class TextCommandBehavior(GratbotBehavior):
                     graphmap.save_to_file("local_map.npy")
             elif tokens[0]=="calibration_motion":
                 gprint("Beginning Calibration Dance")
-                self.sub_behavior=CalibrateMotionBehavior()
+                #self.sub_behavior=CalibrateMotionBehavior()
+                self.sub_behavior=RandomMotionTrackVisual()
             elif tokens[0]=="magnet":
                 gprint_low("Magnetometer: {}".format(kwargs["short_term_memory"]["magnetometer/b_field"]["magnetometer/b_field"]))
             elif tokens[0]=="explore":
