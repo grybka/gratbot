@@ -27,7 +27,7 @@ class GratbotPositionSensor(GratbotSpimescape):
     def get_update(self,last_time): #request changes since time as dictionary
         ret={}
         ret["b_field"]=self.sensor.magnetic
-        ret["acceleration"]=self.sensor.acceleration
+        ret["acceleration"]=self.sensor.linear_acceleration
         ret["gyro"]=self.sensor.gyro
         ret["calibration"]=self.sensor.calibration_status
         return ret

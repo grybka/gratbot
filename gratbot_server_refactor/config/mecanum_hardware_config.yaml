@@ -10,8 +10,10 @@ hardware:
         fr_motor: -1
         bl_motor: 4
         br_motor: -2
-    magnetometer:
-        type: Magnetometer
+        #    magnetometer:
+        #        type: Magnetometer
     lidar:
         type: Lidar
         usb_port_name: "/dev/ttyUSB0"
+    position_sensor:
+        type: PositionSensor
