@@ -11,6 +11,7 @@ from GratbotSpimescape import create_hardware
 import GratbotSpimescape
 import lis3mdl_compass_interface
 import MecanumDrive
+import CaterpillarDrive
 import UltrasonicSensor
 import BNO055
 import RPILidar

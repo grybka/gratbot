@@ -1,0 +1,17 @@
+hardware:
+        #    ultrasonic_sensor:
+        #        type: GratbotUltrasonicSensor
+        #        trigger_pin: 23
+        #        echo_pin: 24
+        #        sound_speed: 340
+    drive:
+        type: GratbotCaterpillarDrive
+        left_motor: 1
+        right_motor: -2
+        #    magnetometer:
+        #        type: Magnetometer
+        #    lidar:
+        #        type: Lidar
+        #        usb_port_name: "/dev/ttyUSB0"
+    position_sensor:
+        type: PositionSensor
