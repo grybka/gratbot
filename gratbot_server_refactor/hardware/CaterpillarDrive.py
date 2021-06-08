@@ -55,6 +55,7 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             time.sleep(0.005)
             if self.stop_time!=0:
                 if time.time()>self.stop_time:
+                    print("stopping")
                     self.stop()
 
     def set(self,endpoint,value):
@@ -64,11 +65,14 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             if len(value)<2:
                 raise Exception("Not enough arguments provided to drive motors: {}".format(value))
             with self.motor_lock:
-                self.left_motor.throttle=np.clip(value[0],-1,1)
-                self.right_motor.throttle=np.clip(value[1],-1,1)
-                self.motor_active=[np.clip(value[0],-1,1),np.clip(value[1],-1,1)]
+                lt=float(np.clip(value[0],-1,1))
+                rt=float(np.clip(value[1],-1,1))
+                print("left throttel: {} right {}".format(lt,rt))
+                self.left_motor.throttle=lt
+                self.right_motor.throttle=rt
+                self.motor_active=[lt,rt]
                 self.start_time=time.time()
-                if len(value>2):
+                if len(value)>2:
                     self.stop_time=self.start_time+min(value[2],self.max_run_time)
                 else:
                     self.stop_time=self.start_time+self.max_run_time

@@ -1,20 +1,21 @@
 import sys
-sys.path.append('../hardware_interface')
+sys.path.append('../gratbot_server_refactor/hardware')
 import yaml
 import logging
-import hardware
-import leg_control
+#import hardware
+#import leg_control
+from GratbotSpimescape import create_hardware
+import CaterpillarDrive
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
 
 #initialize hardware
-config_file=open("../hardware_interface/caterpillar_hardware_config.yaml","r")
+config_file=open("../gratbot_server_refactor/config/caterpillar_hardware_config.yaml","r")
 config_data=yaml.safe_load(config_file)
 config_file.close()
-robot=hardware.create_hardware(config_data["hardware"])
-robot_thread=hardware.GratbotHardwareThread(robot)
+robot=create_hardware(config_data["hardware"])
 
 while True:
     a=input("left drive?")
