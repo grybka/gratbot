@@ -7,6 +7,7 @@ from adafruit_motorkit import MotorKit
 from GratbotSpimescape import GratbotSpimescape
 from GratbotSpimescape import _all_gratbot_spimescapes
 import queue
+import logging
 
 
 class GratbotCaterpillarDrive(GratbotSpimescape):
@@ -22,7 +23,10 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         self.stop_time=0
         self.motor_active=[0,0]
 
-        self.max_run_time=1 #in seconds
+        if "max_run_time" in datastruct:
+            self.max_run_time=float(datastruct["max_run_time"])
+        else:
+            self.max_run_time=1 #in seconds
 
         self.end_called=False
         self.motor_lock=threading.Lock()
