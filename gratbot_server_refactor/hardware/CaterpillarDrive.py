@@ -34,6 +34,14 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         self.thread.daemon = True
         self.thread.start()
 
+        self.left_throttle=0
+        self.right_throttle=0
+        self.left_duty=0
+        self.right_duty=0
+
+        self.duty_length=10
+        self.duty_count=0
+
 
     def get_kit_motor(self,integer):
         if abs(integer)==1:
@@ -57,10 +65,32 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
     def _run_thread(self):
         while not self.end_called:
             time.sleep(0.005)
+            self.duty_count+=1
+            if self.duty_count>self.duty_length:
+                self.duty_count=0
+            with self.motor_lock:
+                if self.duty_count<self.duty_length*self.left_duty:
+                    self.left_motor.throttle=self.left_throttle
+                else:
+                    self.left_motor.throttle=0
+                if self.duty_count<self.duty_length*self.right_duty:
+                    self.right_motor.throttle=self.right_throttle
+                else:
+                    self.right_motor.throttle=0
+
             if self.stop_time!=0:
                 if time.time()>self.stop_time:
                     #print("stopping")
                     self.stop()
+
+    def throttle_to_duty_cycle(self,throttle):
+        min_throttle=0.4
+        if abs(throttle)>min_throttle:
+            return throttle,1
+        duty=throttle/min_throttle
+        return sign(throttle)*min_throttle,duty
+
+
 
     def set(self,endpoint,value):
         if endpoint=="stop":
@@ -71,9 +101,8 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             with self.motor_lock:
                 lt=float(np.clip(value[0],-1,1))
                 rt=float(np.clip(value[1],-1,1))
-                #print("left throttel: {} right {}".format(lt,rt))
-                self.left_motor.throttle=lt
-                self.right_motor.throttle=rt
+                self.left_throttle,self.left_duty=self.throttle_to_duty_cycle(lt)
+                self.right_throttle,self.right_duty=self.throttle_to_duty_cycle(rt)
                 self.motor_active=[lt,rt]
                 self.start_time=time.time()
                 if len(value)>2:

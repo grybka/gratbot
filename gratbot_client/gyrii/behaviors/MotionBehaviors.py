@@ -69,6 +69,19 @@ class AbortIfUltrasonicTooClose(GratbotBehavior):
             return GratbotBehaviorStatus.FAILED
         return self.behavior.act(**kwargs)
 
+class WaitForMotorsOff(GratbotBehavior):
+    def __init__(self):
+        ...
+    def act(self,**kwargs):
+        if "drive/motors_active" in kwargs["short_term_memory"]:
+            d=kwargs["short_term_memory"]["drive/motors_active"]["drive/motors_active"]
+            if d[0]==0 and d[1]==0 :
+                return GratbotBehaviorStatus.COMPLETED
+            else:
+                gprint("motors still active")
+        else:
+            gprint("no motors active in memory")
+        return GratbotBehaviorStatus.INPROGRESS
 
 class WaitForStablePose(GratbotBehavior):
     def __init__(self):

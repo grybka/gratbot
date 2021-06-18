@@ -44,15 +44,40 @@ class ComplexMotion(GratbotBehavior):
 
 class RandomMotion(GratbotBehavior):
     def __init__(self):
-        self.max_duration=0.2
+        self.max_duration=1.0
         self.min_duration=0.05
     def act(self,**kwargs):
         duration=random.uniform(self.min_duration,self.max_duration)
-        theta=random.uniform(-np.pi,np.pi)
+        lt=random.choice([-1, 1])*random.uniform(0.4,1.0)
+        rt=random.choice([-1, 1])*random.uniform(0.4,1.0)
         broker=kwargs["broker"]
-        motor4vector=[ np.cos(theta),0,np.sin(theta),duration ]
-        broker.publish({"timestamp": time.time(),"motor_command": {"type": "translate","vector": motor4vector}},"motor_command")
+        broker.publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt], "duration":duration } },"motor_command")
         return GratbotBehaviorStatus.COMPLETED
+
+
+class RandomSmoothMotion(GratbotBehavior):
+    def __init__(self):
+        self.max_duration=0.5
+        self.min_duration=0.09
+        self.start_time=0
+        self.last_time=0
+        self.duration=0
+        self.action_freq=0.1
+    def act(self,**kwargs):
+        if self.start_time==0:
+            self.start_time=time.time()
+            self.duration=random.uniform(self.min_duration,self.max_duration)
+            self.lt=random.choice([-1, 1])*random.uniform(0.4,1.0)
+            self.rt=random.choice([-1, 1])*random.uniform(0.4,1.0)
+        if time.time()>self.start_time+self.duration:
+            return GratbotBehaviorStatus.COMPLETED
+        if time.time()<self.last_time+self.action_freq:
+            return GratbotBehaviorStatus.INPROGRESS
+        self.last_time=time.time()
+        broker=kwargs["broker"]
+        broker.publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [self.lt,self.rt], "duration":self.action_freq } },"motor_command")
+        return GratbotBehaviorStatus.INPROGRESS
+
 
 class RandomMotionTrackVisual(GratbotBehavior):
     def __init__(self):
@@ -66,16 +91,15 @@ class RandomMotionTrackVisual(GratbotBehavior):
     def act(self,**kwargs):
         step_status=GratbotBehaviorStatus.COMPLETED
         if self.sub_behavior is not None:
-            gprint("sub_behavior")
+            #gprint("sub_behavior")
             step_status=self.sub_behavior.act(**kwargs)
         if step_status==GratbotBehaviorStatus.COMPLETED:
             gprint("start")
-            duration=random.uniform(self.min_duration,self.max_duration)
-            theta=random.uniform(-np.pi,np.pi)
-            self.record_object_positions(kwargs["short_term_memory"])
-            motion=ComplexMotion(theta,duration)
-            self.last_motion=motion.motor4vector
-            self.sub_behavior=GratbotBehavior_Series([Announce("moving"),motion,GratbotBehavior_Wait(0.2),WaitForStablePose()])
+            self.sub_behavior=GratbotBehavior_Series([Announce("moving"),RandomSmoothMotion(),GratbotBehavior_Wait(0.2),Announce("waiting for motors to stope"),WaitForMotorsOff(),GratbotBehavior_Wait(0.4)])
+            #self.record_object_positions(kwargs["short_term_memory"])
+            #motion=ComplexMotion(theta,duration)
+            #self.last_motion=motion.motor4vector
+            #self.sub_behavior=GratbotBehavior_Series([Announce("moving"),motion,GratbotBehavior_Wait(1.0),WaitForStablePose()])
             return GratbotBehaviorStatus.INPROGRESS
 
     def record_object_positions(self,short_term_memory):

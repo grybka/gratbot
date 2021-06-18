@@ -1,8 +1,1 @@
-Compass:
-  b_field_correction:
-  - 2.78
-  - 123.61
-  - -58.58
-  heading_offset: 1.4
-  nonlinear_term: -0.446
-MotionGyrus: {}
+{}

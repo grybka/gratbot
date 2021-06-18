@@ -149,23 +149,25 @@ shared_objects.add_object("graph_map",graphmap)
 #TODO set up gyrii
 gyrii=[]
 gyrii.append(CommsGyrus(broker,simulation_mode=simulation_mode))
-gyrii.append(Compass(broker))
+#gyrii.append(Compass(broker))
 gyrii.append(MessageLoggerGyrus(broker))
-gyrii.append(PoseTrackerGyrus(broker))
-gyrii.append(MotionEstimationGyrus(broker))
-#localmapgyrus=LocalMapGyrus(broker,resolution=0.02,npoints_x=400,npoints_y=400,debugshow=True,display_loop=display_loop)
-#localmapgyrus=LocalMapGyrus(broker,resolution=0.05,npoints_x=200,npoints_y=200,debugshow=True,display_loop=display_loop)
-#localmapgyrus=LocalMapGyrus(broker,resolution=0.05,npoints_x=400,npoints_y=400,debugshow=True,display_loop=display_loop)
-localmapgyrus=LocalMapGyrus(broker,shared_objects,display_loop=display_loop)
-#localmapgyrus.state="mapping"
-localmapgyrus.state="both"
-gyrii.append(localmapgyrus)
+#gyrii.append(PoseTrackerGyrus(broker))
+#gyrii.append(MotionEstimationGyrus(broker))
+
+#localmapgyrus=LocalMapGyrus(broker,shared_objects,display_loop=display_loop)
+#localmapgyrus.state="both"
+#gyrii.append(localmapgyrus)
+
 gyrii.append(BehaviorGyrus(broker,get_behavior(),pass_kwargs={"broker": broker,"shared_objects": shared_objects,"text_input": textinput}))
-gyrii.append(VisualTrackerGyrus(broker,display_loop))
+gyrii.append(VisualTrackerGyrus(broker,display_loop)) #This One
+
 #gyrii.append(FloorDetectorGyrus(broker,checkpoint_fname="floor_detector_sliced.pt",debugshow=False,min_distance=0.1))
 #gyrii.append(MapDisplayGyrus(broker,localmapgyrus.gridmap,display_loop))
-gyrii.append(MapDisplayGyrus(broker,shared_objects,display_loop))
-gyrii.append(LowLevelSensorPredictor(broker))
+
+#gyrii.append(MapDisplayGyrus(broker,shared_objects,display_loop)) #this one
+#gyrii.append(LowLevelSensorPredictor(broker))  #this one
+
+
 #gyrii.append(ObjectMapGyrus(broker,display_loop=display_loop))
 #gyrii.append(VisualOdometerGyrus(broker,display=display_loop))
 #gyrii.append(FaceRecognizer(display_loop))

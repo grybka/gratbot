@@ -22,21 +22,29 @@ class TextCommandBehavior(GratbotBehavior):
         tokens=command.split()
         lt=len(tokens)
         try:
-            if tokens[0]=="turn" or tokens[0]=='t':
-                gprint("Turning {} Degrees".format(float(tokens[1])))
-                angle=np.radians(float(tokens[1]))
-                self.sub_behavior=Turn(angle)
-            elif tokens[0]=="forward" or tokens[0][0]=='f':
-                gprint("Forward {} Meters".format(float(tokens[1])))
-                amount=float(tokens[1])
-                if amount>0:
-                    self.sub_behavior=AbortIfUltrasonicTooClose(0.20,MoveAhead(amount))
+            #if tokens[0]=="turn" or tokens[0]=='t':
+            #    gprint("Turning {} Degrees".format(float(tokens[1])))
+            #    angle=np.radians(float(tokens[1]))
+            #    self.sub_behavior=Turn(angle)
+            #elif tokens[0]=="forward" or tokens[0][0]=='f':
+            #    gprint("Forward {} Meters".format(float(tokens[1])))
+            #    amount=float(tokens[1])
+            #    if amount>0:
+            #        self.sub_behavior=AbortIfUltrasonicTooClose(0.20,MoveAhead(amount))
+            #    else:
+            #        self.sub_behavior=MoveAhead(amount)
+            #elif tokens[0]=="slew":
+            #    gprint("Slew {} Meters".format(float(tokens[1])))
+            #    amount=float(tokens[1])
+            #    self.sub_behavior=Slew(amount)
+            if tokens[0]=="go" or tokens[0][0]=='g':
+                lt=float(tokens[1])
+                rt=float(tokens[2])
+                if len(tokens)>2:
+                    dur=float(tokens[3])
+                    kwargs["broker"].publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt], "duration": dur}},["motor_command"])
                 else:
-                    self.sub_behavior=MoveAhead(amount)
-            elif tokens[0]=="slew":
-                gprint("Slew {} Meters".format(float(tokens[1])))
-                amount=float(tokens[1])
-                self.sub_behavior=Slew(amount)
+                    kwargs["broker"].publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt]}},["motor_command"])
             elif tokens[0]=="move":
                 vector=[float(tokens[1]),float(tokens[2]),float(tokens[3])]
                 gprint("Moving {}".format(vector))
@@ -59,7 +67,11 @@ class TextCommandBehavior(GratbotBehavior):
             elif tokens[0]=="goto":
                 pass
             elif tokens[0]=="track":
-                self.sub_behavior=TrackIfSeenBehavior("sports ball")
+                totrack="sports ball"
+                if len(tokens)>1:
+                    totrack=tokens[1]
+                self.sub_behavior=TrackIfSeenBehavior(totrack)
+                #self.sub_behavior=TrackIfSeenBehavior("chair")
             elif tokens[0]=="pose" or tokens[0][0]=='p':
                 pose=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose"]["latest_pose"])
                 vel=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose_vel"]["latest_pose_vel"])

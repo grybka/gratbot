@@ -1,4 +1,5 @@
 
+_all_gyrii={}
 
 class Gyrus:
     def __init__(self):

@@ -34,7 +34,7 @@ class MessageLoggerGyrus(ThreadedGyrus):
         return []
 
     def get_keys(self):
-        return [ "latest_pose","pose_measurement","pose_offset","drive/motors_active","notification","velocity_measurement","pose_certainty_lost" ]
+        return [ "latest_pose","pose_measurement","pose_offset","drive/motors_active","notification","velocity_measurement","pose_certainty_lost","motor_command","video_offset","visual_tracker_objects" ]
 
     def get_name(self):
         return "MessageLogger"

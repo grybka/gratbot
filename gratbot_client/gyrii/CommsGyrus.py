@@ -19,7 +19,7 @@ class CommsGyrus(ThreadedGyrus):
         if not simulation_mode:
             logging.info("Connecting to Gratbot comms")
             self.gratbot_comms = GratbotCommsMk2("10.0.0.4", 9999)
-            self.gratbot_comms.set(["ultrasonic_sensor","update_frequency"],4)
+            #self.gratbot_comms.set(["ultrasonic_sensor","update_frequency"],4)
         else:
             self.sim_motors_on_until=0
             self.sim_motor_status=[0,0,0,0.1]
@@ -65,20 +65,10 @@ class CommsGyrus(ThreadedGyrus):
                 if time.time()>self.sim_motors_on_until:
                     self.sim_motor_status=[0,0,0,0.1]
         if "motor_command" in message and not self.simulation_mode:
-            if message["motor_command"]["type"]=="turn":
-                duration=message["motor_command"]["magnitude"]
-                self.gratbot_comms.set(["drive","translate"],[0,0,np.sign(duration)*self.turn_speed,abs(duration)])
-            if message["motor_command"]["type"]=="ahead":
-                duration=message["motor_command"]["magnitude"]
-                self.gratbot_comms.set(["drive","translate"],[np.sign(duration)*self.fb_speed,0,0,abs(duration)])
-            if message["motor_command"]["type"]=="slew":
-                duration=message["motor_command"]["magnitude"]
-                self.gratbot_comms.set(["drive","translate"],[0,np.sign(duration)*self.fb_speed,0,abs(duration)])
-            if message["motor_command"]["type"]=="translate":
-                translation_vector=message["motor_command"]["vector"]
-                self.gratbot_comms.set(["drive","translate"],translation_vector)
+            if "duration" in message["motor_command"]:
+                tosend=[message["motor_command"]["lr_throttle"][0],message["motor_command"]["lr_throttle"][1],message["motor_command"]["duration"]]
+            else:
+                tosend=message["motor_command"]["lr_throttle"]
+            self.gratbot_comms.set(["drive","go"],tosend)
         if "motor_command" in message and self.simulation_mode:
-            if message["motor_command"]["type"]=="turn":
-                duration=message["motor_command"]["magnitude"]
-                self.sim_motor_status=[0,0,np.sign(duration)*0.6,0.1]
-                self.sim_motors_on_until=time.time()+duration
+            ...
