@@ -64,6 +64,7 @@ class VisualOdometerConvGyrus(ThreadedGyrus):
             min_val, max_val, min_loc, max_loc = cv.minMaxLoc(output)
             offset_x=int(min_loc[0]-(self.last_frame.shape[1]/2-margin))
             offset_y=int(min_loc[1]-(self.last_frame.shape[0]/2-margin))
+            gprint("min val is {}, max val is {}".format(min_val,max_val))
 
             self.time_sum+=time.time()-start_time
             self.sample_sum+=1
