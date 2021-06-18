@@ -19,7 +19,7 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         self.right_motor=self.get_kit_motor(datastruct["right_motor"])
         self.right_motor_sign=np.sign(datastruct["right_motor"])
 
-        self.start_time=0
+        self.start_time=time.time()
         self.stop_time=0
         self.motor_active=[0,0]
 
@@ -59,7 +59,7 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             time.sleep(0.005)
             if self.stop_time!=0:
                 if time.time()>self.stop_time:
-                    print("stopping")
+                    #print("stopping")
                     self.stop()
 
     def set(self,endpoint,value):
@@ -71,7 +71,7 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             with self.motor_lock:
                 lt=float(np.clip(value[0],-1,1))
                 rt=float(np.clip(value[1],-1,1))
-                print("left throttel: {} right {}".format(lt,rt))
+                #print("left throttel: {} right {}".format(lt,rt))
                 self.left_motor.throttle=lt
                 self.right_motor.throttle=rt
                 self.motor_active=[lt,rt]

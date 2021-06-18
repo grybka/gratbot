@@ -71,7 +71,8 @@ if __name__ == "__main__":
 
     logging.info("Initiating Script")
     #initialize hardware
-    config_file=open("config/mecanum_hardware_config.yaml","r")
+    #config_file=open("config/mecanum_hardware_config.yaml","r")
+    config_file=open("config/caterpillar_hardware_config.yaml","r")
     config_data=yaml.safe_load(config_file)
     config_file.close()
     GratbotServer.robot=create_hardware(config_data["hardware"])
