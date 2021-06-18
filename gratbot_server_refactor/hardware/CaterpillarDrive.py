@@ -84,6 +84,8 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
                     self.stop()
 
     def throttle_to_duty_cycle(self,throttle):
+        if throttle==0:
+            return 0,0
         min_throttle=0.4
         if abs(throttle)>min_throttle:
             return throttle,1
