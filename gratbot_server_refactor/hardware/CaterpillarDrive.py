@@ -94,7 +94,7 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         if abs(throttle)>=min_throttle:
             return throttle,1
         duty_throttle=0.6
-        duty=throttle/duty_throttle
+        duty=abs(throttle/duty_throttle)
         return np.sign(throttle)*duty_throttle,duty
 
 
