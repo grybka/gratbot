@@ -58,6 +58,10 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         with self.motor_lock:
             self.left_motor.throttle=0
             self.right_motor.throttle=0
+            self.left_throttle=0
+            self.right_throttle=0
+            self.left_duty=0
+            self.right_duty=0
             self.motor_active=[0,0]
             self.start_time=time.time()
             self.stop_time=0
@@ -69,11 +73,11 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
             if self.duty_count>self.duty_length:
                 self.duty_count=0
             with self.motor_lock:
-                if self.duty_count<self.duty_length*self.left_duty:
+                if self.duty_count<=self.duty_length*self.left_duty:
                     self.left_motor.throttle=self.left_throttle
                 else:
                     self.left_motor.throttle=0
-                if self.duty_count<self.duty_length*self.right_duty:
+                if self.duty_count<=self.duty_length*self.right_duty:
                     self.right_motor.throttle=self.right_throttle
                 else:
                     self.right_motor.throttle=0
@@ -87,10 +91,11 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
         if throttle==0:
             return 0,0
         min_throttle=0.4
-        if abs(throttle)>min_throttle:
+        if abs(throttle)>=min_throttle:
             return throttle,1
-        duty=throttle/min_throttle
-        return sign(throttle)*min_throttle,duty
+        duty_throttle=0.6
+        duty=throttle/duty_throttle
+        return np.sign(throttle)*duty_throttle,duty
 
 
 
@@ -105,9 +110,12 @@ class GratbotCaterpillarDrive(GratbotSpimescape):
                 rt=float(np.clip(value[1],-1,1))
                 self.left_throttle,self.left_duty=self.throttle_to_duty_cycle(lt)
                 self.right_throttle,self.right_duty=self.throttle_to_duty_cycle(rt)
+                print("left throttle, duty {}, {}".format(self.left_throttle,self.left_duty))
+                print("right throttle, duty {}, {}".format(self.right_throttle,self.right_duty))
                 self.motor_active=[lt,rt]
                 self.start_time=time.time()
                 if len(value)>2:
+                    print("run time {}".format(min(value[2],self.max_run_time)))
                     self.stop_time=self.start_time+min(value[2],self.max_run_time)
                 else:
                     self.stop_time=self.start_time+self.max_run_time
