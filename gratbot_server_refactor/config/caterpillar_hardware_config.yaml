@@ -15,4 +15,4 @@ hardware:
         #        type: Lidar
         #        usb_port_name: "/dev/ttyUSB0"
     position_sensor:
-        type: PositionSensor
+        type: 9DOFSensor

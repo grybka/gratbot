@@ -69,7 +69,7 @@ class TextCommandBehavior(GratbotBehavior):
             elif tokens[0]=="track":
                 totrack="sports ball"
                 if len(tokens)>1:
-                    totrack=tokens[1]
+                    totrack=tokens[1].replace("_"," ")
                 self.sub_behavior=TrackIfSeenBehavior(totrack)
                 #self.sub_behavior=TrackIfSeenBehavior("chair")
             elif tokens[0]=="pose" or tokens[0][0]=='p':

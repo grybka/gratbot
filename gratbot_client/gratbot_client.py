@@ -34,7 +34,8 @@ from LocalMapGyrus2 import LocalMapGyrus
 from FloorWallGyrus import FloorDetectorGyrus
 from MapDisplayGyrus import MapDisplayGyrus
 from ObjectTagger2 import ObjectTaggerGyrus
-from VisualTracker2 import VisualTrackerGyrus
+#from VisualTracker2 import VisualTrackerGyrus
+from VisualTracker3 import VisualTrackerGyrus
 from ObjectMap import ObjectMapGyrus
 #from VisualOdometer import VisualOdometerGyrus
 from VisualOdometerConv import VisualOdometerConvGyrus

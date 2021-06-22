@@ -14,6 +14,7 @@ import MecanumDrive
 import CaterpillarDrive
 import UltrasonicSensor
 import BNO055
+import BNO055_detailed
 import RPILidar
 
 root = logging.getLogger()
