@@ -98,8 +98,8 @@ display_loop=DisplayLoop()
 class ClockLoop:
     def __init__(self,broker):
         self.broker=broker
-        self.clock_pulse_period=0.05
-        #self.clock_pulse_period=0.1
+        #self.clock_pulse_period=0.05
+        self.clock_pulse_period=0.1
         self.keep_going=True
         self.frame_lock=threading.Lock()
         self.thread = threading.Thread(target=self._run)

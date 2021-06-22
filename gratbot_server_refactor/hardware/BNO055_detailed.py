@@ -22,6 +22,11 @@ class Gratbot9DOFSensor(GratbotSpimescape):
         self.thread.start()
         self.deque_size=10
 
+        #sometime it gives misreads.  ignore values outside these ranges
+        self.accel_bounds=20
+        self.gyro_bounds=10
+        self.mag_bounds=1000
+
         #self.accel_deque=[ deque([],self.deque_size),deque([],self.deque_size),deque([],self.deque_size)]
         self.accel_deque=deque( [ [0,0,0] ],self.deque_size)
         self.gyro_deque=deque( [ [0,0,0] ],self.deque_size)
@@ -38,11 +43,11 @@ class Gratbot9DOFSensor(GratbotSpimescape):
                 mag=self.sensor.magnetic
                 accel=self.sensor.linear_acceleration
                 gyro=self.sensor.gyro
-                if None not in mag:
+                if None not in mag and all( np.abs(mag)<self.mag_bounds):
                     self.mag_deque.appendleft(mag)
-                if None not in accel:
+                if None not in accel and all( np.abs(accel)<self.accel_bounds):
                     self.accel_deque.appendleft(accel)
-                if None not in gyro:
+                if None not in gyro and all( np.abs(gyro)<self.gyro_bounds):
                     self.gyro_deque.appendleft(gyro)
 
     def __del__(self):
