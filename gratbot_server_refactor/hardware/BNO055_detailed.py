@@ -49,10 +49,13 @@ class Gratbot9DOFSensor(GratbotSpimescape):
         ret={}
         with self.data_dock:
             ret["b_field"]=(np.sum(self.mag_deque,axis=0)/self.deque_size).tolist()
+            ret["b_field_stdev"]=np.std(self.mag_deque,axis=0).tolist()
             ret["b_field_inst"]=self.mag_deque[0]
             ret["acceleration"]=(np.sum(self.accel_deque,axis=0)/self.deque_size).tolist()
+            ret["acceleration_stdev"]=np.std(self.accel_deque,axis=0).tolist()
             ret["acceleration_inst"]=self.accel_deque[0]
             ret["gyro"]=(np.sum(self.gyro_deque,axis=0)/self.deque_size).tolist()
+            ret["gyro_stdev"]=np.std(self.gyro_deque,axis=0).tolist()
             ret["gyro_inst"]=self.gyro_deque[0]
             ret["calibration"]=self.sensor.calibration_status
         return ret
