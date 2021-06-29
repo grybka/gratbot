@@ -14,7 +14,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return [ "clock_pulse","latest_pose","magnetometer/b_field","ultrasonic_sensor/last_measurement","script","visual_tracker_objects","video_offset","drive/motors_active","tagged_objects" ]
+        return [ "clock_pulse","latest_pose","position_sensor/b_field","ultrasonic_sensor/last_measurement","script","visual_tracker_objects","video_offset","drive/motors_active","tagged_objects","position_sensor/gyro","positon_sensor/gyro_stdev" ]
 
     def get_name(self):
         return "BehaviorGyrus"

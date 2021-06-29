@@ -3,6 +3,7 @@ from Behavior import *
 from MotionBehaviors import *
 from ExploreBehavior import ExploreBehavior
 from ChasingBehavior import TrackIfSeenBehavior
+from ChasingBehavior import CalibrateChasingBehavior
 from CalibrateMotionBehavior import CalibrateMotionBehavior
 from CalibrateMotionBehavior import RandomMotionTrackVisual
 from underpinnings.BayesianArray import BayesianArray
@@ -70,7 +71,8 @@ class TextCommandBehavior(GratbotBehavior):
                 totrack="sports ball"
                 if len(tokens)>1:
                     totrack=tokens[1].replace("_"," ")
-                self.sub_behavior=TrackIfSeenBehavior(totrack)
+                #self.sub_behavior=TrackIfSeenBehavior(totrack)
+                self.sub_behavior=CalibrateChasingBehavior()
                 #self.sub_behavior=TrackIfSeenBehavior("chair")
             elif tokens[0]=="pose" or tokens[0][0]=='p':
                 pose=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose"]["latest_pose"])
