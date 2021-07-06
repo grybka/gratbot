@@ -5,6 +5,16 @@ from underpinnings.BayesianArray import BayesianArray
 import numpy as np
 import time
 
+class RunMotors(GratbotBehavior):
+    def __init__(self,lmotor,rmotor,duration):
+        self.lmotor=lmotor
+        self.rmotor=rmotor
+        self.duration=duration
+    def act(self,**kwargs):
+        broker=kwargs["broker"]
+        broker.publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [self.lmotor,self.rmotor], "duration":self.duration } },"motor_command")
+        return GratbotBehaviorStatus.COMPLETED
+
 class MotorFixedAmount(GratbotBehavior):
     def __init__(self,fixed_amount,command_type):
         #command type is "turn" or "ahead"

@@ -84,6 +84,12 @@ class StatePredictor:
     def loss_to_weight(self,loss):
         return 1/np.clip(loss,self.loss_bounds[0],self.loss_bounds[1])
 
+    def predict_output(self,input_state,decision):
+        function_input=[ *input_state,*decision]
+        predicted_output=self.predictor(torch.unsqueeze(torch.tensor(function_input).float(),0))[0]
+        return predicted_output.detach().numpy()
+
+
     def observe(self,input_state,decision,output_state):
         with torch.set_grad_enabled(False):
             loss_function = torch.nn.MSELoss()

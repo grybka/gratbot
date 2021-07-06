@@ -58,8 +58,7 @@ class TextCommandBehavior(GratbotBehavior):
                     graphmap.save_to_file("local_map.npy")
             elif tokens[0]=="calibration_motion":
                 gprint("Beginning Calibration Dance")
-                #self.sub_behavior=CalibrateMotionBehavior()
-                self.sub_behavior=RandomMotionTrackVisual()
+                self.sub_behavior=CalibrateMotionBehavior()
             elif tokens[0]=="magnet":
                 gprint_low("Magnetometer: {}".format(kwargs["short_term_memory"]["magnetometer/b_field"]["magnetometer/b_field"]))
             elif tokens[0]=="explore":
@@ -71,8 +70,8 @@ class TextCommandBehavior(GratbotBehavior):
                 totrack="sports ball"
                 if len(tokens)>1:
                     totrack=tokens[1].replace("_"," ")
-                #self.sub_behavior=TrackIfSeenBehavior(totrack)
-                self.sub_behavior=CalibrateChasingBehavior()
+                self.sub_behavior=TrackIfSeenBehavior(totrack)
+                #self.sub_behavior=CalibrateChasingBehavior()
                 #self.sub_behavior=TrackIfSeenBehavior("chair")
             elif tokens[0]=="pose" or tokens[0][0]=='p':
                 pose=BayesianArray.from_object(kwargs["short_term_memory"]["latest_pose"]["latest_pose"])

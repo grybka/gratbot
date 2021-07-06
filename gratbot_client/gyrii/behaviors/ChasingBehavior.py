@@ -48,14 +48,30 @@ class CalibrateChasingBehavior(GratbotBehavior):
             if found_obj==None: #there are objects, but not of the type I'm looking for
                 continue
             actual_x=0.5*(found_obj["startx"]+found_obj["endx"])
-            turn_mag=random.uniform(0.3,0.6)
-            turn_dur=random.uniform(0.05,0.2)
-            turn_dir=1
-            if actual_x<self.screen_center:
-                turn_dir=-1
-            lt=turn_mag*turn_dir
-            rt=-turn_mag*turn_dir
-            broker.publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt], "duration":turn_dur } },"motor_command")
+            #turn_mag=random.uniform(0.2,0.6)
+            a=random.uniform(0.2,0.8)
+            rand_dir=1
+            if random.uniform(0,1)>0.5:
+                rand_dir=-1
+            run_dur=random.uniform(0.05,0.2)
+            #turn_mag=random.uniform(0.2,0.6)
+            #turn_dur=random.uniform(0.05,0.2)
+            #turn_dir=1
+            #if actual_x<self.screen_center:
+            #    turn_dir=-1
+            #lt=turn_mag*turn_dir
+            #rt=-turn_mag*turn_dir
+            #if actual_x<self.screen_center:
+            #    lt=min(a,b)
+            #    rt=max(a,b)
+            #else:
+            #    lt=max(a,b)
+            #    rt=min(a,b)
+            lt=a*rand_dir
+            rt=a*rand_dir
+
+            broker.publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt], "duration":run_dur } },"motor_command")
+            self.last_check=time.time()+run_dur
             return GratbotBehaviorStatus.INPROGRESS
         gprint("error couldn't find object")
 
@@ -130,10 +146,55 @@ class TrackIfSeenBehavior(GratbotBehavior):
             #self.sub_behavior=PIDWatchBehavior(found_obj["id"])
             #self.sub_behavior=JustTurnBehavior()
             #self.sub_behavior=TurnWhileWatchingBehavior(found_obj["id"])
-            self.sub_behavior=TurnWhileWatchingBehavior(found_obj["label"])
+            self.sub_behavior=ChaseBehavior(found_obj["label"])
 
             return GratbotBehaviorStatus.INPROGRESS
         return GratbotBehaviorStatus.INPROGRESS
+
+class ChaseBehavior(GratbotBehavior):
+    def __init__(self,label):
+        self.target_label=label
+        self.camera_focal_length_pixels=630 #V1 raspicam
+        self.target_angle=0
+        self.target_dist=1.0
+        self.camera_x_pixels=640
+        self.camera_y_pixels=480
+        self.object_heights={ "stop sign": [0.081,0.005], "sports ball": [0.115,0.01], "chair": [1.0,0.5]}
+        self.last_command_time=0
+        self.command_interval=0.2
+
+
+
+    def act(self,**kwargs):
+        if time.time()<self.last_command_time+self.command_interval:
+            return GratbotBehaviorStatus.INPROGRESS
+
+
+        broker=kwargs["broker"]
+        if "tagged_objects" not in kwargs["short_term_memory"]:
+            gprint("No objects to track")
+            return GratbotBehaviorStatus.FAILED
+
+        visual_tracker_objects=kwargs["short_term_memory"]["tagged_objects"]["tagged_objects"]
+        visual_tracker_objects_timestamp=kwargs["short_term_memory"]["tagged_objects"]["timestamp"]
+        found_obj=first_object_with_property_in_list(visual_tracker_objects,"label",self.target_label)
+        if found_obj is not None:
+            self.tracking_object=True
+            x=0.5*(found_obj["startx"]+found_obj["endx"])
+            height=(found_obj["endy"]-found_obj["starty"])
+            angle=(x-self.camera_x_pixels/2)/self.camera_focal_length_pixels
+            obj_height=self.object_heights[self.target_label][0]
+            obj_dist=obj_height*self.camera_focal_length_pixels/height
+            delta_angle=self.target_angle-angle
+            delta_dist=self.target_dist-obj_dist
+            if abs(delta_angle)<0.03 and abs(delta_dist)<0.1:
+                return GratbotBehaviorStatus.COMPLETED
+            broker.publish({"timestamp": time.time(),"visual_motion_request": {"from_angle": angle,"from_dist": obj_dist, "delta_angle": delta_angle,"delta_dist": delta_dist} },"visual_motion_request")
+            self.last_command_time=time.time()
+            return GratbotBehaviorStatus.INPROGRESS
+
+        gprint("Lost Object of label ")
+        return GratbotBehaviorStatus.FAILED
 
 class JustTurnBehavior(GratbotBehavior):
     def __init__(self):

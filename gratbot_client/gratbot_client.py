@@ -43,6 +43,7 @@ from VisualMotionTrackingGyrus import VisualMotionTrackingGyrus
 from LidarMotion import LidarICPTracker
 from ScaledDownVisualGyrus import ScaledDownVisualGyrus
 from LowLevelSensorPredictor import LowLevelSensorPredictor
+from VisualMotionCalibGyrus import VisualMotionCalibGyrus
 
 from gyrii.underpinnings.OccupancyMap2 import OccupancyMap2,LocalizationException
 from gyrii.underpinnings import GratbotLogger
@@ -161,6 +162,7 @@ gyrii.append(MessageLoggerGyrus(broker))
 
 gyrii.append(BehaviorGyrus(broker,get_behavior(),pass_kwargs={"broker": broker,"shared_objects": shared_objects,"text_input": textinput}))
 gyrii.append(VisualTrackerGyrus(broker,display_loop)) #This One
+gyrii.append(VisualMotionCalibGyrus(broker,"config/visualmotioncalibgyrus.state"))
 
 #gyrii.append(FloorDetectorGyrus(broker,checkpoint_fname="floor_detector_sliced.pt",debugshow=False,min_distance=0.1))
 #gyrii.append(MapDisplayGyrus(broker,localmapgyrus.gridmap,display_loop))

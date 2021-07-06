@@ -8,7 +8,6 @@ import cv2 as cv
 import uuid
 from gyrii.underpinnings.id_to_name import id_to_name
 from gyrii.underpinnings.GratbotLogger import gprint
-from gyrii.underpinnings.Vodometer import Vodometer,VodometerException
 from gyrii.underpinnings.BayesianArray import BayesianArray
 #from gyrii.underpinnings.ConvolutionalVisualOdometer import ConvolutionalVisualOdometer
 from scipy.optimize import linear_sum_assignment
@@ -21,9 +20,9 @@ class VisualTrackerGyrus(ThreadedGyrus):
         self.clear_frames_before=0
 
         self.objects_to_track=["chair","person","sports ball","stop sign"]
-
-        #Odometer
-        self.vodometer=Vodometer()
+        self.object_heights={ "stop sign": [0.081,0.005], "sports ball": [0.115,0.01], "chair": [1.0,0.5]}
+        #self.camera_hfov_pixels=(53.5*(2*np.pi)/360)/640 #from spec sheet
+        self.camera_focal_length_pixels=630 #V1 raspicam
 
         #Tagging info
         self.tagger_model= torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
@@ -40,7 +39,7 @@ class VisualTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
 
     def get_keys(self):
-        return [ "camera_frame","drive/motors_active","latest_pose" ]
+        return [ "camera_frame","drive/motors_active","latest_pose","position_sensor/gyro" ]
 
     def get_name(self):
         return "VisualTrackerGyrus"
@@ -54,14 +53,6 @@ class VisualTrackerGyrus(ThreadedGyrus):
                 self.draw_bboxes(message["camera_frame"])
 
     def update_with_frame(self,frame,timestamp):
-        start_time=time.time()
-        try:
-            x_offset,y_offset,x_offset_stdev,y_offset_stdev=self.vodometer.get_offset_since_last(frame)
-            self.broker.publish({"video_offset": [x_offset,y_offset,x_offset_stdev,y_offset_stdev],"timestamp": timestamp,"notes": "visual"},"video_offset")
-        except VodometerException as e:
-            #gprint("Vodometer exception {}".format(e.message))
-            pass
-        self.vodometer_time_sum+=time.time()-start_time
 
         self.tagged_objects=self.tag_objects(frame)
         self.broker.publish({"tagged_objects": self.tagged_objects,"timestamp": timestamp,"notes": "visual"},"tagged_objects")
@@ -70,10 +61,7 @@ class VisualTrackerGyrus(ThreadedGyrus):
         if self.n_iter_report>0 and self.on_iter>self.n_iter_report:
             tagging_time=self.tagging_time_sum/self.on_iter
             gprint("Average Tagging Time {} ms".format(tagging_time*1000))
-            vodometer_time=self.vodometer_time_sum/self.on_iter
-            gprint("Average Vodometer Time {} ms".format(vodometer_time*1000))
             self.tagging_time_sum=0
-            self.vodometer_time_sum=0
             self.on_iter=0
         return True
 
