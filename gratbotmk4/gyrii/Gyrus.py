@@ -16,10 +16,10 @@ class ThreadedGyrus:
     def __init__(self,broker=None,shared_objects=None):
         self.broker=broker
         self.shared_objects=shared_objects
+        self.should_quit = False
         if self.broker is not None:
             self.broker.subscribe(self.get_keys(),self.get_name())
             self.thread = threading.Thread(target=self._thread_loop)
-            self.should_quit = False
             self.thread.daemon = True
 
     def start_thread(self):
@@ -48,9 +48,6 @@ class ThreadedGyrus:
 
     def join(self):
         return self.thread.join()
-
-    def thread_loop(self):
-        ... #implement if I need to do things while waiting for messages
 
     def _thread_loop(self):
         while not self.should_quit:
