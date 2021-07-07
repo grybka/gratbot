@@ -1,4 +1,4 @@
-#Gratbot server
+#client to connect to server
 import sys,os,traceback,time
 sys.path.append('gyrii')
 sys.path.append('network')
@@ -8,39 +8,31 @@ from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
-from OakDGyrus import OakDGyrus
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.DEBUG)
 
-
-#This stores the message passing
-broker=MessageBroker()
-
-#Open up a server to talk
 logging.debug("Starting Server")
 test_port=23033
-network_server=JSONBackAndForth()
-#network_server.start_server(test_port)
+server_address="10.0.0.4"
+network_client=JSONBackAndForth()
+network_client.start_client("10.0.0.4",test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector"])) #TODO define keys here
-gyrii.append(OakDGyrus(broker))
-#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
-
+gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
+gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_server.client,keys=[]))
 
 def main():
     try:
-        #load gyrus configuration
-        config_filename="config/server_gyrus_config.yaml"
+        config_filename="config/client_gyrus_config.yaml"
         logging.debug("configuring and starting gyrii")
         gyrii.config_and_start(config_filename)
         logging.debug("gyrii started")
         while True:
             time.sleep(1)
-            ...
+
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended")
     except Exception as e:

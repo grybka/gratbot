@@ -9,13 +9,13 @@ import select
 
 class JSONBackAndForth():
 
-    def __init__(self,debug=False):
+    def __init__(self,debug=False,maxsize=10):
         self.debug=debug
         self.sock=None
         self.server_sock=None
         self.should_quit = False
-        self.input_queue=queue.Queue()
-        self.output_queue=queue.Queue()
+        self.input_queue=queue.Queue(maxsize=maxsize)
+        self.output_queue=queue.Queue(maxsize=maxsize)
 
     def start_client(self,host,port):
         self.host=host
@@ -105,7 +105,7 @@ class JSONBackAndForth():
                     except Exception as error:
                         logging.error("Error parsing json")
                         logging.exception(error)
-                if self.sock in writable: 
+                if self.sock in writable:
                     if not self.output_queue.empty():
                         logging.debug("writing")
                         self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
