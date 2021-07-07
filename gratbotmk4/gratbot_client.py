@@ -13,6 +13,9 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.DEBUG)
 
+#This stores the message passing
+broker=MessageBroker()
+
 logging.debug("Starting Server")
 test_port=23033
 server_address="10.0.0.4"
