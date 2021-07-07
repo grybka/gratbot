@@ -6,7 +6,6 @@ import logging
 import sys, time
 import select
 #logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.WARNING)
 
 class JSONBackAndForth():
 
@@ -116,6 +115,7 @@ class JSONBackAndForth():
             self.sock.close()
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.WARNING)
     test_port=23033
     if sys.argv[1]=='server':
         server=JSONBackAndForth(debug=True)

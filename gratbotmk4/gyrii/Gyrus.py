@@ -2,6 +2,7 @@
 _all_gyrii={}
 
 import threading,queue
+import yaml
 
 class GyrusSharedObjects:
     def __init__(self):
@@ -17,16 +18,21 @@ class ThreadedGyrus:
         self.broker=broker
         self.shared_objects=shared_objects
         self.should_quit = False
+        self.thread = None
         if self.broker is not None:
             self.broker.subscribe(self.get_keys(),self.get_name())
             self.thread = threading.Thread(target=self._thread_loop)
             self.thread.daemon = True
 
     def start_thread(self):
-        self.thread.start()
+        if self.thread is not None:
+            self.thread.start()
         self.start_thread_called()
 
     def start_thread_called(self):
+        ...
+
+    def join_called(self):
         ...
 
     def save_config(self):
@@ -51,6 +57,7 @@ class ThreadedGyrus:
         return "Generic"
 
     def join(self):
+        self.join_called()
         return self.thread.join()
 
     def _thread_loop(self):

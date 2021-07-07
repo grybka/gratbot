@@ -1,33 +1,45 @@
 #Gratbot server
+import sys,os,traceback,time
 sys.path.append('gyrii')
 sys.path.append('network')
 import logging
-from JSONBackAndForthServer import JSONBackAndForthServer
+from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
+from gyrii.Gyrus import GyrusList
+from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
+from OakDGyrus import OakDGyrus
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
-    level=logging.INFO)
+    level=logging.DEBUG)
 
 
+print("logging debug start buta print")
+logging.debug("logging start")
 #This stores the message passing
 broker=MessageBroker()
 
 #Open up a server to talk
+logging.debug("Starting Server")
 test_port=23033
-network_server=JSONBackAndForthServer()
-network_server.start_server(test_port)
+network_server=JSONBackAndForth()
+#network_server.start_server(test_port)
 
+logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-gyrii.append(SocketGyrusLink(broker,network_server.incoming_queue,network_server.outgoing_queue,[])) #TODO define keys here
+#gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=[])) #TODO define keys here
 gyrii.append(OakDGyrus(broker))
+gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
 
 
 def main():
     try:
         #load gyrus configuration
         config_filename="config/server_gyrus_config.yaml"
-        gyrii.load_and_start(config_filename)
+        logging.debug("configuring and starting gyrii")
+        gyrii.config_and_start(config_filename)
+        logging.debug("gyrii started")
         while True:
             time.sleep(1)
             ...

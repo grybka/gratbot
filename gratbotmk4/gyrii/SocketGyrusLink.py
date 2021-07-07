@@ -1,7 +1,7 @@
 from Gyrus import ThreadedGyrus
 import numpy as np
-import cv as cv2
-import queue
+import cv2
+import threading,queue
 
 #listen for requests.
 
@@ -19,7 +19,7 @@ def object_to_json(object):
         for elem in object:
             ret.append(object_to_json(elem))
     if type(object)==np.ndarray:
-        if object.dtype=np.uint8:
+        if object.dtype==np.uint8:
             #images are special
             _,encoded=cv2.imencode('.jpg',object)
             encoded=encoded.tobytes()
@@ -57,15 +57,15 @@ def json_to_object(object):
 
 class SocketGyrusLink(ThreadedGyrus):
     def __init__(self,broker,incoming_queue,outgoing_queue,keys=[]):
-        super().__init__(broker)
         self.keys=keys
         self.incoming_queue=incoming_queue
         self.outgoing_queue=outgoing_queue
         self.receive_thread = threading.Thread(target=self._receive_thread_loop)
         self.receive_thread.daemon = True
+        super().__init__(broker)
 
     def start_thread_called(self):
-        self.receive_thread.start_thread()
+        self.receive_thread.start()
 
     def get_keys(self):
         return self.keys
