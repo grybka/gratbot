@@ -1,5 +1,6 @@
 from Gyrus import ThreadedGyrus
 import numpy as np
+import cv as cv2
 import queue
 
 #listen for requests.
