@@ -20,6 +20,7 @@ network_server.start_server(test_port)
 
 gyrii=GyrusList()
 gyrii.append(SocketGyrusLink(broker,network_server.incoming_queue,network_server.outgoing_queue,[])) #TODO define keys here
+gyrii.append(OakDGyrus(broker))
 
 
 def main():

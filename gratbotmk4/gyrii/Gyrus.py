@@ -24,6 +24,10 @@ class ThreadedGyrus:
 
     def start_thread(self):
         self.thread.start()
+        self.start_thread_called()
+
+    def start_thread_called(self):
+        ...
 
     def save_config(self):
         return {}

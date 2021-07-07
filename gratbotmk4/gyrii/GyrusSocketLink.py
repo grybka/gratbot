@@ -63,6 +63,8 @@ class SocketGyrusLink(ThreadedGyrus):
         self.outgoing_queue=outgoing_queue
         self.receive_thread = threading.Thread(target=self._receive_thread_loop)
         self.receive_thread.daemon = True
+
+    def start_thread_called(self):
         self.receive_thread.start_thread()
 
     def get_keys(self):
