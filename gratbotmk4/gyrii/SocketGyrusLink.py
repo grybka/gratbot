@@ -2,6 +2,7 @@ from Gyrus import ThreadedGyrus
 import numpy as np
 import cv2
 import threading,queue
+import logging
 
 #listen for requests.
 
@@ -18,6 +19,7 @@ def object_to_json(object):
         ret=[]
         for elem in object:
             ret.append(object_to_json(elem))
+        return ret
     if type(object)==np.ndarray:
         if object.dtype==np.uint8:
             #images are special
@@ -67,6 +69,9 @@ class SocketGyrusLink(ThreadedGyrus):
     def start_thread_called(self):
         self.receive_thread.start()
 
+    def join_called(self):
+        return self.receive_thread.join()
+
     def get_keys(self):
         return self.keys
 
@@ -74,7 +79,9 @@ class SocketGyrusLink(ThreadedGyrus):
         return "SocketGyrusLinkServer"
 
     def read_message(self,message):
-        self.output_queue.put(object_to_json)
+        if self.outgoing_queue.full():
+            self.outgoing_queue.get() #throw away packets if they aren't getting sent
+        self.outgoing_queue.put(object_to_json(message),timeout=0.1)
 
     def _receive_thread_loop(self):
         while not self.should_quit:
@@ -87,3 +94,4 @@ class SocketGyrusLink(ThreadedGyrus):
                     logging.error(" keys not in socketgyruslink message! {}".format(broadcast_message))
             except queue.Empty:
                 ... #no big deal, just try again
+        logging.debug("SocketGyrusLink receive_thread quitting")

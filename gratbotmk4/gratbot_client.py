@@ -20,12 +20,12 @@ logging.debug("Starting Server")
 test_port=23033
 server_address="10.0.0.4"
 network_client=JSONBackAndForth()
-network_client.start_client("10.0.0.4",test_port)
+network_client.start_client(server_address,test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
-gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_server.client,keys=[]))
+gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client,keys=[]))
 
 def main():
     try:

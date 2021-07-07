@@ -22,7 +22,7 @@ broker=MessageBroker()
 logging.debug("Starting Server")
 test_port=23033
 network_server=JSONBackAndForth()
-#network_server.start_server(test_port)
+network_server.start_server(test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()

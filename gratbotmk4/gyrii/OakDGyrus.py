@@ -2,6 +2,7 @@ from Gyrus import ThreadedGyrus
 import threading
 import depthai as dai
 import logging
+import time
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):

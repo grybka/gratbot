@@ -5,6 +5,9 @@ import threading,queue
 import logging
 import sys, time
 import select
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
 #logging.basicConfig(level=logging.DEBUG)
 
 class JSONBackAndForth():
@@ -21,12 +24,12 @@ class JSONBackAndForth():
         self.host=host
         self.port=port
         #connect to server
-        logging.debug("creating client socket")
+        logger.debug("creating client socket")
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.sock.settimeout(5)
-        logging.debug("connecting")
+        logger.debug("connecting")
         conninfo= self.sock.connect((self.host,self.port))
-        logging.debug("starting thread")
+        logger.debug("starting thread")
 
         self.thread = threading.Thread(target=self._thread_loop)
         self.thread.daemon = True
@@ -37,32 +40,34 @@ class JSONBackAndForth():
         self.thread.join()
 
     def start_server(self,port):
-        logging.debug("creating server socket")
+        logger.debug("creating server socket")
         self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.settimeout(5)
         self.port=port
         self.host = socket.gethostname()
         self.host = "10.0.0.4"
-        logging.debug("binding to {} {}".format(self.host,port))
+        logger.debug("binding to {} {}".format(self.host,port))
         self.server_sock.bind((self.host, port))
-        logging.debug("listening")
+        logger.debug("listening")
         self.server_sock.listen(1) #accept only one connection at a time
-        logging.debug("thread starting")
+        logger.debug("thread starting")
         self.thread = threading.Thread(target=self._thread_loop_server)
         self.thread.daemon = True
         self.thread.start()
 
     def _thread_loop_server(self):
         while not self.should_quit:
-            logging.debug("accepting")
+            logger.debug("accepting")
             try:
                 (self.sock, address) = self.server_sock.accept()
                 self._thread_loop()
             except socket.timeout:
                 ... #this is fine, just retry
-            except:
-                logging.warning("unhandled exception in accept, closing server")
-                self.should_quit=True
+            except Exception as e:
+                logger.warning("unhandled exception in accept, closing connection")
+                logger.warning("{}".format(e))
+                
+                #self.should_quit=True
         self.server_sock.close()
 
 
@@ -75,47 +80,47 @@ class JSONBackAndForth():
                 readable, writable, exceptional = select.select(inputs, outputs, inputs,5) #timeout 5 seconds
                 #logging.debug("select released")
                 if self.sock in exceptional:
-                    logging.error("Exception in socket")
+                    logger.error("Exception in socket")
                 if self.sock in readable:
                     #self.data = self.rfile.readline().strip()
                     #first receive number of bytes message is
-                    logging.debug("reading")
+                    logger.debug("reading")
 
                     data=self.sock.recv(1024)
-                    logging.debug("got data {}".format(data))
+                    #logging.debug("got data {}".format(data))
                     if data==b'':
-                        logging.info("Closing connection to ".format(self.host))
+                        logger.info("Closing connection to ".format(self.host))
                         break
                     while data[-1]!=10:
-                        logging.debug("data end character is {}".format(int(data[-1])))
+                        #logging.debug("data end character is {}".format(int(data[-1])))
                         newdata=self.sock.recv(1024)
                         data+=newdata
-                        logging.debug("got data {}".format(data))
+                        #logging.debug("got data {}".format(data))
                         if newdata==b'':
-                            logging.warning("Connection broken ".format(self.host))
+                            logger.warning("Connection broken ".format(self.host))
                             break
 
                     try:
                         json_strings=data.decode().split('\n') #andle multiple messages all in one go
                         json_strings.pop(-1)
                         for s in json_strings:
-                            logging.debug("message is {}".format(s))
+                            #logging.debug("message is {}".format(s))
                             datastructure=json.loads(s+'\n')
                             self.input_queue.put(datastructure)
                     except Exception as error:
-                        logging.error("Error parsing json")
-                        logging.exception(error)
+                        logger.error("Error parsing json")
+                        logger.exception(error)
                 if self.sock in writable:
                     if not self.output_queue.empty():
-                        logging.debug("writing")
+                        logger.debug("writing")
                         self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
                     else:
                         time.sleep(0.001) #just for a break
-            logging.warning("closing socket")
+            logger.warning("closing socket")
             self.sock.close()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)
+    logger.basicConfig(level=logging.WARNING)
     test_port=23033
     if sys.argv[1]=='server':
         server=JSONBackAndForth(debug=True)
