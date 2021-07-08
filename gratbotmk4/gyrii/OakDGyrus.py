@@ -3,6 +3,16 @@ import threading
 import depthai as dai
 import logging
 import time
+import os
+import numpy as np
+
+#nnBlobPath = str((Path(__file__).parent / Path('models/tiny-yolo-v4_openvino_2021.2_6shave.blob')).resolve().absolute())
+nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
+
+logger=logging.getLogger(__name__)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
+
 
 # Tiny yolo v3/4 label texts
 labelMap = [
@@ -22,7 +32,8 @@ labelMap = [
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        self.do_detection=False
+        self.do_detection=True
+        self.do_imu=True
         self.oak_comm_thread = threading.Thread(target=self._oak_comm_thread_loop)
         self.oak_comm_thread.daemon = True
         super().__init__(broker)
@@ -82,27 +93,28 @@ class OakDGyrus(ThreadedGyrus):
                 self.broker.publish(frame_message,frame_message["keys"])
 
                 #get accelerometry data
-                imuData = imuQueue.get()
-                if len(imuData.packets) != 0:
-                    dat=[]
-                    for imuPacket in imuData.packets:
-                        rVvalues = imuPacket.rotationVector
-                        acceleroValues = imuPacket.acceleroMeter
-                        magneticField = imuPacket.magneticField
-                        rvTs = rVvalues.timestamp.get()
-                        acceleroTs = acceleroValues.timestamp.get()
-                        magneticTs = magneticField.timestamp.get()
-                        dat.append({"rotation_vector": [rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.real,rVvalues.accuracy],
-                                    "rotation_vector_timestamp": rvTs.total_seconds(),
-                                    "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
-                                    "acceleration_timestamp": acceleroTs.total_seconds(),
-                                    "magnetic_field": [magneticField.x,magneticField.y,magneticField.z],
-                                    "magneticTs": magneticTs.total_seconds(),
-                                    "timestamp": time.time()})
-                    my_keys=["rotation_vector","acceleration","magnetic_field"]
-                    message={"keys": my_keys,
-                             "packets": dat}
-                    self.broker.publish(message,my_keys)
+                if self.do_imu:
+                    imuData = imuQueue.get()
+                    if len(imuData.packets) != 0:
+                        dat=[]
+                        for imuPacket in imuData.packets:
+                            rVvalues = imuPacket.rotationVector
+                            acceleroValues = imuPacket.acceleroMeter
+                            magneticField = imuPacket.magneticField
+                            rvTs = rVvalues.timestamp.get()
+                            acceleroTs = acceleroValues.timestamp.get()
+                            magneticTs = magneticField.timestamp.get()
+                            dat.append({"rotation_vector": [rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.real,rVvalues.accuracy],
+                                        "rotation_vector_timestamp": rvTs.total_seconds(),
+                                        "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
+                                        "acceleration_timestamp": acceleroTs.total_seconds(),
+                                        "magnetic_field": [magneticField.x,magneticField.y,magneticField.z],
+                                        "magneticTs": magneticTs.total_seconds(),
+                                        "timestamp": time.time()})
+                        my_keys=["rotation_vector","acceleration","magnetic_field"]
+                        message={"keys": my_keys,
+                                 "packets": dat}
+                        self.broker.publish(message,my_keys)
 
             logging.debug("Exiting OakD thread")
 
@@ -111,12 +123,14 @@ class OakDGyrus(ThreadedGyrus):
         self.pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_2)
 
         #setup accelerometer/magnetometere
+        logger.info("Creating IMU in pipeline")
         imu = self.pipeline.createIMU()
         imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_GAME_ROTATION_VECTOR], 400)
-        imu.setBatchReportThreshold(10)
+        imu.setBatchReportThreshold(1)
         imu.setMaxBatchReports(20)
 
         #rgb camera
+        logger.info("Creating RGB Camera in pipeline")
         camRgb = self.pipeline.createColorCamera()
         camRgb.setPreviewSize(416, 416)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
@@ -124,6 +138,7 @@ class OakDGyrus(ThreadedGyrus):
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
         #depth camera
+        logger.info("Creating Stereo Camera in pipeline")
         monoLeft = self.pipeline.createMonoCamera()
         monoRight = self.pipeline.createMonoCamera()
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
@@ -137,6 +152,8 @@ class OakDGyrus(ThreadedGyrus):
 
         #detection
         if self.do_detection:
+            logger.info("Creating Spatial Detection Network")
+            spatialDetectionNetwork = self.pipeline.createYoloSpatialDetectionNetwork()
             spatialDetectionNetwork.setBlobPath(nnBlobPath)
             spatialDetectionNetwork.setConfidenceThreshold(0.5)
             spatialDetectionNetwork.input.setBlocking(False)
@@ -145,7 +162,6 @@ class OakDGyrus(ThreadedGyrus):
             spatialDetectionNetwork.setDepthUpperThreshold(5000)
 
             # Yolo specific parameters
-            spatialDetectionNetwork = self.pipeline.createYoloSpatialDetectionNetwork()
             spatialDetectionNetwork.setNumClasses(80)
             spatialDetectionNetwork.setCoordinateSize(4)
             spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
@@ -156,6 +172,8 @@ class OakDGyrus(ThreadedGyrus):
 
         #outputs
         #RGB Camera (after detections)
+
+        logger.info("Making connections")
         xoutRgb = self.pipeline.createXLinkOut()
         xoutRgb.setStreamName("rgb")
         if self.do_detection:
@@ -173,6 +191,7 @@ class OakDGyrus(ThreadedGyrus):
         #Detection bounding boxes
         if self.do_detection:
             xoutNN = self.pipeline.createXLinkOut()
+            xoutNN.setStreamName("detections")
             spatialDetectionNetwork.out.link(xoutNN.input)
             #xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
             #spatialDetectionNetwork.boundingBoxMapping.link(xoutBoundingBoxDepthMapping.input)
