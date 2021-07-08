@@ -5,6 +5,8 @@ import threading,queue
 import logging
 from MessageToJSON import json_to_message,message_to_json
 
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 #listen for requests.
 
 #messages must have
@@ -34,7 +36,8 @@ class SocketGyrusLink(ThreadedGyrus):
 
     def read_message(self,message):
         if self.outgoing_queue.full():
-            self.outgoing_queue.get() #throw away packets if they aren't getting sent
+            to_toss=self.outgoing_queue.get() #throw away packets if they aren't getting sent
+            logger.warning("Throwing away a packet with keys {}".format(to_toss["keys"]))
         self.outgoing_queue.put(message_to_json(message),timeout=0.1)
 
     def _receive_thread_loop(self):
