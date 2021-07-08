@@ -12,10 +12,12 @@ import sys
 import numpy as np
 import traceback
 import logger
+import queue
 
 class TextCommandBehavior(GratbotBehavior):
 
-    def __init__(self,gridmap=None):
+    def __init__(self):
+        self.text_input=queue.Queue()
         self.commands=[]
         self.sub_behavior=None
 
@@ -24,7 +26,9 @@ class TextCommandBehavior(GratbotBehavior):
         lt=len(tokens)
         try:
             #kwargs["broker"].publish({"timestamp": time.time(),"motor_command": {"lr_throttle": [lt,rt], "duration": dur}},["motor_command"])
-            if tokens[0]=="calibration_motion":
+            if tokens[0]=="hello":
+                print("hello")
+            elif tokens[0]=="calibration_motion":
                 print("Beginning Calibration Dance")
                 self.sub_behavior=CalibrateMotionBehavior()
             else:
@@ -36,9 +40,9 @@ class TextCommandBehavior(GratbotBehavior):
     def act(self,**kwargs):
         #gprint("act called")
         #broker=kwargs["broker"]
-        textinput=kwargs["text_input"]
+        #textinput=kwargs["text_input"]
         try:
-            text=textinput.get_nowait()
+            text=self.textinput.get_nowait()
             self.commands.append(text)
             #gprint("got text {}".format(text))
         except:

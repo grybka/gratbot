@@ -10,6 +10,9 @@ from gyrii.Gyrus import GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
+from gyrii.BehaviorGyrus import BehaviorGyrus
+#from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
+from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -54,6 +57,7 @@ gyrii=GyrusList()
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
 gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client,keys=[]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
+gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 
 def main():
     try:
