@@ -1,17 +1,44 @@
 #client to connect to server
-import sys,os,traceback,time
+import sys,os,traceback,time,threading
 sys.path.append('gyrii')
 sys.path.append('network')
 import logging
+import cv2 as cv
 from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
-from gyrii.Gyrus import GyrusList
+from gyrii.Gyrus import GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
+from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.DEBUG)
+
+class DisplayLoop(VideoDisplay):
+    def __init__(self):
+        self.window_images={}
+        self.open_windows=[]
+        self.frame_lock=threading.Lock()
+
+    def update_image(self,windowname,image):
+        self.frame_lock.acquire()
+        self.window_images[windowname]=image
+        self.frame_lock.release()
+
+    def one_loop(self):
+        self.frame_lock.acquire()
+        for key in self.window_images:
+            if key not in self.open_windows:
+                cv.namedWindow(key)
+                self.open_windows.append(key)
+            cv.imshow(key, self.window_images[key])
+        self.frame_lock.release()
+        key = cv.waitKey(30)
+
+    def __del__(self):
+        cv.destroyAllWindows()
+display_loop=DisplayLoop()
 
 #This stores the message passing
 broker=MessageBroker()
@@ -26,6 +53,7 @@ logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
 gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client,keys=[]))
+gyrii.append(CameraDisplayGyrus(broker,display_loop))
 
 def main():
     try:
@@ -34,7 +62,7 @@ def main():
         gyrii.config_and_start(config_filename)
         logging.debug("gyrii started")
         while True:
-            time.sleep(1)
+            display_loop.one_loop()
 
     except KeyboardInterrupt:
         logging.warning("Keyboard Exception Program Ended")

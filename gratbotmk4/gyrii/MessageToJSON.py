@@ -36,7 +36,7 @@ def json_to_message(object):
                 x=bytes(object["data"],encoding='utf-8')
                 x=base64.b64decode(x)
                 x=np.frombuffer(x,dtype=np.uint8)
-                return cv.imdecode(x,cv.IMREAD_COLOR)
+                return cv2.imdecode(x,cv2.IMREAD_COLOR)
             if object["_packed_type"]=="ndarray":
                 return np.array(object["data"])
             else:
@@ -50,5 +50,3 @@ def json_to_message(object):
         for elem in object:
             ret.append(json_to_message(elem))
     return object
-
-
