@@ -56,13 +56,13 @@ class OakDGyrus(ThreadedGyrus):
                 #get detections data
                 #get image data
                 inPreview = previewQueue.get()
-                inDet = detectionNNQueue.get()
                 frame = inPreview.getCvFrame()
                 #TODO turn frame into message
                 frame_message={}
                 frame_message["image"]=frame
                 frame_message["keys"]=["image"]
                 if self.do_detection:
+                    inDet = detectionNNQueue.get()
                     detections = inDet.detections
                     if len(detections)!=0:
                         detection_message=[]

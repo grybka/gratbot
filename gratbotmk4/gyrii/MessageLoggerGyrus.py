@@ -2,7 +2,7 @@ from Gyrus import ThreadedGyrus
 import time
 import json
 
-import cv2 as cv
+from MessageToJSON import message_to_json
 
 class MessageLoggerGyrus(ThreadedGyrus):
     def __init__(self,broker,keys=[]):
@@ -17,19 +17,10 @@ class MessageLoggerGyrus(ThreadedGyrus):
         self.f.close()
 
     def read_message(self,message):
-        #special cases to skip
-        #camera images
-        if "camera_frame" in message:
-            return []
-        if "local_map" in message:
-            return []
-        #otherwise save to log file
-        #f=open(self.save_filename,"a")
         try:
-            #f.write(json.dumps(message)+"\n")
-            self.f.write(json.dumps(message)+"\n")
+            self.f.write(json.dumps(message_to_json(message))+"\n")
         except:
-            print("Error writing message {}".format(message))
+            print("Error writing message {}".format(message_to_json(message)))
         #f.close()
         return []
 
