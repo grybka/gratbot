@@ -114,47 +114,53 @@ class OakDGyrus(ThreadedGyrus):
         imu.setMaxBatchReports(20)
 
         #rgb camera
-        camRgb = pipeline.createColorCamera()
+        camRgb = self.pipeline.createColorCamera()
         camRgb.setPreviewSize(416, 416)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
         #depth camera
-        monoLeft = pipeline.createMonoCamera()
-        monoRight = pipeline.createMonoCamera()
+        monoLeft = self.pipeline.createMonoCamera()
+        monoRight = self.pipeline.createMonoCamera()
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
         monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-        stereo = pipeline.createStereoDepth()
+        stereo = self.pipeline.createStereoDepth()
         stereo.setConfidenceThreshold(255)
         monoLeft.out.link(stereo.left)
         monoRight.out.link(stereo.right)
 
         #detection
-        spatialDetectionNetwork.setBlobPath(nnBlobPath)
-        spatialDetectionNetwork.setConfidenceThreshold(0.5)
-        spatialDetectionNetwork.input.setBlocking(False)
-        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
-        spatialDetectionNetwork.setDepthLowerThreshold(100)
-        spatialDetectionNetwork.setDepthUpperThreshold(5000)
+        detection=False
+        if dectection:
+            spatialDetectionNetwork.setBlobPath(nnBlobPath)
+            spatialDetectionNetwork.setConfidenceThreshold(0.5)
+            spatialDetectionNetwork.input.setBlocking(False)
+            spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+            spatialDetectionNetwork.setDepthLowerThreshold(100)
+            spatialDetectionNetwork.setDepthUpperThreshold(5000)
 
-        # Yolo specific parameters
-        spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
-        spatialDetectionNetwork.setNumClasses(80)
-        spatialDetectionNetwork.setCoordinateSize(4)
-        spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
-        spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
-        spatialDetectionNetwork.setIouThreshold(0.5)
-        stereo.depth.link(spatialDetectionNetwork.inputDepth)
-        camRgb.preview.link(spatialDetectionNetwork.input)
+            # Yolo specific parameters
+            spatialDetectionNetwork = self.pipeline.createYoloSpatialDetectionNetwork()
+            spatialDetectionNetwork.setNumClasses(80)
+            spatialDetectionNetwork.setCoordinateSize(4)
+            spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
+            spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
+            spatialDetectionNetwork.setIouThreshold(0.5)
+            stereo.depth.link(spatialDetectionNetwork.inputDepth)
+            camRgb.preview.link(spatialDetectionNetwork.input)
 
         #outputs
         #RGB Camera (after detections)
-        xoutRgb = pipeline.createXLinkOut()
+        xoutRgb = self.pipeline.createXLinkOut()
         xoutRgb.setStreamName("rgb")
-        spatialDetectionNetwork.passthrough.link(xoutRgb.input)
+        if detection:
+            spatialDetectionNetwork.passthrough.link(xoutRgb.input)
+        else:
+            camRgb.preview.link(xoutRgb.input)
+
 
 
         #IMU output
