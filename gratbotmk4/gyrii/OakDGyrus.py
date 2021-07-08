@@ -72,7 +72,7 @@ class OakDGyrus(ThreadedGyrus):
                 inPreview = previewQueue.get()
                 frame = inPreview.getCvFrame()
                 #TODO turn frame into message
-                frame_message={}
+                frame_message={"timestamp": time.time()}
                 frame_message["image"]=frame
                 frame_message["keys"]=["image"]
                 if self.do_detection:
@@ -91,8 +91,8 @@ class OakDGyrus(ThreadedGyrus):
                                                       "spatial_array": spatial_array,
                                                       "bbox_array": bbox_array,
                                                       "confidence": detection.confidence})
-                        frame_message["detections"]=detection_message
-                        frame_message["keys"].append("detections")
+                        self.broker.publish({"timestamp": time.time(),"detections": detection_message},["detections"]) #publish an indepedent detections message
+                        frame_message["detections"]=detection_message #also append to image
                 self.broker.publish(frame_message,frame_message["keys"])
 
                 #get accelerometry data
