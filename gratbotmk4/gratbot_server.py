@@ -7,6 +7,7 @@ from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.MotorGyrus import MotorGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from OakDGyrus import OakDGyrus
 
@@ -29,7 +30,7 @@ gyrii=GyrusList()
 gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image"])) #TODO define keys here
 gyrii.append(OakDGyrus(broker))
 gyrii.append(MotorGyrus(broker))
-#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["motor_command"]))
 
 
 def main():

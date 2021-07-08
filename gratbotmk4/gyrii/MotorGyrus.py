@@ -1,6 +1,8 @@
 #motor gyrus
 import threading
 import logging
+import board
+import time
 from Gyrus import ThreadedGyrus
 from adafruit_motorkit import MotorKit
 
@@ -15,8 +17,11 @@ class MotorGyrus(ThreadedGyrus):
 
         self.left_run_until=0
         self.right_run_until=0
+        self.left_motor=self.kit.motor1
+        self.right_motor=self.kit.motor2
 
         self.motor_thread=None
+        super().__init__(broker)
 
     def get_keys(self):
         return []
