@@ -171,8 +171,8 @@ class OakDGyrus(ThreadedGyrus):
         imu.out.link(imu_xlinkOut.input)
 
         #Detection bounding boxes
-        xoutNN = pipeline.createXLinkOut()
-        xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
         if self.do_detection:
+            xoutNN = self.pipeline.createXLinkOut()
             spatialDetectionNetwork.out.link(xoutNN.input)
+            #xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
             #spatialDetectionNetwork.boundingBoxMapping.link(xoutBoundingBoxDepthMapping.input)
