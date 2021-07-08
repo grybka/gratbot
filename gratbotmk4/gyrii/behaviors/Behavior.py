@@ -1,6 +1,5 @@
 from enum import IntEnum
 import time
-from gyrii.underpinnings.GratbotLogger import gprint,gprint_low
 
 class GratbotBehaviorStatus(IntEnum):
     INPROGRESS = 1
@@ -102,7 +101,7 @@ class Announce(GratbotBehavior):
 
     def act(self,**kwargs):
         if self.low:
-            gprint_low(self.message)
+            print(self.message)
         else:
-            gprint(self.message)
+            print(self.message)
         return GratbotBehaviorStatus.COMPLETED

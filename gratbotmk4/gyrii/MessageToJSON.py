@@ -25,6 +25,8 @@ def message_to_json(object):
         else:
             return {"_packed_type":"ndarray","data": message_to_json(object.tolist())}
     #presume anything else is OK.  I could have some more checks here
+    if type(object) == np.float64:
+        return float(object)
     if type(object) in [str,int,float,complex,bool]:
         return object
     raise Exception("message_to_json can't handle type: {}".format(type(object)))

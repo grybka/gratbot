@@ -43,6 +43,26 @@ class DisplayLoop(VideoDisplay):
         cv.destroyAllWindows()
 display_loop=DisplayLoop()
 
+class ClockLoop:
+    def __init__(self,broker):
+        self.broker=broker
+        #self.clock_pulse_period=0.05
+        self.clock_pulse_period=0.1
+        self.keep_going=True
+        self.frame_lock=threading.Lock()
+        self.thread = threading.Thread(target=self._run)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def _run(self):
+        while self.keep_going:
+            time.sleep(self.clock_pulse_period)
+            broker.publish({"timestamp": time.time(),"clock_pulse": self.clock_pulse_period},"clock_pulse")
+
+    def stop(self):
+        self.keep_going=False
+        self.thread.join()
+
 #This stores the message passing
 broker=MessageBroker()
 
@@ -55,7 +75,7 @@ network_client.start_client(server_address,test_port)
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
-gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client,keys=[]))
+gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 
@@ -65,6 +85,8 @@ def main():
         logging.debug("configuring and starting gyrii")
         gyrii.config_and_start(config_filename)
         logging.debug("gyrii started")
+        clock_loop=ClockLoop(broker)
+        logging.debug("clock started")
         while True:
             display_loop.one_loop()
 

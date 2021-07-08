@@ -1,11 +1,9 @@
-from Behavior import *
-from Behavior import GratbotBehaviorStatus
-from MotionBehaviors import *
+from gyrii.behaviors.Behavior import *
 import time
 import numpy as np
 from math import sin,cos
-from underpinnings.BayesianArray import BayesianArray
 import random
+import logging
 
 
 class RunMotors(GratbotBehavior):
@@ -15,10 +13,12 @@ class RunMotors(GratbotBehavior):
         self.duration=duration
     def act(self,**kwargs):
         broker=kwargs["broker"]
-        broker.publish({"timestamp": time.time(),"motor_command": {"left_throttle": self.lmotor,
+        motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": self.lmotor,
                                                                    "right_throttle": self.rmotor,
                                                                    "left_duration": self.duration,
-                                                                   "right_duration": self.duration},"motor_command")
+                                                                   "right_duration": self.duration},"keys": ["motor_command"]}
+        logging.info("Emitting Motor Command {}".format(motor_command))
+        broker.publish(motor_command,"motor_command")
         return GratbotBehaviorStatus.COMPLETED
 
 class CalibrateMotionBehavior(GratbotBehavior):

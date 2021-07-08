@@ -3,7 +3,7 @@ from Gyrus import ThreadedGyrus
 from behaviors.Behavior import GratbotBehaviorStatus
 import time
 
-        
+
 class BehaviorGyrus(ThreadedGyrus):
     def __init__(self,broker,on_behavior,pass_kwargs={}):
         self.short_term_memory={}
@@ -14,7 +14,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return [ ]
+        return ["clock_pulse"]
 
     def get_name(self):
         return "BehaviorGyrus"
@@ -35,6 +35,7 @@ class BehaviorGyrus(ThreadedGyrus):
             return []
         the_kwargs=self.my_kwargs
         the_kwargs["short_term_memory"]=self.short_term_memory
+        the_kwargs["broker"]=self.broker
         #resp=self.on_behavior.act(short_term_memory=self.short_term_memory,message_queue=message_queue)
         resp=self.on_behavior.act(**the_kwargs)
         if resp==GratbotBehaviorStatus.COMPLETED:
