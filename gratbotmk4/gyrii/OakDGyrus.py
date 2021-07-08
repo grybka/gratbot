@@ -34,16 +34,19 @@ class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.do_detection=True
         self.do_imu=True
-        self.oak_comm_thread = threading.Thread(target=self._oak_comm_thread_loop)
-        self.oak_comm_thread.daemon = True
+        self.oak_comm_thread=None
         super().__init__(broker)
 
     def start_thread_called(self):
         logging.debug("starting OakD Comms Thread")
+        self.oak_comm_thread = threading.Thread(target=self._oak_comm_thread_loop)
+        self.oak_comm_thread.daemon = True
         self.oak_comm_thread.start()
 
     def join_called(self):
-        return self.oak_comm_thread.join()
+        if self.oak_comm_thread is not None:
+            return self.oak_comm_thread.join()
+        return None
 
     def get_keys(self):
         return [] #nothing yet
