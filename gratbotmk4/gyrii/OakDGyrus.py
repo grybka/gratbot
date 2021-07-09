@@ -69,36 +69,37 @@ class OakDGyrus(ThreadedGyrus):
             while not self.should_quit:
                 #get detections data
                 #get image data
-                inPreview = previewQueue.get()
-                frame = inPreview.getCvFrame()
-                #TODO turn frame into message
-                frame_message={"timestamp": time.time()}
-                frame_message["image"]=frame
-                frame_message["keys"]=["image"]
-                if self.do_detection:
-                    inDet = detectionNNQueue.get()
-                    detections = inDet.detections
-                    if len(detections)!=0:
-                        detection_message=[]
-                        for detection in detections:
-                            bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
-                            spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
-                            try:
-                                label = self.labelMap[detection.label]
-                            except:
-                                label = detection.label
-                            detection_message.append({"label": label,
-                                                      "spatial_array": spatial_array,
-                                                      "bbox_array": bbox_array,
-                                                      "confidence": detection.confidence})
-                        self.broker.publish({"timestamp": time.time(),"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
-                        frame_message["detections"]=detection_message #also append to image
-                self.broker.publish(frame_message,frame_message["keys"])
+                inPreview = previewQueue.tryGet()
+                if inPreview is not None:
+                    frame = inPreview.getCvFrame()
+                    #TODO turn frame into message
+                    frame_message={"timestamp": time.time()}
+                    frame_message["image"]=frame
+                    frame_message["keys"]=["image"]
+                    if self.do_detection:
+                        inDet = detectionNNQueue.get()
+                        detections = inDet.detections
+                        if len(detections)!=0:
+                            detection_message=[]
+                            for detection in detections:
+                                bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+                                spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                                try:
+                                    label = self.labelMap[detection.label]
+                                except:
+                                    label = detection.label
+                                detection_message.append({"label": label,
+                                                          "spatial_array": spatial_array,
+                                                          "bbox_array": bbox_array,
+                                                          "confidence": detection.confidence})
+                            self.broker.publish({"timestamp": time.time(),"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
+                            frame_message["detections"]=detection_message #also append to image
+                    self.broker.publish(frame_message,frame_message["keys"])
 
                 #get accelerometry data
                 if self.do_imu:
-                    imuData = imuQueue.get()
-                    if len(imuData.packets) != 0:
+                    imuData = imuQueue.tryGet()
+                    if imuData is not None and len(imuData.packets) != 0:
                         dat=[]
                         for imuPacket in imuData.packets:
                             rVvalues = imuPacket.rotationVector
@@ -134,7 +135,7 @@ class OakDGyrus(ThreadedGyrus):
         imu = self.pipeline.createIMU()
         #imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_GAME_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
         imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
-        imu.setBatchReportThreshold(1)
+        imu.setBatchReportThreshold(5)
         imu.setMaxBatchReports(20)
 
         #rgb camera
