@@ -119,7 +119,7 @@ class OakDGyrus(ThreadedGyrus):
                                         "gyroscope_timestamp": gyroscopeTs.total_seconds()})
                         my_keys=["rotation_vector","acceleration","magnetic_field"]
                         message={"keys": my_keys,
-                                 "timestamp": time.time()
+                                 "timestamp": time.time(),
                                  "packets": dat}
                         self.broker.publish(message,my_keys)
 
