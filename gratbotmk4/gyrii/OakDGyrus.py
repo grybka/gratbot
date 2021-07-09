@@ -91,7 +91,7 @@ class OakDGyrus(ThreadedGyrus):
                                                       "spatial_array": spatial_array,
                                                       "bbox_array": bbox_array,
                                                       "confidence": detection.confidence})
-                        self.broker.publish({"timestamp": time.time(),"detections": detection_message},["detections"]) #publish an indepedent detections message
+                        self.broker.publish({"timestamp": time.time(),"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
                         frame_message["detections"]=detection_message #also append to image
                 self.broker.publish(frame_message,frame_message["keys"])
 

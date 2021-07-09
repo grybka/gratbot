@@ -23,9 +23,9 @@ class RunMotors(GratbotBehavior):
 
 class CalibrateMotionBehavior(GratbotBehavior):
     def __init__(self):
-        nsteps=15
+        nsteps=12
         motion_list=[]
-        aheadmotion=np.linspace(0.1,1.0,nsteps)
+        aheadmotion=np.linspace(0.2,1.0,nsteps)
         aheaddur=[0.2]*nsteps
         for i in range(nsteps): #fb
             motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],aheadmotion[i],aheaddur[i])))

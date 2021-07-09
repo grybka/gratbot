@@ -24,7 +24,7 @@ class MotorGyrus(ThreadedGyrus):
         super().__init__(broker)
 
     def get_keys(self):
-        return []
+        return ["motor_command"]
 
     def get_name(self):
         return "MotorGyrus"
@@ -50,7 +50,7 @@ class MotorGyrus(ThreadedGyrus):
                 if now>=self.right_run_until:
                     self.right_motor.throttle=0
 
-    def scale_throttle(throttle,duration):
+    def scale_throttle(self,throttle,duration):
         if abs(throttle)<0.05:
             return 0,0
         if abs(throttle)>=0.4:
