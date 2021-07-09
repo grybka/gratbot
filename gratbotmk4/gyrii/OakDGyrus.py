@@ -104,18 +104,22 @@ class OakDGyrus(ThreadedGyrus):
                             rVvalues = imuPacket.rotationVector
                             acceleroValues = imuPacket.acceleroMeter
                             magneticField = imuPacket.magneticField
+                            gyroscope = imuPacket.gyroscope
+                            gyroscopeTs = gyroscope.timestamp.get()
                             rvTs = rVvalues.timestamp.get()
                             acceleroTs = acceleroValues.timestamp.get()
                             magneticTs = magneticField.timestamp.get()
-                            dat.append({"rotation_vector": [rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.real,rVvalues.accuracy],
+                            dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.accuracy],
                                         "rotation_vector_timestamp": rvTs.total_seconds(),
                                         "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
                                         "acceleration_timestamp": acceleroTs.total_seconds(),
                                         "magnetic_field": [magneticField.x,magneticField.y,magneticField.z],
                                         "magneticTs": magneticTs.total_seconds(),
-                                        "timestamp": time.time()})
+                                        "gyroscope": [gyroscope.x,gyroscope.y,gyroscope.z],
+                                        "gyroscope_timestamp": gyroscopeTs.total_seconds()})
                         my_keys=["rotation_vector","acceleration","magnetic_field"]
                         message={"keys": my_keys,
+                                 "timestamp": time.time()
                                  "packets": dat}
                         self.broker.publish(message,my_keys)
 
@@ -128,7 +132,8 @@ class OakDGyrus(ThreadedGyrus):
         #setup accelerometer/magnetometere
         logger.info("Creating IMU in pipeline")
         imu = self.pipeline.createIMU()
-        imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_GAME_ROTATION_VECTOR], 400)
+        #imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_GAME_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
+        imu.enableIMUSensor([dai.IMUSensor.LINEAR_ACCELERATION, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
         imu.setBatchReportThreshold(1)
         imu.setMaxBatchReports(20)
 

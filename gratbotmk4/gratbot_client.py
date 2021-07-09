@@ -74,7 +74,7 @@ network_client.start_client(server_address,test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections"]))
 gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
