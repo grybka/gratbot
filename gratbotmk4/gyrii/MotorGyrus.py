@@ -70,3 +70,4 @@ class MotorGyrus(ThreadedGyrus):
             with self.motor_lock:
                 self.left_motor.throttle=left_throttle
                 self.right_motor.throttle=right_throttle
+            self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
