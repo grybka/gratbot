@@ -65,7 +65,7 @@ class CalibrateMotionBehavior(GratbotBehavior):
         self.action_list=GratbotBehavior_Series(motion_list)
 
     def wrap_motion_act(self,motion_act):
-        return GratbotBehavior_Series([Announce("moving"),motion_act,GratbotBehavior_Wait(0.5)] )
+        return GratbotBehavior_Series([Announce("moving"),motion_act,GratbotBehavior_Wait(1.0)] )
         #return GratbotBehavior_Series([WaitForStablePose(),Announce("moving"),motion_act,GratbotBehavior_Wait(2.0),WaitForStablePose()])
 
     def act(self,**kwargs):
