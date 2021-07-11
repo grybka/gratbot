@@ -37,6 +37,7 @@ class MessageBroker:
             raise Exception("You messed up your message and keys order")
         if isinstance(keys, str):
             keys=[ keys ]
+        message["keys"]=keys
         queues_to_deliver_to=set()
         for key in keys:
             if key not in self.key_to_queue_map:
