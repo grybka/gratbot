@@ -87,7 +87,7 @@ class OakDGyrus(ThreadedGyrus):
                                 bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
                                 spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
                                 try:
-                                    label = self.labelMap[detection.label]
+                                    label = labelMap[detection.label]
                                 except:
                                     label = detection.label
                                 detection_message.append({"label": label,
