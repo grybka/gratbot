@@ -1,7 +1,8 @@
 
 from Gyrus import ThreadedGyrus
-from Gyrus.underpinnings.id_to_name import id_to_name
+from underpinnings.id_to_name import id_to_name
 import logging,time
+import numpy as np
 import cv2
 
 class CameraDisplayGyrus(ThreadedGyrus):
@@ -13,11 +14,13 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count_reset=10
         self.fps_start_time=0
 
-        self.mode="show_detections"
+        #self.mode="show_detections"
+        #self.mode="show_tracks"
+        self.mode="just camera"
         super().__init__(broker)
 
     def get_keys(self):
-        return ["image"]
+        return ["image","tracks"]
 
     def get_name(self):
         return "CameraDisplayGyrus"
@@ -33,7 +36,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
     def read_message(self,message):
         if "image" in message:
-            frame=message["image"]
+            frame=np.copy(message["image"])
             if self.mode=="show_detections":
                 if "detections" in message:
                     color = (255, 0, 0)
@@ -52,9 +55,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
                         cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                     if self.show_fps==True:
                         self.update_fps_and_put_text(frame)
-                    self.display.update_image("camera",message["image"])
+                    self.display.update_image("camera",frame)
             elif self.mode=="show_tracks":
                 if "tracks" in message:
+                    color = (255, 0, 0)
                     for t in message["tracks"]:
                         x1 = int(t["bbox_array"][0] )
                         x2 = int(t["bbox_array"][1] )
@@ -64,8 +68,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
                         cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                     if self.show_fps==True:
                         self.update_fps_and_put_text(frame)
-                    self.display.update_image("camera",message["image"])
+                    self.display.update_image("camera",frame)
+#                else:
+                    #logging.warning("not showing image with keys {}".format(message["keys"]))
             else:
                 if self.show_fps==True:
                     self.update_fps_and_put_text(frame)
-                self.display.update_image("camera",message["image"])
+                self.display.update_image("camera",frame)

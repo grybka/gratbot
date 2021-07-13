@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import logging
 import base64
+import uuid
 
 def message_to_json(object):
     if type(object)==dict: #walk through dicts
@@ -24,9 +25,11 @@ def message_to_json(object):
             return {"_packed_type":"jpegimage","data":x.decode('utf-8')}
         else:
             return {"_packed_type":"ndarray","data": message_to_json(object.tolist())}
-    #presume anything else is OK.  I could have some more checks here
+    if type(object) == uuid.UUID:
+        return object.hex
     if type(object) == np.float64:
         return float(object)
+    #presume anything else is OK.  I could have some more checks here
     if type(object) in [str,int,float,complex,bool]:
         return object
     raise Exception("message_to_json can't handle type: {}".format(type(object)))

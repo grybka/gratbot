@@ -17,24 +17,26 @@ class RunMotors(GratbotBehavior):
                                                                    "right_throttle": self.rmotor,
                                                                    "left_duration": self.duration,
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
-        logging.info("Emitting Motor Command {}".format(motor_command))
+        #logging.info("Emitting Motor Command {}".format(motor_command))
         broker.publish(motor_command,"motor_command")
         return GratbotBehaviorStatus.COMPLETED
 
 class CalibrateMotionBehavior(GratbotBehavior):
     def __init__(self):
-        nsteps=12
+        nsteps=6
         motion_list=[]
-        aheadmotion=np.linspace(0.2,1.0,nsteps)
+        #aheadmotion=np.linspace(0.2,1.0,nsteps)
+        aheadmotion=np.linspace(0.5,1.0,nsteps)
         aheaddur=[0.2]*nsteps
-        for i in range(nsteps): #fb
-            motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],aheadmotion[i],aheaddur[i])))
-            motion_list.append(self.wrap_motion_act(RunMotors(-aheadmotion[i],-aheadmotion[i],aheaddur[i])))
+#        for i in range(nsteps): #fb
+#            motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],aheadmotion[i],aheaddur[i])))
+#            motion_list.append(self.wrap_motion_act(RunMotors(-aheadmotion[i],-aheadmotion[i],aheaddur[i])))
         for i in range(nsteps): #turn
             motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],-aheadmotion[i],aheaddur[i])))
             motion_list.append(self.wrap_motion_act(RunMotors(-aheadmotion[i],aheadmotion[i],aheaddur[i])))
         nsteps=5
-        aheadmotion=np.linspace(0.3,1.0,nsteps)
+        #aheadmotion=np.linspace(0.3,1.0,nsteps)
+        aheadmotion=np.linspace(0.5,1.0,nsteps)
         aheaddur=[0.2]*nsteps
         for i in range(nsteps): #turn
             motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],0.5*aheadmotion[i],aheaddur[i])))

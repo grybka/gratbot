@@ -4,15 +4,23 @@ sys.path.append('gyrii')
 sys.path.append('network')
 import logging
 import cv2 as cv
+import argparse
 from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
+from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
+from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
 from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior
+
+argparser = argparse.ArgumentParser(description='Gratbot client')
+argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
+args=argparser.parse_args()
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -66,19 +74,25 @@ class ClockLoop:
 #This stores the message passing
 broker=MessageBroker()
 
-logging.debug("Starting Server")
-test_port=23033
-server_address="10.0.0.4"
-network_client=JSONBackAndForth()
-network_client.start_client(server_address,test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response"]))
-gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","image"]))
-gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command"]))
+if args.sim:
+    logging.debug("Starting Simulation")
+    #gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
+    gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt"))
+else:
+    logging.debug("Starting Server")
+    test_port=23033
+    server_address="10.0.0.4"
+    network_client=JSONBackAndForth()
+    network_client.start_client(server_address,test_port)
+    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
-gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
+#gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
+#gyrii.append(TrackerGyrus(broker))
+gyrii.append(XboxControllerGyrus(broker))
 
 def main():
     try:
