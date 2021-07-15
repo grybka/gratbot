@@ -234,6 +234,7 @@ class TrackerGyrus(ThreadedGyrus):
         #conditions to remove tracker
         self.max_missed_frames=4
         self.max_frames_without_detection=10
+        self.max_frames_offscreen=60
         super().__init__(broker)
         #for timing
         self.report_spf_count=10
@@ -272,8 +273,12 @@ class TrackerGyrus(ThreadedGyrus):
             tracker.update_kf_from_time(dt)
             tracker.kfx.x[0]+=offset
             tracker.update_with_tracker(image)
-            if tracker.missed_frames>self.max_missed_frames or tracker.frames_without_detection>self.max_frames_without_detection:
-                dead_trackers.append(tracker)
+            if 0<tracker.kfx.x[0]<1.0:
+                if tracker.missed_frames>self.max_missed_frames or tracker.frames_without_detection>self.max_frames_without_detection:
+                    dead_trackers.append(tracker)
+            else:
+                if tracker.missed_frames>self.max_frames_offscreen:
+                    dead_trackers.append(tracker)
 
         for tracker in dead_trackers:
             print("dropping {} with missed frames {} fwd {}".format(tracker.last_label,tracker.missed_frames,tracker.frames_without_detection))

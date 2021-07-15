@@ -94,7 +94,7 @@ gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","mot
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
-gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
+#gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 gyrii.append(TrackerGyrus(broker))

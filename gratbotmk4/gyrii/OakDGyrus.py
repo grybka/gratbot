@@ -145,6 +145,7 @@ class OakDGyrus(ThreadedGyrus):
         camRgb = self.pipeline.createColorCamera()
         camRgb.setPreviewSize(416, 416)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+        camRgb.setPreviewKeepAspectRatio(False)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
