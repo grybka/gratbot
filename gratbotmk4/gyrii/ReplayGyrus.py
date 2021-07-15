@@ -25,7 +25,7 @@ def load_sensor_log_file(fname):
     return response,first_timestamp
 
 class ReplayGyrus(ThreadedGyrus):
-    def __init__(self,broker,log_file_name):
+    def __init__(self,broker,log_file_name,slomo=1):
         self.receive_thread = threading.Thread(target=self._receive_thread_loop)
         self.receive_thread.daemon = True
         logger.info("loading replay file")
@@ -33,7 +33,7 @@ class ReplayGyrus(ThreadedGyrus):
         logger.info("replay file loaded")
         self.on_data_elem=0
         self.my_start_time=0
-        self.slo_mo=2
+        self.slo_mo=slomo
         super().__init__(broker)
 
     def start_thread_called(self):

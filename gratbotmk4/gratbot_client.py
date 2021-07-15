@@ -14,9 +14,10 @@ from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
+from gyrii.MotionGyrus import MotionGyrus
 from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
-from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior
+from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior,ExerciseTurns,TrackIfSeen,CalibrateMotionBehavior_WithTracking_Turns
 
 argparser = argparse.ArgumentParser(description='Gratbot client')
 argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
@@ -79,8 +80,8 @@ logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 if args.sim:
     logging.debug("Starting Simulation")
-    #gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
-    gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt"))
+    gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
+    #gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt",slomo=1))
 else:
     logging.debug("Starting Server")
     test_port=23033
@@ -91,8 +92,12 @@ else:
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
-#gyrii.append(TrackerGyrus(broker))
-gyrii.append(XboxControllerGyrus(broker))
+#gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
+gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
+#gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
+gyrii.append(TrackerGyrus(broker))
+#gyrii.append(XboxControllerGyrus(broker))
+gyrii.append(MotionGyrus(broker))
 
 def main():
     try:

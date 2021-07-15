@@ -3,6 +3,7 @@ import threading
 import logging
 import board
 import time
+import numpy as np
 from Gyrus import ThreadedGyrus
 from adafruit_motorkit import MotorKit
 
@@ -19,6 +20,8 @@ class MotorGyrus(ThreadedGyrus):
         self.right_run_until=0
         self.left_motor=self.kit.motor1
         self.right_motor=self.kit.motor2
+        self.left_motor.throttle=0
+        self.right_motor.throttle=0
 
         self.motor_thread=None
         super().__init__(broker)
@@ -56,7 +59,7 @@ class MotorGyrus(ThreadedGyrus):
         if abs(throttle)>=0.4:
             return throttle,duration
         scale=abs(throttle)/0.4
-        return throttle/scale,duration*scale
+        return np.sign(throttle)*0.4,duration*scale
 
     def read_message(self,message):
         if "motor_command" in message:
@@ -68,6 +71,6 @@ class MotorGyrus(ThreadedGyrus):
             self.left_run_until=now+left_duration
             self.right_run_until=now+right_duration
             with self.motor_lock:
-                self.left_motor.throttle=left_throttle
-                self.right_motor.throttle=right_throttle
+                self.left_motor.throttle=np.clip(left_throttle,-1,1)
+                self.right_motor.throttle=np.clip(right_throttle,-1,1)
             self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])

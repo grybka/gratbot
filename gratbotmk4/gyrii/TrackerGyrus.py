@@ -4,146 +4,243 @@
 import cv2
 import uuid
 import logging
+from collections import deque
 from underpinnings.id_to_name import id_to_name
 import time
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from filterpy.common import kinematic_kf
+from filterpy.common import kinematic_kf,Q_discrete_white_noise
 
 from Gyrus import ThreadedGyrus
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
-class TrackerGyrusTrackerCentroid:
-    def __init__(self,id=None):
-        self.missed_frames=0
-        #self.cv_tracker=cv2.TrackerMOSSE_create()
-        self.cv_tracker=cv2.TrackerKCF_create()
-        self.last_bbox=(0,0,0,0)
-        self.label=None
-        self.last_success=True
-        if id is None:
-            self.id=uuid.uuid1()
+
+def get_closest_value(timestamp,mylist):
+        #for mylist ordered by [time,value], return the value that is closest to the input timestamp
+        if len(mylist)==0:
+            return None
+        if timestamp<=mylist[0][0]:
+            return mylist[0][1]
+
+        first_val=mylist[0]
+        second_val=None
+        for val in mylist:
+            if timestamp>val[0]:
+                second_val=val
+            else:
+                first_val=val
+        if abs(first_val[0]-timestamp)<abs(second_val[0]-timestamp):
+            return first_val[1]
         else:
-            self.id=id
-
-        self.centered_shape=[128,128]
-        self.kf = kinematic_kf(dim=2, order=1, dt=1.0/30, order_by_dim=False)
-        self.kf.P=1e6*np.eye(4)
-        self.kf.R*=10
-        self.centroid=[0,0]
+            return second_val[1]
 
 
-    def bbox_to_tracker(self,bbox):
-        return ( bbox[0]-self.centroid[0]+self.centered_shape[0],bbox[1]-self.centroid[1]+self.centered_shape[0],bbox[2],bbox[3])
+class MotionCorrection: #to correct image frames from heading changes
+    def __init__(self):
+        self.max_recent_history=20
+        self.gyros=deque([],maxlen=self.max_recent_history)
+        self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
+        self.last_used_heading=0
+        self.angle_heading_slope=-1.515
+        self.z_gyro_index=0
 
-    def tracker_to_bbox(self,bbox):
-        return ( bbox[0]+self.centroid[0]-self.centered_shape[0],bbox[1]+self.centroid[1]-self.centered_shape[0],bbox[2],bbox[3])
+    def read_message(self,message):
+        if 'packets' in message: #rotation, etc
+            if len(self.headings)==0: #for the first packet received
+                self.headings.append([message['packets'][0]["gyroscope_timestamp"],0 ])
+            for packet in message["packets"]:
+                self.gyros.append( [packet["gyroscope_timestamp"],packet["gyroscope"]])
+                    #TODO I could do a fancier integration
+                next_heading=self.headings[-1][1]+packet["gyroscope"][self.z_gyro_index]*(packet["gyroscope_timestamp"]-self.headings[-1][0])
+                self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
-    def image_to_tracker(self,image):
-        padded=cv2.copyMakeBorder(image, self.centered_shape[0], self.centered_shape[0], self.centered_shape[1], self.centered_shape[1], cv2.BORDER_CONSTANT, None,  (0,0,0))
-        return padded[self.centroid[0]:self.centroid[0]+2*self.centered_shape[0],self.centroid[1]:self.centroid[1]+2*self.centered_shape[1],:]
+    def get_offset_and_update(self,image_timestamp):
+        if len(self.headings)==0:
+            return 0
+        closest_heading_vec=get_closest_value(image_timestamp,self.headings)
+        delta_heading=closest_heading_vec-self.last_used_heading
+        self.last_used_heading=closest_heading_vec #this is the update part
+        offset=delta_heading*self.angle_heading_slope
+        return offset
 
-    def init_with_detection(self,image,det):
-        self.last_bbox=self.get_det_bbox(det,image.shape)
-        self.kf.x[0]=self.last_bbox[0]
-        self.kf.x[1]=self.last_bbox[1]
-        self.centroid=(self.last_bbox[0],self.last_bbox[1])
-        self.label=det["label"]
-        #logger.debug("init with centroid {} and adjusted bbox of {}".format(self.centroid,self.last_bbox))
-        #logger.debug("image shape is going to be {}".format(self.image_to_tracker(image).shape))
-        self.cv_tracker.init(self.image_to_tracker(image),self.bbox_to_tracker(self.last_bbox))
 
-    def update(self,frame):
-        self.kf.predict()
-        self.centroid=(int(self.kf.x[0]),int(self.kf.x[1]))
-        (self.last_success, box) = self.cv_tracker.update(self.image_to_tracker(frame))
+class TrackerGyrusTrackedObject:
+    def __init__(self):
+        self.id=uuid.uuid1()
 
-        if not self.last_success or box==(0,0,0,0):
+
+        #the opencv tracker
+        self.cv_tracker=cv2.TrackerKCF_create()
+        self.tracker_image_radius=128
+        self.shape=[0,0] #last image shape
+
+
+        #info from detections
+        self.last_label=None
+        self.last_depth=None
+        self.last_det_bbox=None
+
+
+        #tracking misses
+        self.last_tracker_success=True
+        self.missed_frames=0
+        self.frames_without_detection=0
+        #kalman filtering
+        #x and y in full span of the camera
+        #z is in meters and only updated with depth
+        dt=1/30.0
+        self.kfx=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
+        self.kfy=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
+        self.kfz=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
+        self.kfx.P=1e9*np.eye(2) #covariance
+        self.kfy.P=1e9*np.eye(2) #covariance
+        self.kfz.P=1e9*np.eye(2) #covariance
+
+    def update_kf_from_time(self,dt):
+        #assume 1 pixel creep per second
+        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=1)
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=1)
+        #assume 1 cm creep per second
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=0.01**2)
+        self.kfx.predict()
+        self.kfy.predict()
+        self.kfz.predict()
+
+    def update_with_detection(self,det,image):
+        box=self.get_det_bbox(det)
+        self.last_depth=det["spatial_array"][2]/1000 #in m
+        self.last_det_bbox=box
+        self.last_label=det['label']
+        x_update,y_update=box[0]/image.shape[1],box[1]/image.shape[0]
+        #print("x update, y update {},{} for {}".format(x_update,y_update,det["label"]))
+        #assume 2 pixel resolution for a detection
+        self.kfx.R=np.array( [[ (2/image.shape[1])**2 ]])
+        self.kfx.update(x_update)
+        self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]])
+        self.kfy.update(y_update)
+        #assume 10 cm resolution for depth
+        self.kfz.R=np.array( [[ 0.1**2 ]])
+        self.kfz.update(self.last_depth)
+
+        #initialize the tracker
+        tracker_image=self.extract_tracker_subimage(image)
+        tracker_bbox=(self.tracker_image_radius,self.tracker_image_radius,box[2],box[3])
+
+        #################################
+        #print("tracker bbax {}".format(tracker_bbox))
+        #fig, ax = plt.subplots()
+        #plt.title("Initialization of Tracker")
+        #ax.imshow(tracker_image)
+        #rect = patches.Rectangle((tracker_bbox[0]-tracker_bbox[2]/2, tracker_bbox[1]-tracker_bbox[3]/2), tracker_bbox[2], tracker_bbox[3], linewidth=1, edgecolor='r', facecolor='none')
+        #ax.add_patch(rect)
+        #plt.show()
+        ##################
+
+        self.cv_tracker=cv2.TrackerKCF_create()
+        self.cv_tracker.init(tracker_image,tracker_bbox )
+        self.frames_without_detection=0
+
+    def update_with_tracker(self,image):
+        self.frames_without_detection+=1
+
+        tracker_image=self.extract_tracker_subimage(image)
+        ##############################
+        #fig, ax = plt.subplots()
+        #plt.title("Update of tracker")
+        #ax.imshow(tracker_image)
+        #plt.show()
+        ##############################
+
+
+        try:
+            (self.last_success, tracker_box) = self.cv_tracker.update(tracker_image)
+        except Exception as e:
+            #print("Tracker update failed, centroid {}".format(self.get_centroid()))
+            #print("{}".format(e))
+            #print("traceback:")
+            #exc_type, exc_value, exc_traceback = sys.exc_info()
+            #traceback.print_tb(exc_traceback, limit=1)
+
+            logger.warning("Tracker update failed, centroid {}".format(self.get_centroid()))
+            logger.warning("{}".format(e))
+            self.last_success=False
+            return
+        if not self.last_success or tracker_box==(0,0,0,0):
+            #print("failed with last success {} and bbox {}".format(self.last_success,tracker_box))
             self.missed_frames+=1
             self.last_success=False  #sometimes it gives a bad bounding box but reports success.
         else:
+            #print("success with bbox {}".format(tracker_box))
             self.missed_frames=0
-            self.kf.update([self.last_bbox[0],self.last_bbox[1]])
-            self.last_bbox=self.tracker_to_bbox(box)
-            self.centroid=(self.last_bbox[0],self.last_bbox[1])
-
-    def get_det_bbox(self,det,imageshape):
-        x=int(0.5*(det["bbox_array"][0]+det["bbox_array"][1])*imageshape[1])
-        y=int(0.5*(det["bbox_array"][2]+det["bbox_array"][3])*imageshape[0])
-        w=int((det["bbox_array"][1]-det["bbox_array"][0])*imageshape[1])
-        h=int((det["bbox_array"][3]-det["bbox_array"][2])*imageshape[1])
-        return (x,y,w,h)
-
-    def update_with_detection(self,det,image):
-        self.last_bbox=self.get_det_bbox(det,image.shape)
-        self.kf.update([self.last_bbox[0],self.last_bbox[1]])
-        self.centroid=(int(self.kf.x[0]),int(self.kf.x[1]))
-        #self.centroid=(self.last_bbox[0],self.last_bbox[1])
-        self.cv_tracker=cv2.TrackerKCF_create()
-        self.cv_tracker.init(self.image_to_tracker(image),self.bbox_to_tracker(self.last_bbox))
-        self.label=det["label"]
-
-
-class TrackerGyrusTracker:
-    def __init__(self,id=None):
-        self.missed_frames=0
-        #self.cv_tracker=cv2.TrackerMOSSE_create()
-        self.cv_tracker=cv2.TrackerKCF_create()
-        self.last_bbox=(0,0,0,0)
-        self.label=None
-        self.last_success=True
-        if id is None:
-            self.id=uuid.uuid1()
-        else:
-            self.id=id
+            center=self.get_center()
+            new_centroid_x=(tracker_box[0]-self.tracker_image_radius)/self.shape[1]+center[0]
+            new_centroid_y=(tracker_box[1]-self.tracker_image_radius)/self.shape[0]+center[1]
+            #print("old center x,y {},{}".format(center[0],center[1]))
+            #print("new_center _x,y {},{}".format(new_centroid_x,new_centroid_y))
+            #assume 5 pixel resolution for a detection
+            self.kfx.R=np.array( [[5/image.shape[1]]])
+            self.kfx.update(new_centroid_x)
+            self.kfy.R=np.array( [[5/image.shape[0]]])
+            self.kfy.update(new_centroid_y)
+            center=self.get_center()
+            #print("update center x,y {},{}".format(center[0],center[1]))
 
     def init_with_detection(self,image,det):
-        self.last_bbox=self.get_det_bbox(det,image.shape)
-        self.label=det["label"]
-        self.cv_tracker.init(image,self.last_bbox)
+        self.shape=image.shape
 
-    def update(self,frame):
-        (self.last_success, box) = self.cv_tracker.update(frame)
-        if not self.last_success or box==(0,0,0,0):
-            self.missed_frames+=1
-            self.last_success=False  #sometimes it gives a bad bounding box but reports success.
-        else:
-            self.missed_frames=0
-            self.last_bbox=box
+        self.update_with_detection(det,image)
 
-    def get_det_bbox(self,det,imageshape):
-        x=int(0.5*(det["bbox_array"][0]+det["bbox_array"][1])*imageshape[1])
-        y=int(0.5*(det["bbox_array"][2]+det["bbox_array"][3])*imageshape[0])
-        w=int((det["bbox_array"][1]-det["bbox_array"][0])*imageshape[1])
-        h=int((det["bbox_array"][3]-det["bbox_array"][2])*imageshape[1])
+    def extract_tracker_subimage(self,image):
+        #return the pixelized center relative to the real image
+        centroid=self.get_centroid()
+        a=self.tracker_image_radius
+        padded=cv2.copyMakeBorder(image, a,a,a,a,cv2.BORDER_CONSTANT, None,  (0,0,0))
+        ret=padded[ centroid[1]:centroid[1]+2*a,centroid[0]:centroid[0]+2*a,:]
+        #plt.imshow(ret)
+        #plt.show()
+        return ret
+
+    def get_centroid(self):
+        return (int(self.kfx.x[0][0]*self.shape[1]),int(self.kfy.x[0][0]*self.shape[1]))
+
+    def get_det_bbox(self,det):
+        x=int(0.5*(det["bbox_array"][0]+det["bbox_array"][1])*self.shape[1])
+        y=int(0.5*(det["bbox_array"][2]+det["bbox_array"][3])*self.shape[0])
+        w=int((det["bbox_array"][1]-det["bbox_array"][0])*self.shape[1])
+        h=int((det["bbox_array"][3]-det["bbox_array"][2])*self.shape[1])
         return (x,y,w,h)
 
-    def update_with_detection(self,det,image):
-        self.cv_tracker=cv2.TrackerKCF_create()
-        self.cv_tracker.init(image,self.get_det_bbox(det,image.shape))
-        self.label=det["label"]
+    def get_bestguess_bbox(self):
+        centroid=self.get_centroid()
+        return [centroid[0],centroid[1],self.last_det_bbox[2],self.last_det_bbox[3]]
 
-    def dist_to(self,xy):
-        return np.sqrt((xy[0]-self.last_bbox[0])**2+(xy[1]-self.last_bbox[1])**2)
+    def get_center(self):
+        return [ self.kfx.x[0][0],self.kfy.x[0][0],self.kfz.x[0][0] ]
+
+    def get_velocity(self):
+        return [ self.kfx.x[1][0],self.kfy.x[1][0],self.kfz.x[1][0] ]
 
 class TrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        self.trackers=[]
+        self.motion_corrector=MotionCorrection()
 
+        self.trackers=[]
+        self.last_image_timestamp=0
+        #conditions to remove tracker
+        self.max_missed_frames=4
+        self.max_frames_without_detection=10
+        super().__init__(broker)
+        #for timing
         self.report_spf_count=10
         self.spf_count=0
         self.spf_sum_time=0
-        self.max_missed_frames=10
 
-
-
-        super().__init__(broker)
 
     def get_keys(self):
-        return ["image"]
+        return ["image","rotation_vector"]
 
     def get_name(self):
         return "TrackerGyrus"
@@ -152,29 +249,37 @@ class TrackerGyrus(ThreadedGyrus):
         ret=[]
         for tracker in self.trackers:
             mess={}
-            bb=tracker.last_bbox
+            bb=tracker.get_bestguess_bbox()
             mess["bbox_array"]=[ int(bb[0]-bb[2]/2),int(bb[0]+bb[2]/2),int(bb[1]-bb[3]/2),int(bb[1]+bb[3]/2)]
-            mess["label"]=tracker.label
+            mess["center"]=tracker.get_center()
+            mess["velocity"]=tracker.get_velocity()
+            mess["missed_frames"]=tracker.missed_frames
+            mess["label"]=tracker.last_label
             mess["id"]=tracker.id
             ret.append(mess)
         return ret
 
-    def update_trackers(self,frame):
+    def update_trackers(self,image,image_timestamp,offset):
+        if self.last_image_timestamp==0:
+            self.last_image_timestamp=image_timestamp
+            return
+        dt=image_timestamp-self.last_image_timestamp
         dead_trackers=[]
+
         for tracker in self.trackers:
-            #logger.debug("Updating tracker for {}-{}".format(tracker.label,id_to_name(tracker.id)))
-            #logger.debug("from: {}".format(tracker.last_bbox))
-            tracker.update(frame)
-            if tracker.last_success:
-                ...
-                #logger.debug("to: {}".format(tracker.last_bbox))
-            else:
-                #logger.debug("(LOST) to: {}".format(tracker.last_bbox))
-                logger.debug("{} is lost! ".format(id_to_name(tracker.id)))
-                if tracker.missed_frames>self.max_missed_frames:
-                    dead_trackers.append(tracker)
+            tracker.update_kf_from_time(dt)
+            tracker.kfx.x[0]+=offset
+            tracker.update_with_tracker(image)
+            if tracker.missed_frames>self.max_missed_frames or tracker.frames_without_detection>self.max_frames_without_detection:
+                dead_trackers.append(tracker)
+
         for tracker in dead_trackers:
+            #print("dropping {} with missed frames {} fwd {}".format(tracker.last_label,tracker.missed_frames,tracker.frames_without_detection))
             self.trackers.remove(tracker)
+
+
+
+        self.last_image_timestamp=image_timestamp
 
     def get_match_score(self,tracker,det,imageshape):
         #so what's important?  Distance match, size match, and label match
@@ -184,15 +289,16 @@ class TrackerGyrus(ThreadedGyrus):
         dist_cost_weight=0.7/200
         size_cost_weight=0.2/200
         label_cost=0
-        if tracker.label!=det["label"]:
+        if tracker.last_label!=det["label"]:
             label_cost=wrong_label_cost
-        det_bbox=tracker.get_det_bbox(det,imageshape)
-        dist_cost=dist_cost_weight*np.sqrt( (det_bbox[0]-tracker.last_bbox[0])**2+(det_bbox[1]-tracker.last_bbox[1])**2)
-        size_cost=size_cost_weight*np.sqrt( (det_bbox[2]-tracker.last_bbox[2])**2+(det_bbox[3]-tracker.last_bbox[3])**2)
+        det_bbox=tracker.get_det_bbox(det)
+        tracker_bbox=tracker.get_bestguess_bbox()
+        dist_cost=dist_cost_weight*np.sqrt( (det_bbox[0]-tracker_bbox[0])**2+(det_bbox[1]-tracker_bbox[1])**2)
+        size_cost=size_cost_weight*np.sqrt( (det_bbox[2]-tracker_bbox[2])**2+(det_bbox[3]-tracker_bbox[3])**2)
         return label_cost+dist_cost+size_cost
 
     def match_trackers_to_detections(self,dets,image):
-        #figure out best batches between the two
+          #figure out best batches between the two
         cost_matrix=np.zeros( [len(dets),len(self.trackers)])
         for i in range(len(dets)):
             for j in range(len(self.trackers)):
@@ -209,14 +315,13 @@ class TrackerGyrus(ThreadedGyrus):
         self.max_assignment_cost=1.0
         for i in range(len(row_ind)):
             if cost_matrix[row_ind[i],col_ind[i]]>self.max_assignment_cost:
-                leftover_dets.append(row_ind[i])
-                leftover_trackers.append(col_ind[i])
+                np.append(leftover_dets,row_ind[i])
+                np.append(leftover_trackers,col_ind[i])
             else:
                 self.trackers[col_ind[i]].update_with_detection(dets[row_ind[i]],image)
         #deal with leftover detections
         for i in range(len(leftover_dets)):
-            #new_track=TrackerGyrusTracker()
-            new_track=TrackerGyrusTrackerCentroid()
+            new_track=TrackerGyrusTrackedObject()
             new_track.init_with_detection(image,dets[leftover_dets[i]])
             self.trackers.append(new_track)
         #Do I need to deal with leftover tracks?  Maybe not, maybe deweight them TODO
@@ -228,30 +333,35 @@ class TrackerGyrus(ThreadedGyrus):
                 logger.debug("I have neither a tracker nor a detection for {}".format(id_to_name(tracker.id)))
 
 
-
     def read_message(self,message):
-        #TODO handle expected changes in motion from gyros
-        #So I'd get an expected new angle and can presume how to adjust all my bboxes
-        #but how do I convince the tracker to update its bbox?
+        self.motion_corrector.read_message(message)
+
         if "image" in message and "tracks" not in message:
             #logger.debug("Image Recieved")
             start_time=time.time()
-            #first, update all existing trackers
-            self.update_trackers(message["image"])
 
+            #handle heading correction
+            offset=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
+
+            self.update_trackers(message["image"],message["image_timestamp"],offset)
+
+            #don't bother with detections if in a saccade, they're probably not right even if there
             if "detections" in message:
+                #logger.debug("handling detections")
                 self.match_trackers_to_detections(message["detections"],message["image"])
 
-            #TODO reemit message with tracker boxs
-            message_out={"image": message["image"],"tracks": self.getTracks(),"timestamp": time.time()}
-            #logger.debug("publishing message about tracks")
+            message_out={"tracks": self.getTracks(),"timestamp": time.time(),"image_timestamp": message["image_timestamp"],"offset": offset}
             self.broker.publish(message_out,["tracks"])
+
             #timing
             self.spf_count+=1
             self.spf_sum_time+=time.time()-start_time
             if self.spf_count>=self.report_spf_count:
-                logging.info("Tracking time fer frame {} ms".format(1000*self.spf_sum_time/self.spf_count))
+                #print("Tracking time fer frame {} ms".format(1000*self.spf_sum_time/self.spf_count))
                 self.spf_sum_time=0
                 self.spf_count=0
                 for tracker in self.trackers:
-                    logging.debug("Track: {} is a {} at [{},{}] with velocity [{},{}]".format(id_to_name(tracker.id),tracker.label,tracker.kf.x[0],tracker.kf.x[1],tracker.kf.x[2],tracker.kf.x[3]))
+                    ...
+                    #print("Track: {} is a {} ".format(id_to_name(tracker.id),tracker.last_label))
+                    #print("Location: {}".format(tracker.get_center()))
+                    #print("Velocity: {}".format(tracker.get_velocity()))
