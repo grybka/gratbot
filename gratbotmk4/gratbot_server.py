@@ -9,6 +9,9 @@ from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
+from gyrii.TrackerGyrus import TrackerGyrus
+from gyrii.BehaviorGyrus import BehaviorGyrus
+from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from OakDGyrus import OakDGyrus
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -31,6 +34,8 @@ gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.ou
 gyrii.append(OakDGyrus(broker))
 gyrii.append(MotorGyrus(broker))
 gyrii.append(MessageLoggerGyrus(broker,keys=["motor_command","motor_response"]))
+gyrii.append(TrackerGyrus(broker))
+gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 
 
 def main():

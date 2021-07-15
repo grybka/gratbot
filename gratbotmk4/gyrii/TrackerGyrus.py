@@ -169,6 +169,7 @@ class TrackerGyrusTrackedObject:
             logger.warning("Tracker update failed, centroid {}".format(self.get_centroid()))
             logger.warning("{}".format(e))
             self.last_success=False
+            self.missed_frames+=100
             return
         if not self.last_success or tracker_box==(0,0,0,0):
             #print("failed with last success {} and bbox {}".format(self.last_success,tracker_box))
