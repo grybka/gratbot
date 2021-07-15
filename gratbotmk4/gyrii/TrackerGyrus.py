@@ -17,6 +17,8 @@ logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 logger.setLevel(logging.WARNING)
 
+#TODO if something moved plausibly offscreen, then it should persist longer
+
 
 def get_closest_value(timestamp,mylist):
         #for mylist ordered by [time,value], return the value that is closest to the input timestamp
@@ -121,8 +123,8 @@ class TrackerGyrusTrackedObject:
         self.kfx.update(x_update)
         self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]])
         self.kfy.update(y_update)
-        #assume 10 cm resolution for depth
-        self.kfz.R=np.array( [[ 0.1**2 ]])
+        #assume 5 cm resolution for depth
+        self.kfz.R=np.array( [[ 0.05**2 ]])
         self.kfz.update(self.last_depth)
 
         #initialize the tracker
@@ -274,7 +276,7 @@ class TrackerGyrus(ThreadedGyrus):
                 dead_trackers.append(tracker)
 
         for tracker in dead_trackers:
-            #print("dropping {} with missed frames {} fwd {}".format(tracker.last_label,tracker.missed_frames,tracker.frames_without_detection))
+            print("dropping {} with missed frames {} fwd {}".format(tracker.last_label,tracker.missed_frames,tracker.frames_without_detection))
             self.trackers.remove(tracker)
 
 

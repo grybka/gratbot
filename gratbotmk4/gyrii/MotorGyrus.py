@@ -47,11 +47,22 @@ class MotorGyrus(ThreadedGyrus):
         while not self.should_quit:
             time.sleep(0.005)
             now=time.time()
+            send_message=False
+            m={}
             with self.motor_lock:
                 if now>=self.left_run_until:
                     self.left_motor.throttle=0
+                    m['left_throttle']=0
+                    m['left_duration']=0
+                    send_message=True
                 if now>=self.right_run_until:
                     self.right_motor.throttle=0
+                    m['right_throttle']=0
+                    m['right_duration']=0
+                    send_message=True
+            if send_message:
+                self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
+
 
     def scale_throttle(self,throttle,duration):
         if abs(throttle)<0.05:
