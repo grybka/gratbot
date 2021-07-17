@@ -9,7 +9,8 @@ from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
-from gyrii.TrackerGyrus import TrackerGyrus
+#from gyrii.TrackerGyrus import TrackerGyrus
+from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from OakDGyrus import OakDGyrus
@@ -34,7 +35,7 @@ gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.ou
 gyrii.append(OakDGyrus(broker))
 gyrii.append(MotorGyrus(broker))
 gyrii.append(MessageLoggerGyrus(broker,keys=["motor_command","motor_response"]))
-gyrii.append(TrackerGyrus(broker))
+gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 
 
