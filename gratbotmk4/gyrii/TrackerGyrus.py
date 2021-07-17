@@ -376,6 +376,7 @@ class TrackerGyrus(ThreadedGyrus):
             self.spf_sum_time+=time.time()-start_time
             if self.spf_count>=self.report_spf_count:
                 logger.info("Tracking time fer frame {} ms".format(1000*self.spf_sum_time/self.spf_count))
+                logger.info("Number of Tracked obects now {}".format(len(self.trackers)))
                 self.spf_sum_time=0
                 self.spf_count=0
                 for tracker in self.trackers:
