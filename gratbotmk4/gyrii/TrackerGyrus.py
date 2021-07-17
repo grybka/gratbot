@@ -77,7 +77,8 @@ class TrackerGyrusTrackedObject:
 
         #the opencv tracker
         #self.cv_tracker=cv2.TrackerKCF_create()
-        self.cv_tracker=cv2.TrackerCSRT_create()
+        #self.cv_tracker=cv2.TrackerCSRT_create()
+        self.cv_tracker=None
         #self.cv_tracker=cv2.TrackerMedianFlow_create() #didn't exist
         #self.cv_tracker=cv2.TrackerMOSSE_create() #didn't exist
         self.tracker_image_radius=128
@@ -91,7 +92,7 @@ class TrackerGyrusTrackedObject:
 
 
         #tracking misses
-        self.last_tracker_success=True
+        self.last_success=True
         self.missed_frames=0
         self.frames_without_detection=0
         #kalman filtering
@@ -145,11 +146,15 @@ class TrackerGyrusTrackedObject:
         #plt.show()
         ##################
 
-        self.cv_tracker=cv2.TrackerKCF_create()
-        self.cv_tracker.init(tracker_image,tracker_bbox )
+        #self.cv_tracker=cv2.TrackerKCF_create()
+        self.cv_tracker=None
+        #self.cv_tracker=cv2.TrackerKCF_create()
+        #TODO fix this
+        #self.cv_tracker.init(tracker_image,tracker_bbox )
         self.frames_without_detection=0
 
     def update_with_tracker(self,image):
+        return
         self.frames_without_detection+=1
 
         tracker_image=self.extract_tracker_subimage(image)
@@ -237,7 +242,8 @@ class TrackerGyrus(ThreadedGyrus):
         self.trackers=[]
         self.last_image_timestamp=0
         #conditions to remove tracker
-        self.max_missed_frames=4
+        #self.max_missed_frames=4
+        self.max_missed_frames=50
         self.max_frames_without_detection=10
         self.max_frames_offscreen=60
         super().__init__(broker)
