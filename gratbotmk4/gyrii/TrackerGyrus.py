@@ -15,7 +15,8 @@ from Gyrus import ThreadedGyrus
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 #TODO if something moved plausibly offscreen, then it should persist longer
 
@@ -75,7 +76,10 @@ class TrackerGyrusTrackedObject:
 
 
         #the opencv tracker
-        self.cv_tracker=cv2.TrackerKCF_create()
+        #self.cv_tracker=cv2.TrackerKCF_create()
+        self.cv_tracker=cv2.TrackerCSRT_create()
+        #self.cv_tracker=cv2.TrackerMedianFlow_create() #didn't exist
+        #self.cv_tracker=cv2.TrackerMOSSE_create() #didn't exist
         self.tracker_image_radius=128
         self.shape=[0,0] #last image shape
 
@@ -238,7 +242,7 @@ class TrackerGyrus(ThreadedGyrus):
         self.max_frames_offscreen=60
         super().__init__(broker)
         #for timing
-        self.report_spf_count=10
+        self.report_spf_count=30
         self.spf_count=0
         self.spf_sum_time=0
 
