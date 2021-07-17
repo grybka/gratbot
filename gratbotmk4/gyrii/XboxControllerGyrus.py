@@ -53,4 +53,15 @@ class XboxControllerGyrus(ThreadedGyrus):
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
             if left !=0 or right !=0:
                 self.broker.publish(motor_command,"motor_command")
+            behavior_command=None
+            if self.joystick.get_button(0):
+                behavior_command={"behavior_request": {"name": "trackifseen"}}
+            if self.joystick.get_button(3):
+                behavior_command={"behavior_request": {"name": "nothing"}}
+            if behavior_command is not None:
+                self.broker.publish(behavior_command,["behavior_request"])
+            for i in range(self.joystick.get_numbuttons()):
+                status=self.joystick.get_button(i)
+                #if status:
+                #    print("Button {} status {}".format(i,status))
             time.sleep(self.duration)

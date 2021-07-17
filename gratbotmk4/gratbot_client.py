@@ -20,6 +20,7 @@ from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
 from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior,ExerciseTurns,CalibrateMotionBehavior_WithTracking_Turns,CalibrateMotionBehaviorFB,CalibrateMotionBehavior_WithTracking_FB
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
+from gyrii.ClockGyrus import ClockGyrus
 
 argparser = argparse.ArgumentParser(description='Gratbot client')
 argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
@@ -54,25 +55,6 @@ class DisplayLoop(VideoDisplay):
         cv.destroyAllWindows()
 display_loop=DisplayLoop()
 
-class ClockLoop:
-    def __init__(self,broker):
-        self.broker=broker
-        #self.clock_pulse_period=0.05
-        self.clock_pulse_period=0.1
-        self.keep_going=True
-        self.frame_lock=threading.Lock()
-        self.thread = threading.Thread(target=self._run)
-        self.thread.daemon = True
-        self.thread.start()
-
-    def _run(self):
-        while self.keep_going:
-            time.sleep(self.clock_pulse_period)
-            broker.publish({"timestamp": time.time(),"clock_pulse": self.clock_pulse_period},"clock_pulse")
-
-    def stop(self):
-        self.keep_going=False
-        self.thread.join()
 
 #This stores the message passing
 broker=MessageBroker()
@@ -90,18 +72,20 @@ else:
     server_address="10.0.0.4"
     network_client=JSONBackAndForth()
     network_client.start_client(server_address,test_port)
-    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","clock_pulse"]))
+    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","behavior_request"]))
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
+#gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 #gyrii.append(TrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-gyrii.append(XboxControllerGyrus(broker))
+#gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
+gyrii.append(ClockGyrus(broker))
 
 def main():
     try:
@@ -109,8 +93,6 @@ def main():
         logging.debug("configuring and starting gyrii")
         gyrii.config_and_start(config_filename)
         logging.debug("gyrii started")
-        clock_loop=ClockLoop(broker)
-        logging.debug("clock started")
         while True:
             display_loop.one_loop()
 

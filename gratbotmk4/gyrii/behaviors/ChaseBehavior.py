@@ -8,7 +8,8 @@ import logging
 from underpinnings.id_to_name import id_to_name
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class ChaseObject(GratbotBehavior):
     def __init__(self,id):
