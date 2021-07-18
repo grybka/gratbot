@@ -83,7 +83,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 #gyrii.append(TrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-#gyrii.append(XboxControllerGyrus(broker))
+gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
 

@@ -42,8 +42,8 @@ def get_closest_value(timestamp,mylist):
 
 
 class MotionCorrection: #to correct image frames from heading changes
-    def __init__(self):
-        self.max_recent_history=20
+    def __init__(self,max_recent_history=20):
+        self.max_recent_history=max_recent_history
         self.gyros=deque([],maxlen=self.max_recent_history)
         self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
         self.last_used_heading=0
