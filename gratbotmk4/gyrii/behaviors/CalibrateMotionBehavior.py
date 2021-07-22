@@ -31,7 +31,7 @@ class RunServo(GratbotBehavior):
     def act(self,**kwargs):
         broker=kwargs["broker"]
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"angle": self.servo_angle}}
-        broker.publish(motor_command,"servo_command")
+        broker.publish(servo_command,"servo_command")
         return GratbotBehaviorStatus.COMPLETED
 
 class TurnRelative(GratbotBehavior):
@@ -46,13 +46,13 @@ class TurnRelative(GratbotBehavior):
 
 class ExerciseServo(GratbotBehavior):
     def __init__(self):
-        servo_min_angle=75
-        servo_max_angle=120
-        n_steps=10
+        servo_min_angle=100
+        servo_max_angle=160
+        n_steps=12
         steps=np.concatenate([np.linspace(servo_min_angle,servo_max_angle,n_steps),np.linspace(servo_max_angle,servo_min_angle,n_steps)])
         motion_list=[]
         for s in steps:
-            motion_list.append(self.wrap_motion_act(RunServo(s)))
+            motion_list.append(self.wrap_motion_act(RunServo(0,s)))
         self.action_list=GratbotBehavior_Series(motion_list)
 
     def act(self,**kwargs):
