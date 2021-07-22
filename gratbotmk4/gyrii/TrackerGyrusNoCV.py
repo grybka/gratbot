@@ -49,7 +49,7 @@ class MotionCorrection: #to correct image frames from heading changes
         #self.last_used_heading=0
         self.last_used_heading=np.array([0,0,0])
         self.angle_heading_slope=-1.515
-        self.angle_ygyro_slope=-0.746
+        self.angle_ygyro_slope=0.746
         self.z_gyro_index=0
         self.x_gyro_index=1
 
@@ -280,6 +280,8 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
             #handle heading correction
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
+            #if abs(offset_y)>0.05:
+            logger.info("offset y {}".format(offset_y))
 
             self.update_trackers(message["image"],message["image_timestamp"],offset_x,offset_y)
 

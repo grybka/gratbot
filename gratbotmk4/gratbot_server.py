@@ -9,7 +9,7 @@ from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
-from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
+#from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
