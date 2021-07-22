@@ -9,6 +9,7 @@ from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
@@ -72,7 +73,7 @@ else:
     server_address="10.0.0.4"
     network_client=JSONBackAndForth()
     network_client.start_client(server_address,test_port)
-    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","behavior_request"]))
+    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","servo_command","behavior_request"]))
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_response"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
@@ -81,6 +82,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
+gyrii.append(HeadTrackerGyrus(broker))
 gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))

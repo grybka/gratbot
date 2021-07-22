@@ -42,10 +42,13 @@ class XboxControllerGyrus(ThreadedGyrus):
         while not self.should_quit:
             left= -self.joystick.get_axis(1)
             right=-self.joystick.get_axis(3)
+            left_lr=self.joystick.get_axis(0)
             if abs(left)<0.2:
                 left=0
             if abs(right)<0.2:
                 right=0
+            if abs(left_lr)<0.2:
+                left_lr=0
             self.duration=0.2
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": left,
                                                                    "right_throttle": right,
@@ -55,8 +58,9 @@ class XboxControllerGyrus(ThreadedGyrus):
                 self.broker.publish(motor_command,"motor_command")
 
 
-            headup=self.joystick.get_axis(0)
-            servo_command={"timestamp": time.time(),"servo_command": {"servo_num":0,"delta_angle": 5*headup}}
+            servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
+            if left_lr!=0:
+                self.broker.publish(servo_command,"servo_command")
 
 
 
