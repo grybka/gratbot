@@ -49,7 +49,7 @@ class MotionCorrection: #to correct image frames from heading changes
         #self.last_used_heading=0
         self.last_used_heading=np.array([0,0,0])
         self.angle_heading_slope=-1.515
-        self.angle_ygyro_slope=0.746
+        self.angle_ygyro_slope=-0.746
         self.z_gyro_index=0
         self.x_gyro_index=1
 

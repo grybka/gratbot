@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 class ServoGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.kit = ServoKit(channels=16)
-        self.max_angle=140
+        self.max_angle=165
         self.min_angle=60
         super().__init__(broker)
 
