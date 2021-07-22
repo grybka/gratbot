@@ -46,28 +46,36 @@ class MotionCorrection: #to correct image frames from heading changes
         self.max_recent_history=max_recent_history
         self.gyros=deque([],maxlen=self.max_recent_history)
         self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
-        self.last_used_heading=0
+        #self.last_used_heading=0
+        self.last_used_heading=np.array([0,0,0])
         self.angle_heading_slope=-1.515
+        self.angle_ygyro_slope=0.746
         self.z_gyro_index=0
+        self.x_gyro_index=1
 
     def read_message(self,message):
         if 'packets' in message: #rotation, etc
             if len(self.headings)==0: #for the first packet received
-                self.headings.append([message['packets'][0]["gyroscope_timestamp"],0 ])
+                #self.headings.append([message['packets'][0]["gyroscope_timestamp"],0 ])
+                self.headings.append([message['packets'][0]["gyroscope_timestamp"],np.array([0,0,0]) ])
             for packet in message["packets"]:
                 self.gyros.append( [packet["gyroscope_timestamp"],packet["gyroscope"]])
                     #TODO I could do a fancier integration
-                next_heading=self.headings[-1][1]+packet["gyroscope"][self.z_gyro_index]*(packet["gyroscope_timestamp"]-self.headings[-1][0])
+                #next_heading=self.headings[-1][1]+packet["gyroscope"][self.z_gyro_index]*(packet["gyroscope_timestamp"]-self.headings[-1][0])
+                next_heading=self.headings[-1][1]+np.array(packet["gyroscope"])*(packet["gyroscope_timestamp"]-self.headings[-1][0])
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
     def get_offset_and_update(self,image_timestamp):
         if len(self.headings)==0:
-            return 0
+            return 0,0
         closest_heading_vec=get_closest_value(image_timestamp,self.headings)
         delta_heading=closest_heading_vec-self.last_used_heading
         self.last_used_heading=closest_heading_vec #this is the update part
-        offset=delta_heading*self.angle_heading_slope
-        return offset
+        #offset=delta_heading*self.angle_heading_slope
+        #return offset
+        offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
+        offset_y=delta_heading[self.x_gyro_index]*self.angle_ygyro_slope
+        return offset_x,offset_y
 
 class TrackerGyrusTrackedObject:
     def __init__(self):
@@ -184,7 +192,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             ret.append(mess)
         return ret
 
-    def update_trackers(self,image,image_timestamp,offset):
+    def update_trackers(self,image,image_timestamp,offset_x,offset_y):
         if self.last_image_timestamp==0:
             self.last_image_timestamp=image_timestamp
             return
@@ -193,8 +201,9 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
         for tracker in self.trackers:
             tracker.update_kf_from_time(dt)
-            tracker.kfx.x[0]+=offset
-            if 0<tracker.kfx.x[0]<1.0:
+            tracker.kfx.x[0]+=offset_x
+            tracker.kfx.x[1]+=offset_y
+            if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
                 if tracker.frames_without_detection>self.max_frames_without_detection:
                     dead_trackers.append(tracker)
             else:
@@ -270,16 +279,16 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             start_time=time.time()
 
             #handle heading correction
-            offset=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
+            offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
 
-            self.update_trackers(message["image"],message["image_timestamp"],offset)
+            self.update_trackers(message["image"],message["image_timestamp"],offset_x,offset_y)
 
             #don't bother with detections if in a saccade, they're probably not right even if there
             if "detections" in message:
                 #logger.debug("handling detections")
                 self.match_trackers_to_detections(message["detections"],message["image"])
 
-            message_out={"tracks": self.getTracks(),"timestamp": time.time(),"image_timestamp": message["image_timestamp"],"offset": offset}
+            message_out={"tracks": self.getTracks(),"timestamp": time.time(),"image_timestamp": message["image_timestamp"],"offset": [offset_x,offset_y]}
             self.broker.publish(message_out,["tracks"])
 
             #timing

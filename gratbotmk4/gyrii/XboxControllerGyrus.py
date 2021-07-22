@@ -53,6 +53,13 @@ class XboxControllerGyrus(ThreadedGyrus):
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
             if left !=0 or right !=0:
                 self.broker.publish(motor_command,"motor_command")
+
+
+            headup=self.joystick.get_axis(0)
+            servo_command={"timestamp": time.time(),"servo_command": {"servo_num":0,"delta_angle": 5*headup}}
+
+
+
             behavior_command=None
             if self.joystick.get_button(0):
                 #behavior_command={"behavior_request": {"name": "trackifseen"}}
