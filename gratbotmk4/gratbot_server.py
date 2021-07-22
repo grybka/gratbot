@@ -8,6 +8,7 @@ from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
+from gyrii.ServoGyrus import ServoGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
@@ -32,12 +33,14 @@ network_server.start_server(test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks"])) #TODO define keys here
+gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response"])) #TODO define keys here
 gyrii.append(OakDGyrus(broker))
 gyrii.append(MotorGyrus(broker))
-gyrii.append(MessageLoggerGyrus(broker,keys=["motor_command","motor_response"]))
+gyrii.append(ServoGyrus(broker))
+#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks"]))
 gyrii.append(TrackerGyrusNoCV(broker))
-gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
+#gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
+gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))
 
 

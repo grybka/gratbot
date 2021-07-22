@@ -3,7 +3,7 @@ from Gyrus import ThreadedGyrus
 from behaviors.Behavior import GratbotBehaviorStatus
 import time
 import logging
-from gyrii.behaviors.ChaseBehavior import TrackIfSeen
+from gyrii.behaviors.ChaseBehavior import TrackIfSeen,ExerciseServo
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,6 +37,9 @@ class BehaviorGyrus(ThreadedGyrus):
             if message["behavior_request"]["name"]=="trackifseen":
                 logger.info("Track If Seen Behavior Triggered")
                 self.on_behavior=TrackIfSeen()
+            if message["behavior_request"]["name"]=="exerciseservo":
+                logger.info("Exercise servo Triggered")
+                self.on_behavior=ExerciseServo()
             elif message["behavior_request"]["name"]=="nothing":
                 logger.info("Behavior set to None")
                 ...

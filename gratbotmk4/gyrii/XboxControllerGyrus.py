@@ -55,7 +55,8 @@ class XboxControllerGyrus(ThreadedGyrus):
                 self.broker.publish(motor_command,"motor_command")
             behavior_command=None
             if self.joystick.get_button(0):
-                behavior_command={"behavior_request": {"name": "trackifseen"}}
+                #behavior_command={"behavior_request": {"name": "trackifseen"}}
+                behavior_command={"behavior_request": {"name": "exerciseservo"}}
             if self.joystick.get_button(3):
                 behavior_command={"behavior_request": {"name": "nothing"}}
             if behavior_command is not None:
