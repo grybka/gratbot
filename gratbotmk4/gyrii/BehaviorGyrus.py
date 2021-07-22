@@ -3,7 +3,8 @@ from Gyrus import ThreadedGyrus
 from behaviors.Behavior import GratbotBehaviorStatus
 import time
 import logging
-from gyrii.behaviors.ChaseBehavior import TrackIfSeen,ExerciseServo
+from gyrii.behaviors.ChaseBehavior import TrackIfSeen
+from gyrii.behaviors.CalibrateMotionBehavior import ExerciseServo
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
