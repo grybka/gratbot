@@ -109,6 +109,7 @@ class OakDGyrus(ThreadedGyrus):
                         bboxes = np.array(face_nn.get().getFirstLayerFp16())
                         bboxes = bboxes.reshape((bboxes.size // 7, 7))
                         #cut_bboxes = bboxes[bboxes[:, 2] > 0.7][:, 3:7]
+                        bboxes = bboxes[bboxes[:,2]>0.7][:,:]
                         for raw_bbox in bboxes:
                             detection_message.append({"label": "face",
                                                       "bbox_array": raw_bbox[3:7],
