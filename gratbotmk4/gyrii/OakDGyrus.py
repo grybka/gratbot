@@ -5,12 +5,12 @@ import logging
 import time
 import os
 import numpy as np
-import blobconverter
+#import blobconverter
 from pathlib import Path
 
 #nnBlobPath = str((Path(__file__).parent / Path('models/tiny-yolo-v4_openvino_2021.2_6shave.blob')).resolve().absolute())
 nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
-#faceBlobPath = os.getcwd()+'/models/face-detection-retail-0004_openvino_2021.2_4shave.blob'
+faceBlobPath = os.getcwd()+'/models/face-detection-retail-0004_openvino_2021.2_4shave.blob'
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.WARNING)
