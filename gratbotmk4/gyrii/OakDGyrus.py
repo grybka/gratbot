@@ -206,8 +206,18 @@ class OakDGyrus(ThreadedGyrus):
 
         #faces
         if self.watch_faces:
+            face_manip=pipline.createImageManip()
+            face_manip.initialConfig.setResize(300,300)
+
             face_nn = self.pipeline.createNeuralNetwork()
             face_nn.setBlobPath(faceBlobPath)
+
+            face_nn_xout = self.pipeline.createXLinkOut()
+            face_nn_xout.setStreamName("face_nn")
+
+            camRgb.preview.link(face_manip.inputImage)
+            face_manip.out.link(face_nn.input)
+            face_nn.out.link(face_nn_xout.input)
 
         #outputs
         #RGB Camera (after detections)
@@ -234,8 +244,3 @@ class OakDGyrus(ThreadedGyrus):
             spatialDetectionNetwork.out.link(xoutNN.input)
             #xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
             #spatialDetectionNetwork.boundingBoxMapping.link(xoutBoundingBoxDepthMapping.input)
-        if self.watch_faces:
-            camRgb.preview.link(face_nn.input)
-            face_nn_xout = self.pipeline.createXLinkOut()
-            face_nn_xout.setStreamName("face_nn")
-            face_nn.out.link(face_nn_xout.input)
