@@ -114,7 +114,10 @@ class TrackerGyrusTrackedObject:
 
     def update_with_detection(self,det,image):
         box=self.get_det_bbox(det)
-        self.last_depth=det["spatial_array"][2]/1000 #in m
+        if "spatial_array" in det:
+            self.last_depth=det["spatial_array"][2]/1000 #in m
+        else:
+            self.last_depth=1
         self.last_det_bbox=box
         self.last_label=det['label']
         x_update,y_update=box[0]/image.shape[1],box[1]/image.shape[0]
