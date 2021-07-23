@@ -9,7 +9,7 @@ from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
-#from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
+from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
@@ -40,6 +40,7 @@ gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks"]))
 gyrii.append(TrackerGyrusNoCV(broker))
+gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))

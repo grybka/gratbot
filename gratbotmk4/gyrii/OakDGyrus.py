@@ -5,9 +5,11 @@ import logging
 import time
 import os
 import numpy as np
+from pathlib import Path
 
 #nnBlobPath = str((Path(__file__).parent / Path('models/tiny-yolo-v4_openvino_2021.2_6shave.blob')).resolve().absolute())
 nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
+faceBlobPath = os.getcwd()+'/models/face-detection-retail-0004_openvino_2021.2_4shave.blob'
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.WARNING)
@@ -38,7 +40,7 @@ def frame_norm(frame, bbox):
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.do_detection=True
-        self.watch_faces=True
+        self.watch_faces=False
         self.do_imu=True
         self.oak_comm_thread=None
         super().__init__(broker)
@@ -71,7 +73,7 @@ class OakDGyrus(ThreadedGyrus):
             if self.do_detection:
                 detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
             if self.watch_faces:
-                face_nn = self.device.getOutputQueue("face_nn")
+                face_nn = device.getOutputQueue("face_nn")
 
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
@@ -203,8 +205,8 @@ class OakDGyrus(ThreadedGyrus):
 
         #faces
         if self.watch_faces:
-            face_nn = pipeline.createNeuralNetwork()
-            face_nn.setBlobPath(str(Path("models/face-detection-retail-0004/face-detection-retail-0004_openvino_2021.2_4shave.blob").resolve().absolute()))
+            face_nn = self.pipeline.createNeuralNetwork()
+            spatialDetectionNetwork.setBlobPath(faceBlobPath)
 
         #outputs
         #RGB Camera (after detections)
@@ -232,6 +234,7 @@ class OakDGyrus(ThreadedGyrus):
             #xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
             #spatialDetectionNetwork.boundingBoxMapping.link(xoutBoundingBoxDepthMapping.input)
         if self.watch_faces:
-            face_nn_xout = pipeline.createXLinkOut()
+            camRgb.preview.link(face_nn.input)
+            face_nn_xout = self.pipeline.createXLinkOut()
             face_nn_xout.setStreamName("face_nn")
             face_nn.out.link(face_nn_xout.input)
