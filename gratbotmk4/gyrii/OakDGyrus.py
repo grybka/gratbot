@@ -40,7 +40,7 @@ def frame_norm(frame, bbox):
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        self.do_detection=True
+        self.do_detection=False
         self.watch_faces=True
         self.do_imu=True
         self.oak_comm_thread=None
@@ -89,11 +89,11 @@ class OakDGyrus(ThreadedGyrus):
                     frame_message["image_timestamp"]=image_timestamp
                     frame_message["image"]=frame
                     frame_message["keys"]=["image"]
+                    detection_message=[]
                     if self.do_detection:
                         inDet = detectionNNQueue.get()
                         detections = inDet.detections
                         if len(detections)!=0:
-                            detection_message=[]
                             for detection in detections:
                                 bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
                                 spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
@@ -105,18 +105,17 @@ class OakDGyrus(ThreadedGyrus):
                                                           "spatial_array": spatial_array,
                                                           "bbox_array": bbox_array,
                                                           "confidence": detection.confidence})
-
-                            if self.watch_faces:
-                                bboxes = np.array(face_nn.get().getFirstLayerFp16())
-                                bboxes = bboxes.reshape((bboxes.size // 7, 7))
-                                #cut_bboxes = bboxes[bboxes[:, 2] > 0.7][:, 3:7]
-                                for raw_bbox in bboxes:
-                                    detection_message.append({"label": "face",
-                                                              "bbox_array": raw_bbox[3:7],
-                                                              "confidence": raw_bbox[2]})
-                            self.broker.publish({"timestamp": time.time(),"image_timestamp": image_timestamp,"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
-                            frame_message["detections"]=detection_message #also append to image
-
+                    if self.watch_faces:
+                        bboxes = np.array(face_nn.get().getFirstLayerFp16())
+                        bboxes = bboxes.reshape((bboxes.size // 7, 7))
+                        #cut_bboxes = bboxes[bboxes[:, 2] > 0.7][:, 3:7]
+                        for raw_bbox in bboxes:
+                            detection_message.append({"label": "face",
+                                                      "bbox_array": raw_bbox[3:7],
+                                                      "confidence": raw_bbox[2]})
+                    if len(detection_message)!=0:
+                        self.broker.publish({"timestamp": time.time(),"image_timestamp": image_timestamp,"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
+                        frame_message["detections"]=detection_message #also append to image
 
                     self.broker.publish(frame_message,frame_message["keys"])
 
@@ -167,7 +166,7 @@ class OakDGyrus(ThreadedGyrus):
         camRgb = self.pipeline.createColorCamera()
         camRgb.setPreviewSize(416, 416)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-        camRgb.setPreviewKeepAspectRatio(False)
+        #camRgb.setPreviewKeepAspectRatio(False)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
@@ -206,7 +205,7 @@ class OakDGyrus(ThreadedGyrus):
 
         #faces
         if self.watch_faces:
-            face_manip=pipline.createImageManip()
+            face_manip=self.pipeline.createImageManip()
             face_manip.initialConfig.setResize(300,300)
 
             face_nn = self.pipeline.createNeuralNetwork()
