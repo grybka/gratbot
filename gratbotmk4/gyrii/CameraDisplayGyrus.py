@@ -5,6 +5,9 @@ import logging,time
 import numpy as np
 import cv2
 
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 class CameraDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
         self.display=display
@@ -14,8 +17,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count_reset=10
         self.fps_start_time=0
 
-        #self.mode="show_detections"
-        self.mode="show_tracks"
+        self.mode="show_detections"
+        #self.mode="show_tracks"
         super().__init__(broker)
 
         self.last_tracks_message={"tracks": []}
@@ -46,16 +49,21 @@ class CameraDisplayGyrus(ThreadedGyrus):
             height = frame.shape[0]
             width  = frame.shape[1]
             for d in self.last_detections_message["detections"]:
-                x1 = int(d["bbox_array"][0] * width)
-                x2 = int(d["bbox_array"][1] * width)
-                y1 = int(d["bbox_array"][2] * height)
-                y2 = int(d["bbox_array"][3] * height)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-                cv2.putText(frame, str(d["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, "{:.2f}".format(d["confidence"]*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"X: {int(d['spatial_array'][0])} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"Y: {int(d['spatial_array'][1])} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                try:
+                    x1 = int(d["bbox_array"][0] * width)
+                    x2 = int(d["bbox_array"][1] * width)
+                    y1 = int(d["bbox_array"][2] * height)
+                    y2 = int(d["bbox_array"][3] * height)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+                    cv2.putText(frame, str(d["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                except:
+                    logger.warning("failed to display deteciton {}".format(d))
+                if "confidence" in d:
+                    cv2.putText(frame, "{:.2f}".format(d["confidence"]*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                if "spatial_array" in d:
+                    cv2.putText(frame, f"X: {int(d['spatial_array'][0])} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, f"Y: {int(d['spatial_array'][1])} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
         elif self.mode=="show_tracks":
             color = (255, 0, 0)
             for t in self.last_tracks_message["tracks"]:
