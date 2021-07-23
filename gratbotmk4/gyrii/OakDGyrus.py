@@ -111,8 +111,9 @@ class OakDGyrus(ThreadedGyrus):
                         #cut_bboxes = bboxes[bboxes[:, 2] > 0.7][:, 3:7]
                         bboxes = bboxes[bboxes[:,2]>0.7][:,:]
                         for raw_bbox in bboxes:
+                            b=raw_bbox[3:7]
                             detection_message.append({"label": "face",
-                                                      "bbox_array": raw_bbox[3:7].tolist(),
+                                                      "bbox_array": [b[0],b[2],b[1],b[3]],
                                                       "confidence": raw_bbox[2]})
                     if len(detection_message)!=0:
                         self.broker.publish({"timestamp": time.time(),"image_timestamp": image_timestamp,"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
