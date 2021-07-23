@@ -30,9 +30,15 @@ labelMap = [
     "teddy bear",     "hair drier", "toothbrush"
 ]
 
+def frame_norm(frame, bbox):
+    norm_vals = np.full(len(bbox), frame.shape[0])
+    norm_vals[::2] = frame.shape[1]
+    return (np.clip(np.array(bbox), 0, 1) * norm_vals).astype(int)
+
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.do_detection=True
+        self.watch_faces=True
         self.do_imu=True
         self.oak_comm_thread=None
         super().__init__(broker)
@@ -64,6 +70,8 @@ class OakDGyrus(ThreadedGyrus):
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
             if self.do_detection:
                 detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
+            if self.watch_faces:
+                face_nn = self.device.getOutputQueue("face_nn")
 
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
@@ -94,8 +102,19 @@ class OakDGyrus(ThreadedGyrus):
                                                           "spatial_array": spatial_array,
                                                           "bbox_array": bbox_array,
                                                           "confidence": detection.confidence})
+
+                            if self.watch_faces:
+                                bboxes = np.array(face_nn.get().getFirstLayerFp16())
+                                bboxes = bboxes.reshape((bboxes.size // 7, 7))
+                                #cut_bboxes = bboxes[bboxes[:, 2] > 0.7][:, 3:7]
+                                for raw_bbox in bboxes:
+                                    detection_message.append({"label": "face",
+                                                              "bbox_array": raw_bbox[3:7],
+                                                              "confidence": raw_bbox[2]})
                             self.broker.publish({"timestamp": time.time(),"image_timestamp": image_timestamp,"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
                             frame_message["detections"]=detection_message #also append to image
+
+
                     self.broker.publish(frame_message,frame_message["keys"])
 
                 #get accelerometry data
@@ -182,6 +201,11 @@ class OakDGyrus(ThreadedGyrus):
             stereo.depth.link(spatialDetectionNetwork.inputDepth)
             camRgb.preview.link(spatialDetectionNetwork.input)
 
+        #faces
+        if self.watch_faces:
+            face_nn = pipeline.createNeuralNetwork()
+            face_nn.setBlobPath(str(Path("models/face-detection-retail-0004/face-detection-retail-0004_openvino_2021.2_4shave.blob").resolve().absolute()))
+
         #outputs
         #RGB Camera (after detections)
 
@@ -207,3 +231,7 @@ class OakDGyrus(ThreadedGyrus):
             spatialDetectionNetwork.out.link(xoutNN.input)
             #xoutBoundingBoxDepthMapping = pipeline.createXLinkOut()
             #spatialDetectionNetwork.boundingBoxMapping.link(xoutBoundingBoxDepthMapping.input)
+        if self.watch_faces:
+            face_nn_xout = pipeline.createXLinkOut()
+            face_nn_xout.setStreamName("face_nn")
+            face_nn.out.link(face_nn_xout.input)

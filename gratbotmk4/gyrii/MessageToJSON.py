@@ -29,6 +29,8 @@ def message_to_json(object):
         return object.hex
     if type(object) == np.float64:
         return float(object)
+    if type(object) == np.int32:
+        return int(object)
     #presume anything else is OK.  I could have some more checks here
     if type(object) in [str,int,float,complex,bool]:
         return object
