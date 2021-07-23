@@ -5,11 +5,12 @@ import logging
 import time
 import os
 import numpy as np
+import blobconverter
 from pathlib import Path
 
 #nnBlobPath = str((Path(__file__).parent / Path('models/tiny-yolo-v4_openvino_2021.2_6shave.blob')).resolve().absolute())
 nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
-faceBlobPath = os.getcwd()+'/models/face-detection-retail-0004_openvino_2021.2_4shave.blob'
+#faceBlobPath = os.getcwd()+'/models/face-detection-retail-0004_openvino_2021.2_4shave.blob'
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.WARNING)
@@ -40,7 +41,7 @@ def frame_norm(frame, bbox):
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.do_detection=True
-        self.watch_faces=False
+        self.watch_faces=True
         self.do_imu=True
         self.oak_comm_thread=None
         super().__init__(broker)
@@ -206,7 +207,7 @@ class OakDGyrus(ThreadedGyrus):
         #faces
         if self.watch_faces:
             face_nn = self.pipeline.createNeuralNetwork()
-            spatialDetectionNetwork.setBlobPath(faceBlobPath)
+            face_nn.setBlobPath(faceBlobPath)
 
         #outputs
         #RGB Camera (after detections)
