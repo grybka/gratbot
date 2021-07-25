@@ -19,7 +19,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.ratio=20
         self.min_angle_correction=2 #in degrees!
         self.mode="track_first"
-        self.allowed_labels=["sports ball","orange"]
+        self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None

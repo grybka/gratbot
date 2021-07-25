@@ -40,8 +40,8 @@ class XboxControllerGyrus(ThreadedGyrus):
 
     def _receive_thread_loop(self):
         while not self.should_quit:
-            left= -self.joystick.get_axis(1)
-            right=-self.joystick.get_axis(3)
+            left= self.joystick.get_axis(1)
+            right=self.joystick.get_axis(3)
             left_lr=self.joystick.get_axis(0)
             if abs(left)<0.2:
                 left=0
@@ -67,7 +67,8 @@ class XboxControllerGyrus(ThreadedGyrus):
             behavior_command=None
             if self.joystick.get_button(0):
                 #behavior_command={"behavior_request": {"name": "trackifseen"}}
-                behavior_command={"behavior_request": {"name": "exerciseservo"}}
+                #behavior_command={"behavior_request": {"name": "exerciseservo"}}
+                ...
             if self.joystick.get_button(3):
                 behavior_command={"behavior_request": {"name": "nothing"}}
             if behavior_command is not None:
