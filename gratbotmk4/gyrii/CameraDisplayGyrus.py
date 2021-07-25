@@ -17,8 +17,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count_reset=10
         self.fps_start_time=0
 
-        self.mode="show_detections"
-        #self.mode="show_tracks"
+        #self.mode="show_detections"
+        self.mode="show_tracks"
         super().__init__(broker)
 
         self.last_tracks_message={"tracks": []}
