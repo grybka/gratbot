@@ -112,12 +112,13 @@ class TurnTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(0.1,0,0)
+        self.pid_controller=MyPID(-3,-2,-1)
         self.mode="track_first"
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
+        self.min_angle_correction=0.1
 
     def get_keys(self):
         return ["rotation_vector","tracks","motor_response"]
@@ -133,6 +134,7 @@ class TurnTrackerGyrus(ThreadedGyrus):
         if self.time_ref==None:
             return #no reference time
         if "motor_response" in message:
+            ...
             #self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
         if "tracks" in message:
             if self.tracked_object is None:
@@ -159,7 +161,8 @@ class TurnTrackerGyrus(ThreadedGyrus):
             self.pid_controller.observe(error)
             #correction_angle=error*self.ratio
             correction_angle=self.pid_controller.get_response()
+            #logger.info("motor correction: {}".format(correction_angle))
             if abs(correction_angle)>self.min_angle_correction:
-                motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":correction_angle,"right_throttle": -correction_angle,"duration":0.2}}
-                self.broker.publish(servo_command,"motor_command")
+                motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":correction_angle,"right_throttle": -correction_angle,"left_duration":0.2,"right_duration": 0.2}}
+                self.broker.publish(motor_command,"motor_command")
                 self.last_move=time.time()

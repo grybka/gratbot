@@ -283,8 +283,8 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
             #handle heading correction
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
-            if abs(offset_y)>0.02:
-                logger.info("offset y {}".format(offset_y))
+            #if abs(offset_y)>0.02:
+            #    logger.info("offset y {}".format(offset_y))
 
             self.update_trackers(message["image"],message["image_timestamp"],offset_x,offset_y)
 
