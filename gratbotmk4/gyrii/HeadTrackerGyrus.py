@@ -12,21 +12,22 @@ logger.setLevel(logging.INFO)
 #alternately, hold head level if I'm tilted
 
 class MyPID:
-    def __init__(self,p,i,d):
+    def __init__(self,p,i,d,output_clip=[-1,1]):
         self.const_p=p
         self.const_i=i
         self.const_d=d
         self.history_size=10
         self.history=deque([  ],maxlen=self.history_size)
+        self.output_clip=output_clip
 
     def observe(self,val):
         self.history.append(val)
 
     def get_response(self):
         if len(self.history)>1:
-            return self.const_p*self.history[-1]+self.const_d*(self.history[-1]-self.history[-2])+self.const_i*(np.mean(self.history))
+            return np.clip(self.const_p*self.history[-1]+self.const_d*(self.history[-1]-self.history[-2])+self.const_i*(np.mean(self.history)),self.output_clip[0],self.output_clip[1])
         if len(self.history)==1:
-            return self.const_p*self.history[-1]
+            return np.clip(self.const_p*self.history[-1],self.output_clip[0],self.output_clip[1])
         return 0
 
 
@@ -35,7 +36,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(15,5,10)
+        self.pid_controller=MyPID(17,3,10,output_clip=[-15,15])
         self.ratio=20
         self.min_angle_correction=2 #in degrees!
         self.mode="track_first"
@@ -112,13 +113,13 @@ class TurnTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(-3,-1,-1)
+        self.pid_controller=MyPID(-2,-0,-1)
         self.mode="track_first"
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
-        self.min_angle_correction=0.1
+        self.min_angle_correction=0.2
 
     def get_keys(self):
         return ["rotation_vector","tracks","motor_response"]
