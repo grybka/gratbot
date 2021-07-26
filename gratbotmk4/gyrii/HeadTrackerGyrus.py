@@ -11,11 +11,29 @@ logger.setLevel(logging.DEBUG)
 #if I'm paying attention to a tracked object, follow it with my head
 #alternately, hold head level if I'm tilted
 
+class MyPID:
+    def __init__(self,p,i,d):
+        self.const_p=p
+        self.const_i=i
+        self.const_d=d
+        self.history_size=10
+        self.history=deque([  ],maxlen=self.history_size)
+
+    def observe(self,val):
+        self.history.append(val)
+
+    def get_response(self):
+        return self.p*self.history[-1]+
+               self.d*(self.history[-1]-self.history[-2])+
+               self.i*(np.mean(self.history))
+
+
 class HeadTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
+        self.pid_controller=MyPID(20,0,0)
         self.ratio=20
         self.min_angle_correction=2 #in degrees!
         self.mode="track_first"
@@ -76,7 +94,9 @@ class HeadTrackerGyrus(ThreadedGyrus):
             center_y=track["center"][1]
             #logger.debug("centery {}".format(center_y))
             error=center_y-0.5
-            correction_angle=error*self.ratio
+            self.pid_controller.observe(error)
+            #correction_angle=error*self.ratio
+            correction_angle=self.pid_controller.get_response()
             if abs(correction_angle)>self.min_angle_correction:
                 last_angle=self.get_angle_before(real_time)
                 logger.debug("head tracker error signal angle {}, should be {}".format(correction_angle,last_angle+correction_angle))
