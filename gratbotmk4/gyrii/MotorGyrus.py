@@ -42,6 +42,9 @@ class MotorGyrus(ThreadedGyrus):
     def join_called(self):
         if self.motor_thread is not None:
             return self.motor_thread.join()
+        with self.motor_lock:
+            self.left_motor.throttle=0
+            self.right_motor.throttle=0
         return None
 
     def _motor_thread_loop(self):
@@ -66,6 +69,9 @@ class MotorGyrus(ThreadedGyrus):
                     send_message=True
             if send_message:
                 self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
+        with self.motor_lock:
+            self.left_motor.throttle=0
+            self.right_motor.throttle=0
 
 
     def scale_throttle(self,throttle,duration):
