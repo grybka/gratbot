@@ -105,3 +105,61 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": last_angle+correction_angle}}
                 self.broker.publish(servo_command,"servo_command")
                 self.last_move=time.time()
+
+
+class TurnTrackerGyrus(ThreadedGyrus):
+    def __init__(self,broker):
+        super().__init__(broker)
+        self.tracked_object=None
+        #self.ratio=-0.01473
+        self.pid_controller=MyPID(0.1,0,0)
+        self.mode="track_first"
+        self.allowed_labels=["sports ball","orange","face"]
+        self.max_recent_history=20
+        self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
+        self.time_ref=None
+
+    def get_keys(self):
+        return ["rotation_vector","tracks","motor_response"]
+
+    def get_name(self):
+        return "TurnTrackerGyrus"
+
+    def read_message(self,message):
+        if "packets" in message: #this tracks the
+            if self.time_ref==None:
+                self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
+            self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
+        if self.time_ref==None:
+            return #no reference time
+        if "motor_response" in message:
+            #self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
+        if "tracks" in message:
+            if self.tracked_object is None:
+                if self.mode=="track_first":
+                    #in track first, select whatever the first thing is
+                    for track in message["tracks"]:
+                        if track["label"] in self.allowed_labels:
+                            self.tracked_object=track["id"]
+            found_track=None
+            for track in message["tracks"]:
+                if track["id"]==self.tracked_object:
+                    found_track=track
+                    break
+            if found_track==None: #nothing to look at
+                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
+                    self.tracked_object=None
+                return
+
+            real_time=message['image_timestamp']-self.time_ref
+
+            center_x=track["center"][0]
+            #logger.debug("centery {}".format(center_y))
+            error=center_x-0.5
+            self.pid_controller.observe(error)
+            #correction_angle=error*self.ratio
+            correction_angle=self.pid_controller.get_response()
+            if abs(correction_angle)>self.min_angle_correction:
+                motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":correction_angle,"right_throttle": -correction_angle,"duration":0.2}}
+                self.broker.publish(servo_command,"motor_command")
+                self.last_move=time.time()
