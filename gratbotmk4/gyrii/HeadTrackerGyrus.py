@@ -6,7 +6,7 @@ from collections import deque
 
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 #if I'm paying attention to a tracked object, follow it with my head
 #alternately, hold head level if I'm tilted
@@ -23,9 +23,11 @@ class MyPID:
         self.history.append(val)
 
     def get_response(self):
-        return self.p*self.history[-1]+
-               self.d*(self.history[-1]-self.history[-2])+
-               self.i*(np.mean(self.history))
+        if len(self.history)>1:
+            return self.const_p*self.history[-1]+self.const_d*(self.history[-1]-self.history[-2])+self.const_i*(np.mean(self.history))
+        if len(self.history)==1:
+            return self.const_p*self.history[-1]
+        return 0
 
 
 class HeadTrackerGyrus(ThreadedGyrus):
@@ -33,7 +35,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(20,0,0)
+        self.pid_controller=MyPID(15,5,10)
         self.ratio=20
         self.min_angle_correction=2 #in degrees!
         self.mode="track_first"
