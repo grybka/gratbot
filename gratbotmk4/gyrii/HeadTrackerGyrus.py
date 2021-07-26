@@ -44,7 +44,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
-        self.resting_angle=90
+        self.resting_angle=110
         self.time_to_resting=5
         self.last_move=0
 
@@ -75,7 +75,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 if self.mode=="track_first":
                     #in track first, select whatever the first thing is
                     for track in message["tracks"]:
-                        if track["label"] in self.allowed_labels:
+                        if track["label"] in self.allowed_labels and track["seen_frames"]>1:
                             self.tracked_object=track["id"]
                 if time.time()-self.last_move>self.time_to_resting:
                     servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
@@ -142,7 +142,7 @@ class TurnTrackerGyrus(ThreadedGyrus):
                 if self.mode=="track_first":
                     #in track first, select whatever the first thing is
                     for track in message["tracks"]:
-                        if track["label"] in self.allowed_labels:
+                        if track["label"] in self.allowed_labels and track["seen_frames"]>1:
                             self.tracked_object=track["id"]
             found_track=None
             for track in message["tracks"]:
