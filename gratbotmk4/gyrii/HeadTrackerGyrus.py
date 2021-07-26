@@ -112,7 +112,7 @@ class TurnTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(-3,-2,-1)
+        self.pid_controller=MyPID(-3,-1,-1)
         self.mode="track_first"
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
