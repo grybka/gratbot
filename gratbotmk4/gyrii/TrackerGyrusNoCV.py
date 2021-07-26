@@ -91,6 +91,7 @@ class TrackerGyrusTrackedObject:
         #tracking misses
         self.last_success=True
         self.frames_without_detection=0
+        self.frames_with_detection=1
         #kalman filtering
         #x and y in full span of the camera
         #z is in meters and only updated with depth
@@ -131,6 +132,7 @@ class TrackerGyrusTrackedObject:
         self.kfz.R=np.array( [[ 0.05**2 ]])
         self.kfz.update(self.last_depth)
         self.frames_without_detection=0
+        self.frames_with_detection+=1
 
     def init_with_detection(self,image,det):
         self.shape=image.shape

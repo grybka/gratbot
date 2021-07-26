@@ -48,8 +48,8 @@ class SocketGyrusLink(ThreadedGyrus):
                 if "keys" in object_to_broadcast:
                     self.broker.publish(object_to_broadcast,object_to_broadcast["keys"])
                 else:
-                    logging.error(" keys not in socketgyruslink message! {}".format(broadcast_message))
+                    logger.error(" keys not in socketgyruslink message! {}".format(broadcast_message))
             except queue.Empty:
-                logging.debug("queue empty")
+                logger.debug("queue empty")
                 ... #no big deal, just try again
-        logging.debug("SocketGyrusLink receive_thread quitting")
+        logger.debug("SocketGyrusLink receive_thread quitting")
