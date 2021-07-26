@@ -6,7 +6,7 @@ import logging
 import sys, time
 import select
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -24,12 +24,12 @@ class JSONBackAndForth():
         self.host=host
         self.port=port
         #connect to server
-        logger.debug("creating client socket")
+        logger.info("creating client socket")
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.sock.settimeout(5)
-        logger.debug("connecting")
+        logger.info("connecting")
         conninfo= self.sock.connect((self.host,self.port))
-        logger.debug("starting thread")
+        logger.info("starting thread")
 
         self.thread = threading.Thread(target=self._thread_loop)
         self.thread.daemon = True
@@ -40,17 +40,17 @@ class JSONBackAndForth():
         self.thread.join()
 
     def start_server(self,port):
-        logger.debug("creating server socket")
+        logger.info("creating server socket")
         self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.settimeout(5)
         self.port=port
         self.host = socket.gethostname()
         self.host = "10.0.0.4"
-        logger.debug("binding to {} {}".format(self.host,port))
+        logger.info("binding to {} {}".format(self.host,port))
         self.server_sock.bind((self.host, port))
-        logger.debug("listening")
+        logger.info("listening")
         self.server_sock.listen(1) #accept only one connection at a time
-        logger.debug("thread starting")
+        logger.info("thread starting")
         self.thread = threading.Thread(target=self._thread_loop_server)
         self.thread.daemon = True
         self.thread.start()
@@ -66,7 +66,7 @@ class JSONBackAndForth():
             except Exception as e:
                 logger.warning("unhandled exception in accept, closing connection")
                 logger.warning("{}".format(e))
-                
+
                 #self.should_quit=True
         self.server_sock.close()
 
@@ -76,9 +76,9 @@ class JSONBackAndForth():
             while not self.should_quit:
                 inputs=[self.sock]
                 outputs=[self.sock]
-                #logging.debug("select")
+                logger.debug("select")
                 readable, writable, exceptional = select.select(inputs, outputs, inputs,5) #timeout 5 seconds
-                #logging.debug("select released")
+                logger.debug("select released")
                 if self.sock in exceptional:
                     logger.error("Exception in socket")
                 if self.sock in readable:
@@ -87,15 +87,16 @@ class JSONBackAndForth():
                     logger.debug("reading")
 
                     data=self.sock.recv(1024)
-                    #logging.debug("got data {}".format(data))
+                    logger.debug("readed")
+                    #logger.debug("got data {}".format(data))
                     if data==b'':
                         logger.info("Closing connection to ".format(self.host))
                         break
                     while data[-1]!=10:
-                        #logging.debug("data end character is {}".format(int(data[-1])))
+                        logger.debug("data end character is {}".format(int(data[-1])))
                         newdata=self.sock.recv(1024)
                         data+=newdata
-                        #logging.debug("got data {}".format(data))
+                        #logger.debug("got data {}".format(data))
                         if newdata==b'':
                             logger.warning("Connection broken ".format(self.host))
                             break
@@ -104,7 +105,7 @@ class JSONBackAndForth():
                         json_strings=data.decode().split('\n') #andle multiple messages all in one go
                         json_strings.pop(-1)
                         for s in json_strings:
-                            #logging.debug("message is {}".format(s))
+                            #logger.debug("message is {}".format(s))
                             datastructure=json.loads(s+'\n')
                             self.input_queue.put(datastructure)
                     except Exception as error:
@@ -115,7 +116,9 @@ class JSONBackAndForth():
                         logger.debug("writing")
                         self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
                     else:
+                        logger.debug("short sleep")
                         time.sleep(0.001) #just for a break
+                logger.debug("loop end")
             logger.warning("closing socket")
             self.sock.close()
 
@@ -138,7 +141,7 @@ if __name__ == '__main__':
                 if not server.input_queue.empty():
                     print("message receieved: {} ".format(server.input_queue.get()))
         except KeyboardInterrupt:
-            logging.error("Keyboard interrupt")
+            logger.error("Keyboard interrupt")
             server.join()
 
     elif sys.argv[1]=='client':
@@ -157,7 +160,7 @@ if __name__ == '__main__':
                 if not client.input_queue.empty():
                     print("message receieved: {}".format(client.input_queue.get()))
         except KeyboardInterrupt:
-            logging.error("Keyboard interrupt")
+            logger.error("Keyboard interrupt")
             client.join()
     else:
         print("don't know how to {}".format(sys.argv[1]))

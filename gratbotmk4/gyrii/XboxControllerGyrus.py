@@ -24,6 +24,7 @@ class XboxControllerGyrus(ThreadedGyrus):
 
 
     def start_thread_called(self):
+        logger.debug("starting controller monitoring thread")
         self.receive_thread.start()
 
     def join_called(self):
@@ -39,7 +40,9 @@ class XboxControllerGyrus(ThreadedGyrus):
         ...
 
     def _receive_thread_loop(self):
+        logger.info("Starting controller loop")
         while not self.should_quit:
+            #logger.debug("in controller loop")
             left= self.joystick.get_axis(1)
             right=self.joystick.get_axis(3)
             left_lr=self.joystick.get_axis(0)

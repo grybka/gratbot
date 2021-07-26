@@ -23,6 +23,9 @@ from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior,Exer
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 
+#from hanging_threads import start_monitoring
+#monitoring_thread = start_monitoring()
+
 argparser = argparse.ArgumentParser(description='Gratbot client')
 argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
 args=argparser.parse_args()
@@ -44,6 +47,7 @@ class DisplayLoop(VideoDisplay):
 
     def one_loop(self):
         self.frame_lock.acquire()
+        #logging.debug("camera loop with {} windows ".format(len(self.window_images)))
         for key in self.window_images:
             if key not in self.open_windows:
                 cv.namedWindow(key)

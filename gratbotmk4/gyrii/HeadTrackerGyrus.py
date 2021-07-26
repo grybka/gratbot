@@ -23,6 +23,9 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
+        self.resting_angle=90
+        self.time_to_resting=5
+        self.last_move=0
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response"]
@@ -53,6 +56,11 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     for track in message["tracks"]:
                         if track["label"] in self.allowed_labels:
                             self.tracked_object=track["id"]
+                if time.time()-self.last_move>self.time_to_resting:
+                    servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
+                    self.broker.publish(servo_command,"servo_command")
+                    return
+
             found_track=None
             for track in message["tracks"]:
                 if track["id"]==self.tracked_object:
@@ -74,3 +82,4 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 logger.debug("head tracker error signal angle {}, should be {}".format(correction_angle,last_angle+correction_angle))
                 servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": last_angle+correction_angle}}
                 self.broker.publish(servo_command,"servo_command")
+                self.last_move=time.time()

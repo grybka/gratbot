@@ -50,5 +50,6 @@ class SocketGyrusLink(ThreadedGyrus):
                 else:
                     logging.error(" keys not in socketgyruslink message! {}".format(broadcast_message))
             except queue.Empty:
+                logging.debug("queue empty")
                 ... #no big deal, just try again
         logging.debug("SocketGyrusLink receive_thread quitting")
