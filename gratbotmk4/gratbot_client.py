@@ -14,7 +14,7 @@ from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
-from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
+#from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
 from gyrii.XboxControllerGyrus import XboxControllerGyrus
@@ -88,7 +88,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-gyrii.append(XboxControllerGyrus(broker))
+#gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
 

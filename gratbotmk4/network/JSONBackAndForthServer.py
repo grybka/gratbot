@@ -73,6 +73,10 @@ class JSONBackAndForth():
 
     def _thread_loop(self):
         with self.sock:
+            #Should I do this?  Clear the output queue at the beginning
+            #of connection in case stuff built up in the interim
+            while not self.output_queue.empty():
+                self.output_queue.get(block=False)
             while not self.should_quit:
                 inputs=[self.sock]
                 outputs=[self.sock]

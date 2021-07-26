@@ -36,7 +36,7 @@ class SocketGyrusLink(ThreadedGyrus):
 
     def read_message(self,message):
         if self.outgoing_queue.full():
-            to_toss=self.outgoing_queue.get() #throw away packets if they aren't getting sent
+            to_toss=self.outgoing_queue.get(block=False) #throw away packets if they aren't getting sent
             #logger.warning("Throwing away a packet with keys {}".format(to_toss["keys"]))
         self.outgoing_queue.put(message_to_json(message),timeout=0.1)
 
