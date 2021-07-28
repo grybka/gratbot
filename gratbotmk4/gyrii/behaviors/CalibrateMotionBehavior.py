@@ -40,12 +40,13 @@ class RunServoDelta(GratbotBehavior):
         self.delta_servo_angle=delta_servo_angle
     def act(self,**kwargs):
         broker=kwargs["broker"]
+        logger.debug("servo delta {}".format(self.delta_servo_angle))
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"delta_angle": self.delta_servo_angle}}
         broker.publish(servo_command,"servo_command")
         return GratbotBehaviorStatus.COMPLETED,None
 
 class ServoUpAndDown(GratbotBehavior):
-    def __init__(self,servo_num=0,servo_step=5,servo_max_angle=160,servo_min_angle=65,wait_time=0.2):
+    def __init__(self,servo_num=0,servo_step=2,servo_max_angle=160,servo_min_angle=65,wait_time=0.25):
         self.servo_num=servo_num
         self.servo_step=servo_step
         self.servo_max_angle=servo_max_angle
@@ -55,27 +56,38 @@ class ServoUpAndDown(GratbotBehavior):
         self.wait_time=wait_time
     def act(self,**kwargs):
         if time.time()<self.next_act_time:
+            logger.debug("up and down waiting")
             return GratbotBehaviorStatus.INPROGRESS
         #reverse direction if needed
-        if self.up_not_down:
-            if kwargs["state"]["servo_angle"][self.servo_num]>self.max_angle:
-                self.up_not_down=False
+        to_do=None
+        if "servo_angle" in kwargs["state"]:
+            if self.up_not_down:
+                if kwargs["state"]["servo_angle"][self.servo_num]>self.servo_max_angle:
+                    logger.debug("up and down change to down")
+                    self.up_not_down=False
+            else:
+                if kwargs["state"]["servo_angle"][self.servo_num]<self.servo_min_angle:
+                    self.up_not_down=True
+                    logger.debug("up and down change to up")
         else:
-            if kwargs["state"]["servo_angle"][self.servo_num]<self.min_angle:
-                self.up_not_down=True
+            logger.debug("up and down centering")
+            midpoint=int(0.5*(self.servo_max_angle+self.servo_min_angle))
+            to_do=RunServo(self.servo_num,midpoint)
         #instruct servos to move
-        to_do=RunServoDelta(self.servo_num,self.servo_step if self.up_not_down else -self.servo_step)
-        if to_do.act(kwargs) == GratbotBehaviorStatus.FAILED:
+        logger.debug("up and down moving")
+        if to_do is None:
+            to_do=RunServoDelta(self.servo_num,self.servo_step if self.up_not_down else -self.servo_step)
+        if to_do.act(**kwargs) == GratbotBehaviorStatus.FAILED:
             return GratbotBehaviorStatus.FAILED
         self.next_act_time=time.time()+self.wait_time
         return GratbotBehaviorStatus.INPROGRESS
 
-neck_max_angle=160
-neck_min_angle=65
-CorrectNeckMotion=GratbotBehavior_Choice(TestElem(["short_term_memory"],'=',"neck_scan_direction"],True),
-                                                  on_success=TestElem(["short_term_memory","servo_response"],">",neck_max_angle),
-                                                      on_success=...)
-                                                  on_fail=...)
+#neck_max_angle=160
+#neck_min_angle=65
+#CorrectNeckMotion=GratbotBehavior_Choice(TestElem(["short_term_memory"],'=',"neck_scan_direction"],True),
+#                                                  on_success=TestElem(["short_term_memory","servo_response"],">",neck_max_angle),
+#                                                      on_success=...)
+#                                                  on_fail=...)
 
 # FocusOnObjectOfLabel ? [ Object in Focus , Move Up And Down ]
 # MoveUpAndDown -> [ ReverseDirectionIfNeeded , IsMovingUp ? StepUp : StepDown ]

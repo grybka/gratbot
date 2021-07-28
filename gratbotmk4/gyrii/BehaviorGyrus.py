@@ -15,7 +15,7 @@ def update_state(message,state):
         m=message["servo_response"]
         if "servo_angle" not in state:
             state["servo_angle"]={}
-        state["servo_angle"][m["servo_num"]]=m["angle"]
+        state["servo_angle"][m["servo_number"]]=m["angle"]
 
 class BehaviorGyrus(ThreadedGyrus):
     def __init__(self,broker,on_behavior,pass_kwargs={}):
@@ -28,7 +28,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return ["clock_pulse","tracks","behavior_request"]
+        return ["clock_pulse","tracks","behavior_request","servo_response"]
 
     def get_name(self):
         return "BehaviorGyrus"
