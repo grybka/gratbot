@@ -39,7 +39,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.pid_controller=MyPID(17,3,10,output_clip=[-15,15])
         self.ratio=20
         self.min_angle_correction=2 #in degrees!
-        self.mode="track_first"
+        self.mode="track_first" #track_first or off
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
@@ -49,7 +49,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.last_move=0
 
     def get_keys(self):
-        return ["rotation_vector","tracks","servo_response"]
+        return ["rotation_vector","tracks","servo_response","gyrus_config"]
 
     def get_name(self):
         return "HeadTrackerGyrus"
@@ -61,6 +61,12 @@ class HeadTrackerGyrus(ThreadedGyrus):
         return self.servo_angle[-1][1]
 
     def read_message(self,message):
+        if "gyrus_config" in message and message["gyrus_config"]["target_gyrus"]=="HeadTrackerGyrus":
+            m=message["gyrus_config"]
+            if "mode" in m:
+                self.mode=m["mode"]
+            if "labels" in m:
+                self.allowed_labels=m["labels"]
         if "packets" in message: #this tracks the
             if self.time_ref==None:
                 self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
@@ -77,10 +83,10 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     for track in message["tracks"]:
                         if track["label"] in self.allowed_labels and track["seen_frames"]>1:
                             self.tracked_object=track["id"]
-                if time.time()-self.last_move>self.time_to_resting:
-                    servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
-                    self.broker.publish(servo_command,"servo_command")
-                    return
+                    if time.time()-self.last_move>self.time_to_resting:
+                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
+                        self.broker.publish(servo_command,"servo_command")
+                        return
 
             found_track=None
             for track in message["tracks"]:
@@ -90,6 +96,9 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if found_track==None: #nothing to look at
                 if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
                     self.tracked_object=None
+                return
+
+            if self.mode=="off":
                 return
 
             real_time=message['image_timestamp']-self.time_ref

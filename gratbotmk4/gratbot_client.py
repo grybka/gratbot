@@ -19,7 +19,9 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
 from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
-from gyrii.behaviors.CalibrateMotionBehavior import CalibrateMotionBehavior,ExerciseTurns,CalibrateMotionBehavior_WithTracking_Turns,CalibrateMotionBehaviorFB,CalibrateMotionBehavior_WithTracking_FB
+from gyrii.behaviors.CalibrateMotionBehavior import
+
+CalibrateMotionBehavior,ExerciseTurns,CalibrateMotionBehavior_WithTracking_Turns,CalibrateMotionBehaviorFB,CalibrateMotionBehavior_WithTracking_FB
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 

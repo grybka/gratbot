@@ -22,7 +22,7 @@ class RunMotors(GratbotBehavior):
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
         #logging.info("Emitting Motor Command {}".format(motor_command))
         broker.publish(motor_command,"motor_command")
-        return GratbotBehaviorStatus.COMPLETED
+        return GratbotBehaviorStatus.COMPLETED,None
 
 class RunServo(GratbotBehavior):
     def __init__(self,servo_num,servo_angle):
@@ -32,17 +32,162 @@ class RunServo(GratbotBehavior):
         broker=kwargs["broker"]
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"angle": self.servo_angle}}
         broker.publish(servo_command,"servo_command")
-        return GratbotBehaviorStatus.COMPLETED
+        return GratbotBehaviorStatus.COMPLETED,None
 
-class TurnRelative(GratbotBehavior):
-    def __init__(self,angle):
-        self.angle=angle #in radians
+class RunServoDelta(GratbotBehavior):
+    def __init__(self,servo_num,delta_servo_angle):
+        self.servo_num=servo_num
+        self.delta_servo_angle=delta_servo_angle
     def act(self,**kwargs):
         broker=kwargs["broker"]
-        motion_command={"timestamp": time.time(),"motion_command": {"category": "turn_relative",
-                                                                    "radians": self.angle}}
-        broker.publish(motion_command,"motion_command")
-        return GratbotBehaviorStatus.COMPLETED
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"delta_angle": self.delta_servo_angle}}
+        broker.publish(servo_command,"servo_command")
+        return GratbotBehaviorStatus.COMPLETED,None
+
+class ServoUpAndDown(GratbotBehavior):
+    def __init__(self,servo_num=0,servo_step=5,servo_max_angle=160,servo_min_angle=65,wait_time=0.2):
+        self.servo_num=servo_num
+        self.servo_step=servo_step
+        self.servo_max_angle=servo_max_angle
+        self.servo_min_angle=servo_min_angle
+        self.up_not_down=True
+        self.next_act_time=0
+        self.wait_time=wait_time
+    def act(self,**kwargs):
+        if time.time()<self.next_act_time:
+            return GratbotBehaviorStatus.INPROGRESS
+        #reverse direction if needed
+        if self.up_not_down:
+            if kwargs["state"]["servo_angle"][self.servo_num]>self.max_angle:
+                self.up_not_down=False
+        else:
+            if kwargs["state"]["servo_angle"][self.servo_num]<self.min_angle:
+                self.up_not_down=True
+        #instruct servos to move
+        to_do=RunServoDelta(self.servo_num,self.servo_step if self.up_not_down else -self.servo_step)
+        if to_do.act(kwargs) == GratbotBehaviorStatus.FAILED:
+            return GratbotBehaviorStatus.FAILED
+        self.next_act_time=time.time()+self.wait_time
+        return GratbotBehaviorStatus.INPROGRESS
+
+neck_max_angle=160
+neck_min_angle=65
+CorrectNeckMotion=GratbotBehavior_Choice(TestElem(["short_term_memory"],'=',"neck_scan_direction"],True),
+                                                  on_success=TestElem(["short_term_memory","servo_response"],">",neck_max_angle),
+                                                      on_success=...)
+                                                  on_fail=...)
+
+# FocusOnObjectOfLabel ? [ Object in Focus , Move Up And Down ]
+# MoveUpAndDown -> [ ReverseDirectionIfNeeded , IsMovingUp ? StepUp : StepDown ]
+# ReverseDirectionIfNeeded -> IsMovingUp ? ( TooHigh ? ReverseDirection : Success) : ( TooLow ? ReverseDirection : Success) )
+
+
+def extract_track_with_label(short_term_memory,labels):
+    if "tracks" in short_term_memory:
+        for track in short_term_memory["tracks"]["tracks"]:
+            if track["label"] in labels:
+                return track
+    return None
+
+def extract_track_with_id(short_term_memory,id):
+    if "tracks" in short_term_memory:
+        for track in short_term_memory["tracks"]["tracks"]:
+            if track["id"]==id:
+                return track
+    return None
+
+class FocusOnObjectOfLabel(GratbotBehavior):
+    def __init__(self,labels):
+        self.labels=labels
+    def act(self,**kwargs):
+        if "focus_object_id" in kwargs:
+            to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_object_id"])
+            if to_track["label"] in self.labels:
+                return GratbotBehaviorStatus.SUCCESS,{"focus_object_id": to_track["id"]}
+        to_track=extract_track_with_label(kwargs["short_term_memory"],self.labels)
+        if to_track is None:
+            return GratbotBehaviorStatus.FAILED,{"focuse_object_id": None}
+        return GratbotBehaviorStatus.SUCCESS,{"focus_object_id": to_track["id"]}
+
+#### Not updated below here
+
+class TestCanSeeObject(GratbotBehavior):
+    def __init__(self,memory_loc):
+        self.memory_loc=memory_loc
+    def act(self,**kwargs):
+        if self.memory_loc not in kwargs["short_term_memory"]:
+            return GratbotBehaviorStatus.FAILED
+        if extract_track_with_id(self.to_track) is not None:
+            return GratbotBehaviorStatus.SUCCESS
+        return GratbotBehaviorStatus.FAILED
+
+
+
+class SlowHeadCenterObject(GratbotBehavior):
+    def __init__(self,angle):
+        self.to_track=None
+        self.success_error=0.1
+        self.hardcode_step=4
+
+    def act(self,**kwargs):
+        track=extract_track_with_id(self.to_track)
+        if track==None:
+            return GratbotBehaviorStatus.FAILED
+        center_y=track["center"][1]
+        error=center_y-0.5
+        if abs(error)<self.success_error:
+            return GratbotBehaviorStatus.SUCCESS
+        to_do=None
+        if error>0:
+           to_do=RunServoDelta(0,self.hardcode_step)
+        else:
+           to_do=RunServoDelta(0,-self.hardcode_step)
+        to_do.act(kwargs)
+        return GratbotBehaviorStatus.FAILED
+
+class HeadSearchForObject(GratbotBehavior):
+    def __init__(self,labels,memory_loc):
+        self.labels_to_find=labels
+        self.max_angle=0
+        self.min_angle=0
+        self.hardcode_step=5
+        self.up_not_down=True
+        self.memory_loc=memory_loc
+
+    def act(self,**kwargs):
+        track=extract_track_with_label(kwargs["short_term_memory"],self.labels_to_find)
+        if track is not None:
+            return GratbotBehaviorStatus.SUCCESS
+        if self.up_not_down:
+           to_do=RunServoDelta(0,self.hardcode_step)
+           to_do.act(kwargs)
+           return GratbotBehaviorStatus.INPROGRESS
+        else:
+           to_do=RunServoDelta(0,-self.hardcode_step)
+           to_do.act(kwargs)
+           return GratbotBehaviorStatus.INPROGRESS
+        return GratbotBehaviorStatus.INPROGRESS
+
+class CalibHeadServoWhileTracking(GratbotBehavior):
+    def __init__(self):
+        self.labels_to_track=labels
+        self.to_track=None
+        self.search_behavior=HeadSearchForObject(self.labels_to_track)
+        self.track_behavior=SlowHeadCenterObject(None)
+        self.sub_behavior=None
+
+    def act(self,**kwargs):
+        response=self.search_behavior.act(kwargs)
+        if response is not GratbotBehaviorStatus.SUCCESS:
+            return GratbotBehaviorStatus.INPROGRESS
+        track=extract_track_with_label(kwargs["short_term_memory"],self.labels_to_track)
+        if track==None:
+            return GratbotBehaviorStatus.INPROGRESS
+        self.track_behavior.to_track=track["id"]
+        response=self.track_behavior.act(kwargs)
+        if response is not GratbotBehaviorStatus.SUCCESS:
+            return GratbotBehaviorStatus.INPROGRESS
+
 
 class ExerciseServo(GratbotBehavior):
     def __init__(self):
