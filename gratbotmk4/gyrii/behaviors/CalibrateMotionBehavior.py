@@ -22,7 +22,7 @@ class RunMotors(GratbotBehavior):
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
         #logging.info("Emitting Motor Command {}".format(motor_command))
         broker.publish(motor_command,"motor_command")
-        return GratbotBehaviorStatus.COMPLETED,None
+        return GratbotBehaviorStatus.COMPLETED,{}
 
 class RunServo(GratbotBehavior):
     def __init__(self,servo_num,servo_angle):
@@ -32,7 +32,7 @@ class RunServo(GratbotBehavior):
         broker=kwargs["broker"]
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"angle": self.servo_angle}}
         broker.publish(servo_command,"servo_command")
-        return GratbotBehaviorStatus.COMPLETED,None
+        return GratbotBehaviorStatus.COMPLETED,{}
 
 class RunServoDelta(GratbotBehavior):
     def __init__(self,servo_num,delta_servo_angle):
@@ -43,7 +43,38 @@ class RunServoDelta(GratbotBehavior):
         logger.debug("servo delta {}".format(self.delta_servo_angle))
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"delta_angle": self.delta_servo_angle}}
         broker.publish(servo_command,"servo_command")
-        return GratbotBehaviorStatus.COMPLETED,None
+        return GratbotBehaviorStatus.COMPLETED,{}
+
+def extract_track_with_label(short_term_memory,labels):
+    if "tracks" in short_term_memory:
+        for track in short_term_memory["tracks"]["tracks"]:
+            if track["label"] in labels:
+                return track
+    return None
+
+def extract_track_with_id(short_term_memory,id):
+    if "tracks" in short_term_memory:
+        for track in short_term_memory["tracks"]["tracks"]:
+            if track["id"]==id:
+                return track
+    return None
+
+class FocusOnObjectOfLabel(GratbotBehavior):
+    def __init__(self,labels):
+        self.labels=labels
+    def act(self,**kwargs):
+        if "focus_track" in kwargs["state"]:
+            to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
+            if to_track["label"] in self.labels:
+                return GratbotBehaviorStatus.SUCCESS,{"focus_track_id": to_track["id"]}
+            else:
+                kwargs["state"]["focus_track_id"]=None
+        to_track=extract_track_with_label(kwargs["short_term_memory"],self.labels)
+        if to_track is None:
+            return GratbotBehaviorStatus.FAILED,{"focus_track_id": None}
+        kwargs["state"]["focus_track"]=to_track["id"]
+        return GratbotBehaviorStatus.SUCCESS,{"focus_track_id": to_track["id"]}
+
 
 class ServoUpAndDown(GratbotBehavior):
     def __init__(self,servo_num=0,servo_step=2,servo_max_angle=160,servo_min_angle=65,wait_time=0.25):
@@ -82,44 +113,48 @@ class ServoUpAndDown(GratbotBehavior):
         self.next_act_time=time.time()+self.wait_time
         return GratbotBehaviorStatus.INPROGRESS
 
-#neck_max_angle=160
-#neck_min_angle=65
+class NeckCenterFocusObject(GratbotBehavior):
+    def __init__(self,servo_step=2,servo_max_angle=160,servo_min_angle=65,wait_time=0.20):
+        self.servo_num=0
+        self.servo_step=servo_step
+        self.servo_max_angle=servo_max_angle
+        self.servo_min_angle=servo_min_angle
+        self.wait_time=wait_time
+        self.next_act_time=0
+        self.close_enough=0.1
+    def act(self,**kwargs):
+        if "focus_track_id" not in kwargs or kwargs["focus_track_id"]==None:
+            logger.warning("No track to focus neck on")
+            return GratbotBehaviorStatus.FAILED, {}
+        to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
+        if to_track==None:
+            logger.debug("Neckcenterfocusobject no lost track")
+            return GratbotBehaviorStatus.FAILED, {}
+        center_y=track["center"][1]
+        error=center_y-0.5
+        if abs(error)<self.close_enough:
+            return GratbotBehaviorStatus.SUCCESS, {}
+        to_do=RunServoDelta(self.servo_num,self.servo_step if error<0 else -self.servo_step)
+        if to_do.act(**kwargs) == GratbotBehaviorStatus.FAILED:
+            return GratbotBehaviorStatus.FAILED
+        self.next_act_time=time.time()+self.wait_time
+        return GratbotBehaviorStatus.INPROGRESS
+
+def locate_object_neck_with_label():
+    allowed_labels=["face","orange","sports ball"]
+    return GratbotBehavior_Fallback([FocusOnObjectOfLabel(allowed_labels),ServoUpAndDown()])
+
+def calibrate_neck_motion():
+    return GratbotBehavior_Series([locate_object_neck_with_label(),
+                                   NeckCenterFocusObject()])
+                                   
 #CorrectNeckMotion=GratbotBehavior_Choice(TestElem(["short_term_memory"],'=',"neck_scan_direction"],True),
 #                                                  on_success=TestElem(["short_term_memory","servo_response"],">",neck_max_angle),
 #                                                      on_success=...)
 #                                                  on_fail=...)
 
 # FocusOnObjectOfLabel ? [ Object in Focus , Move Up And Down ]
-# MoveUpAndDown -> [ ReverseDirectionIfNeeded , IsMovingUp ? StepUp : StepDown ]
-# ReverseDirectionIfNeeded -> IsMovingUp ? ( TooHigh ? ReverseDirection : Success) : ( TooLow ? ReverseDirection : Success) )
 
-
-def extract_track_with_label(short_term_memory,labels):
-    if "tracks" in short_term_memory:
-        for track in short_term_memory["tracks"]["tracks"]:
-            if track["label"] in labels:
-                return track
-    return None
-
-def extract_track_with_id(short_term_memory,id):
-    if "tracks" in short_term_memory:
-        for track in short_term_memory["tracks"]["tracks"]:
-            if track["id"]==id:
-                return track
-    return None
-
-class FocusOnObjectOfLabel(GratbotBehavior):
-    def __init__(self,labels):
-        self.labels=labels
-    def act(self,**kwargs):
-        if "focus_object_id" in kwargs:
-            to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_object_id"])
-            if to_track["label"] in self.labels:
-                return GratbotBehaviorStatus.SUCCESS,{"focus_object_id": to_track["id"]}
-        to_track=extract_track_with_label(kwargs["short_term_memory"],self.labels)
-        if to_track is None:
-            return GratbotBehaviorStatus.FAILED,{"focuse_object_id": None}
-        return GratbotBehaviorStatus.SUCCESS,{"focus_object_id": to_track["id"]}
 
 #### Not updated below here
 
