@@ -25,10 +25,12 @@ class JSONBackAndForth():
         self.port=port
         #connect to server
         logger.info("creating client socket")
-        self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.sock.settimeout(5)
-        logger.info("connecting")
-        conninfo= self.sock.connect((self.host,self.port))
+        #self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        #self.sock.settimeout(5)
+        #logger.info("connecting")
+        #conninfo= self.sock.connect((self.host,self.port))
+        self.sock=socket.create_server( (self.host,self.port), reuse_port=True )
+
         logger.info("starting thread")
 
         self.thread = threading.Thread(target=self._thread_loop)

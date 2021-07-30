@@ -43,8 +43,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        #self.pid_controller=MyPID(-17,-3,0,output_clip=[-15,15])
-        self.pid_controller=MyPID(-7,0,0,output_clip=[-15,15])
+        self.pid_controller=MyPID(17,6,0,output_clip=[-15,15])
         self.ratio=20
         self.min_angle_correction=1 #in degrees!
         self.mode="track_first" #track_first or off
@@ -53,8 +52,9 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
         self.resting_angle=110
-        self.time_to_resting=5
+        self.time_to_resting=2
         self.last_move=0
+        self.last_angle=90
         #not used below
         self.rot_vector_history=deque([],maxlen=self.max_recent_history)
 
@@ -94,10 +94,10 @@ class HeadTrackerGyrus(ThreadedGyrus):
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
             for packet in message["packets"]:
                 self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
-        if self.time_ef==None:
+        if self.time_ref==None:
             return #no reference time
         if "servo_response" in message:
-            logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
+        #    logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
             self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
         if "tracks" in message:
             if self.tracked_object is None:
@@ -127,7 +127,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
             angle_at_image_time=self.get_angle_before(image_time)
-            error=position_at_present-0.5
+            error=position_at_image_time-0.5
 
             #position_at_present=position_at_image_time
             #position_at_present=position_at_image_time+self.predict_track_pos_change_since(message['image_timestamp'])
@@ -141,14 +141,14 @@ class HeadTrackerGyrus(ThreadedGyrus):
             correction_angle=self.pid_controller.get_response()
 
             if abs(correction_angle)>self.min_angle_correction:
-                logger.info("correction angle {}".format(correction_angle))
                 new_angle=angle_at_image_time+correction_angle
-                #last_angle=self.get_angle_before(real_time)
-                #logger.debug("head tracker error signal angle {}, should be {}".format(correction_angle,last_angle+correction_angle))
-                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
-                #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": correction_angle}}
-                self.broker.publish(servo_command,"servo_command")
-                self.last_move=time.time()
+                if abs(new_angle-self.last_angle)>self.min_angle_correction:
+                    #logger.info("correction angle {}".format(correction_angle))
+                    logger.info("new angle {}".format(new_angle))
+                    self.last_angle=new_angle
+                    servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
+                    self.broker.publish(servo_command,"servo_command")
+                    self.last_move=time.time()
 
 
 class TurnTrackerGyrus(ThreadedGyrus):
