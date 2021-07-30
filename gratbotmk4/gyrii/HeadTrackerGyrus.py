@@ -43,9 +43,10 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        #self.pid_controller=MyPID(17,3,10,output_clip=[-15,15])
+        #self.pid_controller=MyPID(-17,-3,0,output_clip=[-15,15])
+        self.pid_controller=MyPID(-7,0,0,output_clip=[-15,15])
         self.ratio=20
-        self.min_angle_correction=5 #in degrees!
+        self.min_angle_correction=1 #in degrees!
         self.mode="track_first" #track_first or off
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
@@ -90,7 +91,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if self.time_ref==None:
                 self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
-            for packet in "packets":
+            for packet in message["packets"]:
                 self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
         if self.time_ref==None:
             return #no reference time
@@ -124,19 +125,23 @@ class HeadTrackerGyrus(ThreadedGyrus):
 
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
+            #position_at_present=position_at_image_time
             position_at_present=position_at_image_time+self.predict_track_pos_change_since(message['image_timestamp'])
             #TODO should I include velocity here?  maybe maybe not
-            error=position_at_present-0.5
+            #logger.info("position_at_image_time, present {} ,{}".format(position_at_image_time,position_at_present))
+            #logger.info("delta pos already = {}".format(position_at_present-position_at_image_time))
+            error=0.5-position_at_present
 
             a=4.0
             b=-0.37
-            correction_angle=inv_deadzone_func(error,a,b)
+            #correction_angle=inv_deadzone_func(error,a,b)
 
             #logger.debug("centery {}".format(center_y))
-            #self.pid_controller.observe(error)
+            self.pid_controller.observe(error)
             #correction_angle=error*self.ratio
-            #correction_angle=self.pid_controller.get_response()
+            correction_angle=self.pid_controller.get_response()
             if abs(correction_angle)>self.min_angle_correction:
+                logger.info("correction angle {}".format(correction_angle))
                 #last_angle=self.get_angle_before(real_time)
                 #logger.debug("head tracker error signal angle {}, should be {}".format(correction_angle,last_angle+correction_angle))
                 #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": last_angle+correction_angle}}

@@ -40,8 +40,8 @@ def frame_norm(frame, bbox):
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        self.do_detection=True
-        self.watch_faces=False
+        self.do_detection=False
+        self.watch_faces=True
         self.do_imu=True
         self.oak_comm_thread=None
         #for keeping track of rotation
