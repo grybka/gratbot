@@ -46,7 +46,7 @@ class OakDGyrus(ThreadedGyrus):
         self.oak_comm_thread=None
         #for keeping track of rotation
         self.local_rotation=np.zeros(3)
-        self.last_gyro_timestamp=0
+        self.last_gyro_Ts=0
 
         super().__init__(broker)
 
