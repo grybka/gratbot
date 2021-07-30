@@ -51,11 +51,12 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
-        self.rot_vector_history=deque([],maxlen=self.max_recent_history)
         self.time_ref=None
         self.resting_angle=110
         self.time_to_resting=5
         self.last_move=0
+        #not used below
+        self.rot_vector_history=deque([],maxlen=self.max_recent_history)
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config"]
@@ -69,11 +70,11 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 return self.servo_angle[i][1]
         return self.servo_angle[-1][1]
 
-    def get_rotvec_before(self,timestamp):
-        for i in range(len(self.servo_angle)-1):
-            if self.rot_vector_history[i][0]<timestamp and self.rot_vector_history[i+1][0]>timestamp:
-                return self.rot_vector_history[i][1]
-        return self.rot_vector_history[-1][1]
+#    def get_rotvec_before(self,timestamp):
+#        for i in range(len(self.servo_angle)-1):
+#            if self.rot_vector_history[i][0]<timestamp and self.rot_vector_history[i+1][0]>timestamp:
+#                return self.rot_vector_history[i][1]
+#        return self.rot_vector_history[-1][1]
 
     def predict_track_pos_change_since(self,start_timestamp):
         slope=-1.55
@@ -93,7 +94,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
             for packet in message["packets"]:
                 self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
-        if self.time_ref==None:
+        if self.time_ef==None:
             return #no reference time
         if "servo_response" in message:
             logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
@@ -125,27 +126,27 @@ class HeadTrackerGyrus(ThreadedGyrus):
 
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
+            angle_at_image_time=self.get_angle_before(image_time)
+            error=position_at_present-0.5
+
             #position_at_present=position_at_image_time
-            position_at_present=position_at_image_time+self.predict_track_pos_change_since(message['image_timestamp'])
+            #position_at_present=position_at_image_time+self.predict_track_pos_change_since(message['image_timestamp'])
             #TODO should I include velocity here?  maybe maybe not
             #logger.info("position_at_image_time, present {} ,{}".format(position_at_image_time,position_at_present))
             #logger.info("delta pos already = {}".format(position_at_present-position_at_image_time))
-            error=0.5-position_at_present
-
-            a=4.0
-            b=-0.37
             #correction_angle=inv_deadzone_func(error,a,b)
-
             #logger.debug("centery {}".format(center_y))
+
             self.pid_controller.observe(error)
-            #correction_angle=error*self.ratio
             correction_angle=self.pid_controller.get_response()
+
             if abs(correction_angle)>self.min_angle_correction:
                 logger.info("correction angle {}".format(correction_angle))
+                new_angle=angle_at_image_time+correction_angle
                 #last_angle=self.get_angle_before(real_time)
                 #logger.debug("head tracker error signal angle {}, should be {}".format(correction_angle,last_angle+correction_angle))
-                #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": last_angle+correction_angle}}
-                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": correction_angle}}
+                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
+                #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": correction_angle}}
                 self.broker.publish(servo_command,"servo_command")
                 self.last_move=time.time()
 
