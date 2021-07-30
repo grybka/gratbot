@@ -1,5 +1,9 @@
 from enum import IntEnum
 import time
+import logging
+
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class GratbotBehaviorStatus(IntEnum):
     INPROGRESS = 1
@@ -48,7 +52,7 @@ class GratbotBehavior_Series(GratbotBehavior):
     def act(self,**kwargs):
         my_response_data={}
         for child in self.children:
-            response,response_data=child.act(kwargs)
+            response,response_data=child.act(**kwargs)
             my_response_data.update(response_data)
             kwargs.update(response_data)
             if response==GratbotBehaviorStatus.FAILED:
@@ -57,11 +61,38 @@ class GratbotBehavior_Series(GratbotBehavior):
             if response==GratbotBehaviorStatus.INPROGRESS:
                 return GratbotBehaviorStatus.INPROGRESS,my_response_data
         self.reset()
-        return GratbotBehaviorStatus.SUCCESS,my_response_data
+        return GratbotBehaviorStatus.COMPLETED,my_response_data
 
     def reset(self):
         for child in self.children:
             child.reset()
+
+class GratbotBehavior_Checklist(GratbotBehavior):
+    #like a series, but once a step has returned success, don't go bac kto it
+    def __init__(self,children):
+        super().__init__()
+        self.children=children
+        self.on_child=0
+    def act(self,**kwargs):
+        my_response_data={}
+        while self.on_child<len(self.children):
+            child=self.children[self.on_child]
+            response,response_data=child.act(**kwargs)
+            my_response_data.update(response_data)
+            kwargs.update(response_data)
+            if response==GratbotBehaviorStatus.FAILED:
+                self.reset()
+                return GratbotBehaviorStatus.FAILED,my_response_data
+            if response==GratbotBehaviorStatus.INPROGRESS:
+                return GratbotBehaviorStatus.INPROGRESS,my_response_data
+            self.on_child+=1
+        self.reset()
+        return GratbotBehaviorStatus.COMPLETED,my_response_data
+
+    def reset(self):
+        for child in self.children:
+            child.reset()
+        self.on_child=0
 
 class GratbotBehavior_Fallback(GratbotBehavior):
     #execute every step in the the series until a child
@@ -73,11 +104,11 @@ class GratbotBehavior_Fallback(GratbotBehavior):
     def act(self,**kwargs):
         my_response_data={}
         for child in self.children:
-            response,response_data=child.act(kwargs)
+            response,response_data=child.act(**kwargs)
             my_response_data.update(response_data)
-            if response==GratbotBehaviorStatus.SUCCESS:
+            if response==GratbotBehaviorStatus.COMPLETED:
                 self.reset()
-                return GratbotBehaviorStatus.SUCCESS,my_response_data
+                return GratbotBehaviorStatus.COMPLETED,my_response_data
             if response==GratbotBehaviorStatus.INPROGRESS:
                 return GratbotBehaviorStatus.INPROGRESS,my_response_data
         self.reset()
@@ -95,27 +126,44 @@ class GratbotBehavior_Choice(GratbotBehavior):
 
     def act(self,**kwargs):
         my_response_data={}
-        response,response_data=self.test_behavior.act(kwargs)
+        response,response_data=self.test_behavior.act(**kwargs)
         my_response_data.update(response_data)
-        if response==GratbotBehaviorStatus.SUCCESS:
+        if response==GratbotBehaviorStatus.COMPLETED:
             if self.on_success is not None:
-                response,response_data=self.on_success.act(kwargs)
+                response,response_data=self.on_success.act(**kwargs)
                 my_response_data.update(response_data)
                 return response,my_response_data
             else:
-                return GratbotBehaviorStatus.SUCCESS,my_response_data
+                return GratbotBehaviorStatus.COMPLETED,my_response_data
         if response==GratbotBehaviorStatus.FAILED:
             if self.on_fail is not None:
-                response,response_data=self.on_fail.act(kwargs)
+                response,response_data=self.on_fail.act(**kwargs)
                 my_response_data.update(response_data)
                 return response,my_response_data
             else:
                 return GratbotBehaviorStatus.FAILED,my_response_data
         if self.on_inprogress is not None:
-            response,response_data=self.on_inprogress.act(kwargs)
+            response,response_data=self.on_inprogress.act(**kwargs)
             my_response_data.update(response_data)
             return response,my_response_data
         return GratbotBehaviorStatus.INPROGRESS,my_response_data
+
+class DoOnce(GratbotBehavior):
+    def __init__(self,child):
+        self.child=child
+        self.reset()
+    def act(self,**kwargs):
+        if self.is_complete:
+            return GratbotBehaviorStatus.COMPLETED,self.response_data
+        response,response_data=self.child.act(**kwargs)
+        if response==GratbotBehaviorStatus.COMPLETED:
+            self.response_data=response_data
+            self.is_complete=True
+        return response,response_data
+    def reset(self):
+        self.is_complete=False
+        self.response_data={}
+
 
 class TestElem(GratbotBehavior):
     def __init__(self,location,thetest,value):
@@ -133,13 +181,13 @@ class TestElem(GratbotBehavior):
                 ondir=ondir[elem]
         if self.thetest=='=':
             if ondir==self.value:
-                return GratbotBehaviorStatus.SUCCESS,{}
+                return GratbotBehaviorStatus.COMPLETED,{}
         elif self.thetest=='<':
             if ondir<self.value:
-                return GratbotBehaviorStatus.SUCCESS,{}
+                return GratbotBehaviorStatus.COMPLETED,{}
         elif self.thetest=='>':
             if ondir>self.value:
-                return GratbotBehaviorStatus.SUCCESS,{}
+                return GratbotBehaviorStatus.COMPLETED,{}
         return GratbotBehaviorStatus.FAILED,{}
 
 
