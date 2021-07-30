@@ -56,4 +56,5 @@ def json_to_message(object):
         ret=[]
         for elem in object:
             ret.append(json_to_message(elem))
+        return ret
     return object

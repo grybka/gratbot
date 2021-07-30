@@ -148,6 +148,17 @@ class GratbotBehavior_Choice(GratbotBehavior):
             return response,my_response_data
         return GratbotBehaviorStatus.INPROGRESS,my_response_data
 
+class IgnoreFailure(GratbotBehavior):
+    def __init__(self,child):
+        self.child=child
+    def act(self,**kwargs):
+        response,response_data=self.child.act(**kwargs)
+        if response==GratbotBehaviorStatus.INPROGRESS:
+            return response, response_data
+        return GratbotBehaviorStatus.COMPLETED, response_data
+
+
+
 class DoOnce(GratbotBehavior):
     def __init__(self,child):
         self.child=child

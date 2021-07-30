@@ -44,6 +44,10 @@ class OakDGyrus(ThreadedGyrus):
         self.watch_faces=False
         self.do_imu=True
         self.oak_comm_thread=None
+        #for keeping track of rotation
+        self.local_rotation=np.zeros(3)
+        self.last_gyro_timestamp=0
+
         super().__init__(broker)
 
     def start_thread_called(self):
@@ -135,12 +139,15 @@ class OakDGyrus(ThreadedGyrus):
                             rvTs = rVvalues.timestamp.get()
                             acceleroTs = acceleroValues.timestamp.get()
                             magneticTs = magneticField.timestamp.get()
+                            self.local_rotation+=np.array([gyroscope.x,gyroscope.y,gyroscope.z])*(gyroscopeTs.total_seconds()-self.last_gyro_Ts)
+                            self.last_gyro_Ts=gyroscopeTs.total_seconds()
                             dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.accuracy],
                                         "rotation_vector_timestamp": rvTs.total_seconds(),
                                         "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
                                         "acceleration_timestamp": acceleroTs.total_seconds(),
                                         "magnetic_field": [magneticField.x,magneticField.y,magneticField.z],
                                         "magneticTs": magneticTs.total_seconds(),
+                                        "local_rotation": self.local_rotation.tolist(),
                                         "gyroscope": [gyroscope.x,gyroscope.y,gyroscope.z],
                                         "gyroscope_timestamp": gyroscopeTs.total_seconds()})
                         my_keys=["rotation_vector","acceleration","magnetic_field"]
