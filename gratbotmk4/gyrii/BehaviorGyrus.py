@@ -28,7 +28,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return ["clock_pulse","tracks","behavior_request","servo_response"]
+        return ["clock_pulse","tracks","behavior_request","servo_response","rotation_vector"]
 
     def get_name(self):
         return "BehaviorGyrus"
