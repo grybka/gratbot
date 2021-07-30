@@ -150,7 +150,7 @@ class OakDGyrus(ThreadedGyrus):
                                         "local_rotation": self.local_rotation.tolist(),
                                         "gyroscope": [gyroscope.x,gyroscope.y,gyroscope.z],
                                         "gyroscope_timestamp": gyroscopeTs.total_seconds()})
-                        my_keys=["rotation_vector","acceleration","magnetic_field"]
+                        my_keys=["rotation_vector","acceleration","magnetic_field","gyroscope"]
                         message={"keys": my_keys,
                                  "timestamp": time.time(),
                                  "packets": dat}
