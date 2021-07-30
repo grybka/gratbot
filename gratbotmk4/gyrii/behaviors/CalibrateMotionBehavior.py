@@ -148,6 +148,73 @@ class NeckCenterFocusObject(GratbotBehavior):
         self.next_act_time=time.time()+self.wait_time
         return GratbotBehaviorStatus.INPROGRESS, {}
 
+class NoteInitialTrackPos(GratbotBehavior):
+    def __init__(self,xcoord):
+        self.track_loc="neck_calib_track_init"
+        self.xcoord_loc="neck_calib_dservo_init"
+        self.xcoord=xcoord
+
+    def act(self,**kwargs):
+        if "focus_track_id" not in kwargs:
+            logger.warning("focus track id not in kwargs")
+            return GratbotBehaviorStatus.FAILED, {}
+        if kwargs["focus_track_id"]==None:
+            logger.warning("No track to focus neck on")
+            return GratbotBehaviorStatus.FAILED, {}
+        to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
+        #if self.track_loc not in kwargs["short_term_memory"]:
+        #    kwargs["short_term_memory"][self.track_loc]=None
+        #if self.xcoord_loc not in kwargs["short_term_memory"]:
+        #    kwargs["short_term_memory"][self.xcoord]=None
+        kwargs["short_term_memory"][self.track_loc]=to_track["center"]
+        kwargs["short_term_memory"][self.xcoord_loc]=xcoord
+        return GratbotBehaviorStatus.COMPLETED, {}
+
+class RecordFinalTrackPos(GratbotBehavior):
+    def __init__(self):
+        self.track_loc="neck_calib_track"
+        self.last_track_loc="neck_calib_track_init"
+        self.xcoord_loc="neck_calib_dservo"
+        self.last_xcoord_loc="neck_calib_dservo_init"
+    def act(self,**kwargs):
+        if "focus_track_id" not in kwargs:
+            logger.warning("focus track id not in kwargs")
+            return GratbotBehaviorStatus.FAILED, {}
+        if kwargs["focus_track_id"]==None:
+            logger.warning("No track to focus neck on")
+            return GratbotBehaviorStatus.FAILED, {}
+        if self.last_track_loc not in kwargs["short_term-memory"]:
+            logger.warning("Trying to record final state with no initial state")
+            return GratbotBehaviorStatus.FAILED, {}
+        if self.last_xcoord_loc not in kwargs["short_term-memory"]:
+            logger.warning("Trying to record final state with no initial state")
+            return GratbotBehaviorStatus.FAILED, {}
+        to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
+        if self.track_loc not in kwargs["short_term_memory"]:
+            kwargs["short_term_memory"][self.track_loc]=[]
+        if self.xcoord_loc not in kwargs["short_term_memory"]:
+            kwargs["short_term_memory"][self.xcoord]=[]
+        kwargs["short_term_memory"][self.xcoord_loc].append(kwargs["short_term_memory"][self.last_xcoord_loc])
+        kwargs["short_term_memory"][self.track_loc].append(np.array(xcoord)-np.array(kwargs["short_term_memory"][self.last_track_loc]))
+        return GratbotBehaviorStatus.COMPLETED, {}
+
+class BroadcastCalibration(GratbotBehavior):
+    def __init__(self,xcoord_loc,ycoord_loc):
+        self.xcoord_loc=xcoord_loc
+        self.ycoord_loc=ycoord_loc
+    def act(self,**kwargs):
+        broker=kwargs["broker"]
+        kwargs["short_term_memory"][self.xcoord_loc]
+        kwargs["short_term_memory"][self.ycoord_loc]
+        calib_note={"timestamp": time.time(), "logged_note":
+                        {"name": "neck servo calibration",
+                         "xcoords": kwargs["short_term_memory"][self.xcoord_loc],
+                         "ycoords": kwargs["short_term_memory"][self.ycoord_loc]}}
+        broker.publish(calib_note,"logged_note")
+        return GratbotBehaviorStatus.COMPLETED, {}
+
+
+
 def locate_object_neck_with_label():
     allowed_labels=["face","orange","sports ball"]
     return GratbotBehavior_Fallback([FocusOnObjectOfLabel(allowed_labels),ServoUpAndDown()])
@@ -161,14 +228,22 @@ def calibrate_neck_motion():
                 GratbotBehavior_Series([
                     locate_object_neck_with_label(),
                     NeckCenterFocusObject()]),
-                GratbotBehavior_Wait(2.0),
+                GratbotBehavior_Wait(1.0),
                 Announce("Moving up {}".format(j)),
+                #record track position, and expected servo step
+                NoteInitialTrackPos(j),
                 RunServoDelta(0,j),
                 GratbotBehavior_Wait(2.0),
+                RecordFinalTrackPos(),
+                NoteInitialTrackPos(-j),
                 Announce("Moving down {}".format(-j)),
                 RunServoDelta(0,-j),
-                GratbotBehavior_Wait(2.0)]))
-    return GratbotBehavior_Checklist(task_list)
+                GratbotBehavior_Wait(2.0)],
+                RecordFinalTrackPos()))
+                #note new track position, save for reference
+    task_list.append(Announce("Saving Neck Servo Calibration"))
+    task_list.append(BroadcastCalibration("neck_calib_dservo","neck_calib_track"))
+    return GratbotBehavior_Checklist(DoOnce(task_list))
 
 
     #return GratbotBehavior_Series([locate_object_neck_with_label(),
