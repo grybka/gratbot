@@ -201,10 +201,12 @@ class FollowerGyrus(ThreadedGyrus):
                 return
             image_is_late_by=max(0,self.latest_image_timestamp-message['image_timestamp'])
             center_x=track["center"][0]+track["velocity"][0]*image_is_late_by
-            error=center_x-0.5
+            center_z=track["center"][2]+track["velocity"][2]*image_is_late_by
+            error_turn=center_x-0.5
+            error_forward=center_z-self.target_follow_distance
             #use PID to determine response
-            self.turn_pid_controller.observe(error)
-            self.forward_pid_controller.observe(error)
+            self.turn_pid_controller.observe(error_turn)
+            self.forward_pid_controller.observe(error_forard)
             turn_amount=self.turn_pid_controller.get_response()
             forward_amount=self.forward_pid_controller.get_response()
             left_throttle=turn_amount+forward_amount
