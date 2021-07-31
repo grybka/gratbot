@@ -25,11 +25,10 @@ class JSONBackAndForth():
         self.port=port
         #connect to server
         logger.info("creating client socket")
-        #self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        #self.sock.settimeout(5)
-        #logger.info("connecting")
-        #conninfo= self.sock.connect((self.host,self.port))
-        self.sock=socket.create_server( (self.host,self.port), reuse_port=True )
+        self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.sock.settimeout(5)
+        logger.info("connecting")
+        conninfo= self.sock.connect((self.host,self.port))
 
         logger.info("starting thread")
 
@@ -43,13 +42,14 @@ class JSONBackAndForth():
 
     def start_server(self,port):
         logger.info("creating server socket")
-        self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_sock.settimeout(5)
-        self.port=port
-        self.host = socket.gethostname()
         self.host = "10.0.0.4"
+        self.port=port
+        #self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_sock=socket.create_server( (self.host,self.port), reuse_port=True )
+        self.server_sock.settimeout(5)
         logger.info("binding to {} {}".format(self.host,port))
-        self.server_sock.bind((self.host, port))
+        #self.server_sock.bind((self.host, port))
+
         logger.info("listening")
         self.server_sock.listen(1) #accept only one connection at a time
         logger.info("thread starting")
