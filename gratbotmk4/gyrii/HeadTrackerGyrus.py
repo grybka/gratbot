@@ -160,7 +160,8 @@ class TurnTrackerGyrus(ThreadedGyrus):
         self.mode="track_first"
         self.allowed_labels=["sports ball","orange","face"]
         self.max_recent_history=20
-        self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
+        #self.motor_history=deque([ [0,90] ],maxlen=self.max_recent_history)
+        self.latest_image_timestamp=0
         self.time_ref=None
         self.min_angle_correction=0.2
 
@@ -175,11 +176,12 @@ class TurnTrackerGyrus(ThreadedGyrus):
             if self.time_ref==None:
                 self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
+            self.latest_image_timestamp=message['timestamp']+self.time_ref
         if self.time_ref==None:
             return #no reference time
         if "motor_response" in message:
             ...
-            #self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
+            #self.motor_history.append([message["timestamp"],message["motor_response"]["angle"]])
         if "tracks" in message:
             if self.tracked_object is None:
                 if self.mode=="track_first":
@@ -197,10 +199,10 @@ class TurnTrackerGyrus(ThreadedGyrus):
                     self.tracked_object=None
                 return
 
-            real_time=message['image_timestamp']-self.time_ref
-
-            center_x=track["center"][0]
-            #logger.debug("centery {}".format(center_y))
+            image_is_late_by=self.latest_image_timestamp-message['image_timestamp']
+            logger.info("image is {} ms in the past".format(image_is_late_by*1000))
+            #this is where I expect the thing is now
+            center_x=track["center"][0]+track["velocity"][0]*image_is_late_by
             error=center_x-0.5
             self.pid_controller.observe(error)
             #correction_angle=error*self.ratio
