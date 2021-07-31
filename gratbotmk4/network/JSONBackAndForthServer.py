@@ -45,6 +45,7 @@ class JSONBackAndForth():
         self.host = "10.0.0.4"
         self.port=port
         self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         #self.server_sock=socket.create_server( (self.host,self.port), reuse_port=True )
         self.server_sock.settimeout(5)
         logger.info("binding to {} {}".format(self.host,port))
