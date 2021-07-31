@@ -163,12 +163,12 @@ class FollowerGyrus(ThreadedGyrus):
 
     def identify_tracked_object(self,tracks):
         if self.tracked_object is None:
-                if self.mode=="track_first":
-                    #in track first, select whatever the first thing is
-                    for track in tracks:
-                        if track["label"] in self.allowed_labels and track["seen_frames"]>1:
-                            self.tracked_object=track["id"]
-            if self.tracked_object==None:
+            if self.mode=="track_first":
+                #in track first, select whatever the first thing is
+                for track in tracks:
+                    if track["label"] in self.allowed_labels and track["seen_frames"]>1:
+                        self.tracked_object=track["id"]
+            if self.tracked_object is None:
                 return None
             found_track=None
             for track in tracks:
@@ -196,7 +196,7 @@ class FollowerGyrus(ThreadedGyrus):
 
         #react to tracks message
         if "tracks" in message:
-            track=identify_tracked_object(message["tracks"])
+            track=self.identify_tracked_object(message["tracks"])
             if track is None:
                 return
             image_is_late_by=max(0,self.latest_image_timestamp-message['image_timestamp'])
@@ -206,7 +206,7 @@ class FollowerGyrus(ThreadedGyrus):
             error_forward=center_z-self.target_follow_distance
             #use PID to determine response
             self.turn_pid_controller.observe(error_turn)
-            self.forward_pid_controller.observe(error_forard)
+            self.forward_pid_controller.observe(error_forward)
             turn_amount=self.turn_pid_controller.get_response()
             forward_amount=self.forward_pid_controller.get_response()
             left_throttle=turn_amount+forward_amount
