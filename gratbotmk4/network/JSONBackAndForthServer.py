@@ -44,11 +44,11 @@ class JSONBackAndForth():
         logger.info("creating server socket")
         self.host = "10.0.0.4"
         self.port=port
-        #self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_sock=socket.create_server( (self.host,self.port), reuse_port=True )
+        self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.server_sock=socket.create_server( (self.host,self.port), reuse_port=True )
         self.server_sock.settimeout(5)
         logger.info("binding to {} {}".format(self.host,port))
-        #self.server_sock.bind((self.host, port))
+        self.server_sock.bind((self.host, port))
 
         logger.info("listening")
         self.server_sock.listen(1) #accept only one connection at a time

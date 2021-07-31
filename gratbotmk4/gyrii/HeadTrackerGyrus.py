@@ -30,14 +30,6 @@ class MyPID:
             return np.clip(self.const_p*self.history[-1],self.output_clip[0],self.output_clip[1])
         return 0
 
-def inv_deadzone_func(y,a,b):
-    if y==0:
-        return 0
-    xp=y/b
-    if xp>0:
-        return xp+a
-    return xp-a
-
 class HeadTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
@@ -176,7 +168,7 @@ class TurnTrackerGyrus(ThreadedGyrus):
             if self.time_ref==None:
                 self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
-            self.latest_image_timestamp=message['timestamp']+self.time_ref
+            self.latest_image_timestamp=message['packets'][-1]['gyroscope_timestamp']
         if self.time_ref==None:
             return #no reference time
         if "motor_response" in message:
@@ -199,8 +191,8 @@ class TurnTrackerGyrus(ThreadedGyrus):
                     self.tracked_object=None
                 return
 
-            image_is_late_by=self.latest_image_timestamp-message['image_timestamp']
-            logger.info("image is {} ms in the past".format(image_is_late_by*1000))
+            image_is_late_by=max(0,self.latest_image_timestamp-message['image_timestamp'])
+            #logger.info("image is {} ms in the past".format(image_is_late_by*1000))
             #this is where I expect the thing is now
             center_x=track["center"][0]+track["velocity"][0]*image_is_late_by
             error=center_x-0.5
