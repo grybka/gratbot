@@ -142,6 +142,85 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     self.broker.publish(servo_command,"servo_command")
                     self.last_move=time.time()
 
+class FollowerGyrus(ThreadedGyrus):
+    def __init__(self,broker):
+        super().__init__(broker)
+        self.tracked_object=None
+        self.target_follow_distance=1.0 #in meters
+        self.turn_pid_controller=MyPID(-2,-0,-1)
+        self.forward_pid_controller=MyPID(1,-0,0)
+        self.min_throttle=0.2
+        self.latest_image_timestamp=0
+        #this part maybe should go in a behavior
+        self.mode="track_first"
+        self.allowed_labels=["sports ball","orange","face"]
+
+    def get_keys(self):
+        return ["tracks","gyrus_config"]
+
+    def get_name(self):
+        return "FollowerGyrus"
+
+    def identify_tracked_object(self,tracks):
+        if self.tracked_object is None:
+                if self.mode=="track_first":
+                    #in track first, select whatever the first thing is
+                    for track in tracks:
+                        if track["label"] in self.allowed_labels and track["seen_frames"]>1:
+                            self.tracked_object=track["id"]
+            if self.tracked_object==None:
+                return None
+            found_track=None
+            for track in tracks:
+                if track["id"]==self.tracked_object:
+                    found_track=track
+                    break
+            if found_track==None: #nothing to look at
+                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
+                    self.tracked_object=None
+                return None
+        return found_track
+
+    def read_message(self,message):
+        if "gyrus_config" in message and message["gyrus_config"]["target_gyrus"]=="FollowerGyrus":
+            m=message["gyrus_config"]
+            if "mode" in m:
+                self.mode=m["mode"]
+            if "labels" in m:
+                self.allowed_labels=m["labels"]
+            if "tracked_object" in m:
+                self.tracked_object=m["tracked_object"]
+        #keep track of how far ahead my IMU is from my tracker
+        if "packets" in message: #this tracks the
+            self.latest_image_timestamp=message['packets'][-1]['gyroscope_timestamp']
+
+        #react to tracks message
+        if "tracks" in message:
+            track=identify_tracked_object(message["tracks"])
+            if track is None:
+                return
+            image_is_late_by=max(0,self.latest_image_timestamp-message['image_timestamp'])
+            center_x=track["center"][0]+track["velocity"][0]*image_is_late_by
+            error=center_x-0.5
+            #use PID to determine response
+            self.turn_pid_controller.observe(error)
+            self.forward_pid_controller.observe(error)
+            turn_amount=self.turn_pid_controller.get_response()
+            forward_amount=self.forward_pid_controller.get_response()
+            left_throttle=turn_amount+forward_amount
+            right_throttle=-turn_amount+forward_amount
+            #normalize throttle
+            if abs(left_throttle)>1 or abs(right_throttle)>1:
+                norm_val=max( abs(left_throttle),abs(right_throttle))
+                left_throttle=left_throttle/norm_val
+                right_throttle=right_throttle/norm_val
+            #if there's enough change, move the motors
+            if abs(left_throttle)>self.min_throttle or abs(right_throttle)>self.min_throttle:
+                motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":0.2,"right_duration": 0.2}}
+                self.broker.publish(motor_command,"motor_command")
+                self.last_move=time.time()
+
+
 
 class TurnTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
