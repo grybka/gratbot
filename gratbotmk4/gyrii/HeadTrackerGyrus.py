@@ -35,11 +35,12 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(15,6,12,output_clip=[-10,10])
+        self.pid_controller=MyPID(15,6,12,output_clip=[-10,10]) #worked for faces
+        #self.pid_controller=MyPID(8,3,9,output_clip=[-10,10])
         self.ratio=20
         self.min_angle_correction=1 #in degrees!
         self.mode="track_first" #track_first or off
-        self.allowed_labels=["sports ball","orange","face"]
+        self.allowed_labels=["sports ball","orange","face","person"]
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
@@ -136,7 +137,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 new_angle=angle_at_image_time+correction_angle
                 if abs(new_angle-self.last_angle)>self.min_angle_correction:
                     #logger.info("correction angle {}".format(correction_angle))
-                    logger.info("new angle {}".format(new_angle))
+                    #logger.info("new angle {}".format(new_angle))
                     self.last_angle=new_angle
                     servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
                     self.broker.publish(servo_command,"servo_command")
@@ -147,16 +148,16 @@ class FollowerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         self.target_follow_distance=1.0 #in meters
-        self.turn_pid_controller=MyPID(-2,-0,-1)
-        self.forward_pid_controller=MyPID(1,-0,0)
-        self.min_throttle=0.2
+        self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-1,1])
+        self.forward_pid_controller=MyPID(-1.0,-0.5,0,output_clip=[-1,1])
+        self.min_throttle=0.25
         self.latest_image_timestamp=0
         #this part maybe should go in a behavior
         self.mode="track_first"
-        self.allowed_labels=["sports ball","orange","face"]
+        self.allowed_labels=["sports ball","orange","face","person"]
 
     def get_keys(self):
-        return ["tracks","gyrus_config"]
+        return ["tracks","gyrus_config","rotation_vector"]
 
     def get_name(self):
         return "FollowerGyrus"
@@ -168,17 +169,17 @@ class FollowerGyrus(ThreadedGyrus):
                 for track in tracks:
                     if track["label"] in self.allowed_labels and track["seen_frames"]>1:
                         self.tracked_object=track["id"]
-            if self.tracked_object is None:
-                return None
-            found_track=None
-            for track in tracks:
-                if track["id"]==self.tracked_object:
-                    found_track=track
-                    break
-            if found_track==None: #nothing to look at
-                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
-                    self.tracked_object=None
-                return None
+        if self.tracked_object is None:
+            return None
+        found_track=None
+        for track in tracks:
+            if track["id"]==self.tracked_object:
+                found_track=track
+                break
+        if found_track==None: #nothing to look at
+            if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
+                self.tracked_object=None
+            return None
         return found_track
 
     def read_message(self,message):
@@ -209,6 +210,8 @@ class FollowerGyrus(ThreadedGyrus):
             self.forward_pid_controller.observe(error_forward)
             turn_amount=self.turn_pid_controller.get_response()
             forward_amount=self.forward_pid_controller.get_response()
+            #logger.info("error forward {}".format(error_forward))
+            #logger.info("forward amount {}".format(forward_amount))
             left_throttle=turn_amount+forward_amount
             right_throttle=-turn_amount+forward_amount
             #normalize throttle
@@ -216,6 +219,7 @@ class FollowerGyrus(ThreadedGyrus):
                 norm_val=max( abs(left_throttle),abs(right_throttle))
                 left_throttle=left_throttle/norm_val
                 right_throttle=right_throttle/norm_val
+            #logger.info("normalized throttle {},{}".format(left_throttle,right_throttle))
             #if there's enough change, move the motors
             if abs(left_throttle)>self.min_throttle or abs(right_throttle)>self.min_throttle:
                 motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":0.2,"right_duration": 0.2}}
@@ -231,7 +235,7 @@ class TurnTrackerGyrus(ThreadedGyrus):
         #self.ratio=-0.01473
         self.pid_controller=MyPID(-2,-0,-1)
         self.mode="track_first"
-        self.allowed_labels=["sports ball","orange","face"]
+        self.allowed_labels=["sports ball","orange","face","person"]
         self.max_recent_history=20
         #self.motor_history=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.latest_image_timestamp=0
