@@ -102,13 +102,21 @@ class TrackerGyrusTrackedObject:
         self.kfx.P=1e9*np.eye(2) #covariance
         self.kfy.P=1e9*np.eye(2) #covariance
         self.kfz.P=1e9*np.eye(2) #covariance
+        #From experience, if I had a successful detection,
+        #the object isn't moving super fast
+        #plus if the velocity covariance is the same as the position,
+        #then my first detection will give it an unrealistic expectation
+        #of knowing the velocity
+        self.kfx.P[1][1]=0.1**2
+        self.kfy.P[1][1]=0.05**2
+        self.kfz.P[1][1]=0.1**2
 
     def update_kf_from_time(self,dt):
-        #assume 1 pixel creep per second
-        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=1)
-        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=1)
+        #assume 0.3 pixel creep per second
+        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=0.1)
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=0.1)
         #assume 1 cm creep per second
-        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=0.01**2)
+        self.kfz.Q=Q_discrete_white_noise(2,dt=dt,var=0.01**2)
         self.kfx.predict()
         self.kfy.predict()
         self.kfz.predict()
