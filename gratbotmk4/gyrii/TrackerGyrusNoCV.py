@@ -45,12 +45,14 @@ class MotionCorrection: #to correct image frames from heading changes
     def __init__(self,max_recent_history=20):
         self.max_recent_history=max_recent_history
         self.gyros=deque([],maxlen=self.max_recent_history)
+        self.accel=np.array([0,0,10]) #for gravity
         self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
         #self.last_used_heading=0
         self.last_used_heading=np.array([0,0,0])
         self.angle_heading_slope=-1.515
         self.angle_ygyro_slope=1/(-0.746)
         self.z_gyro_index=0
+        self.y_gyro_index=2
         self.x_gyro_index=1
 
     def read_message(self,message):
@@ -60,6 +62,7 @@ class MotionCorrection: #to correct image frames from heading changes
                 self.headings.append([message['packets'][0]["gyroscope_timestamp"],np.array([0,0,0]) ])
             for packet in message["packets"]:
                 self.gyros.append( [packet["gyroscope_timestamp"],packet["gyroscope"]])
+                self.accel=0.8*self.accel+0.2*np.array(packet["acceleration"])
                     #TODO I could do a fancier integration
                 #next_heading=self.headings[-1][1]+packet["gyroscope"][self.z_gyro_index]*(packet["gyroscope_timestamp"]-self.headings[-1][0])
                 next_heading=self.headings[-1][1]+np.array(packet["gyroscope"])*(packet["gyroscope_timestamp"]-self.headings[-1][0])
@@ -73,6 +76,8 @@ class MotionCorrection: #to correct image frames from heading changes
         self.last_used_heading=closest_heading_vec #this is the update part
         #offset=delta_heading*self.angle_heading_slope
         #return offset
+        #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
+        #TODO figure out how to line this up with gravity
         offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
         offset_y=delta_heading[self.x_gyro_index]*self.angle_ygyro_slope
         return offset_x,offset_y
@@ -112,9 +117,9 @@ class TrackerGyrusTrackedObject:
         self.kfz.P[1][1]=0.1**2
 
     def update_kf_from_time(self,dt):
-        #assume 0.3 pixel creep per second
-        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=0.1)
-        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=0.1)
+        #assume 2.3 pixel creep per second
+        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=2**2)
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=2**2)
         #assume 1 cm creep per second
         self.kfz.Q=Q_discrete_white_noise(2,dt=dt,var=0.01**2)
         self.kfx.predict()
