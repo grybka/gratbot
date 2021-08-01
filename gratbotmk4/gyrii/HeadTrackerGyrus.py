@@ -30,6 +30,19 @@ class MyPID:
             return np.clip(self.const_p*self.history[-1],self.output_clip[0],self.output_clip[1])
         return 0
 
+def find_object_of_type(allowed_labels,tracks,min_seen_frames=1):
+    #in track first, select whatever the first thing is
+    for track in tracks:
+        if track["label"] in self.allowed_labels and track["seen_frames"]>min_seen_frames:
+            return track["id"]
+    return None
+
+def get_track_with_id(id,tracks):
+    for track in tracks:
+        if track["id"]==id:
+            return track
+    return None
+
 class HeadTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
@@ -93,30 +106,22 @@ class HeadTrackerGyrus(ThreadedGyrus):
         #    logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
             self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
         if "tracks" in message:
-            if self.tracked_object is None:
-                if self.mode=="track_first":
-                    #in track first, select whatever the first thing is
-                    for track in message["tracks"]:
-                        if track["label"] in self.allowed_labels and track["seen_frames"]>1:
-                            self.tracked_object=track["id"]
-                    if time.time()-self.last_move>self.time_to_resting:
-                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
-                        self.broker.publish(servo_command,"servo_command")
-                        return
-
-            found_track=None
-            for track in message["tracks"]:
-                if track["id"]==self.tracked_object:
-                    found_track=track
-                    break
-            if found_track==None: #nothing to look at
-                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
-                    self.tracked_object=None
-                return
 
             if self.mode=="off":
                 return
 
+            #Find something to track if nothing tracked
+            if self.tracked_object is None and self.mode=="track_first":
+                self.tracked_object=find_object_of_type(self.allowed_labels,message["tracks"],2)
+            #See if what I'm tracking is available
+            track=get_track_with_id(self.tracked_object,message["tracks"])
+            if track is None:
+                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
+                    self.tracked_object=None
+                    if time.time()-self.last_move>self.time_to_resting:
+                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
+                        self.broker.publish(servo_command,"servo_command")
+                        return
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
             angle_at_image_time=self.get_angle_before(image_time)
@@ -147,7 +152,8 @@ class FollowerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.tracked_object=None
-        self.target_follow_distance=1.0 #in meters
+        self.target_follow_distance=1.5 #in meters
+        self.only_turn=False
         self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-1,1])
         self.forward_pid_controller=MyPID(-1.0,-0.5,0,output_clip=[-1,1])
         self.min_throttle=0.25
@@ -162,26 +168,6 @@ class FollowerGyrus(ThreadedGyrus):
     def get_name(self):
         return "FollowerGyrus"
 
-    def identify_tracked_object(self,tracks):
-        if self.tracked_object is None:
-            if self.mode=="track_first":
-                #in track first, select whatever the first thing is
-                for track in tracks:
-                    if track["label"] in self.allowed_labels and track["seen_frames"]>1:
-                        self.tracked_object=track["id"]
-        if self.tracked_object is None:
-            return None
-        found_track=None
-        for track in tracks:
-            if track["id"]==self.tracked_object:
-                found_track=track
-                break
-        if found_track==None: #nothing to look at
-            if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
-                self.tracked_object=None
-            return None
-        return found_track
-
     def read_message(self,message):
         if "gyrus_config" in message and message["gyrus_config"]["target_gyrus"]=="FollowerGyrus":
             m=message["gyrus_config"]
@@ -191,16 +177,26 @@ class FollowerGyrus(ThreadedGyrus):
                 self.allowed_labels=m["labels"]
             if "tracked_object" in m:
                 self.tracked_object=m["tracked_object"]
+            if "only_turn" in m:
+                self.only_turn=m["only_turn"]
+            if "follow_distance" in m:
+                self.target_follow_distance=m["follow_distance"]
         #keep track of how far ahead my IMU is from my tracker
         if "packets" in message: #this tracks the
             self.latest_image_timestamp=message['packets'][-1]['gyroscope_timestamp']
 
         #react to tracks message
         if "tracks" in message:
-            track=self.identify_tracked_object(message["tracks"])
+            #Find something to track if nothing tracked
+            if self.tracked_object is None and self.mode=="track_first":
+                self.tracked_object=find_object_of_type(self.allowed_labels,message["tracks"],2)
+            #See if what I'm tracking is available
+            track=get_track_with_id(self.tracked_object,message["tracks"])
             if track is None:
+                if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
+                    self.tracked_object=None
                 return
-            image_is_late_by=max(0,self.latest_image_timestamp-message['image_timestamp'])
+            image_is_late_by=np.clip(self.latest_image_timestamp-message['image_timestamp'],0,0.5)
             center_x=track["center"][0]+track["velocity"][0]*image_is_late_by
             center_z=track["center"][2]+track["velocity"][2]*image_is_late_by
             error_turn=center_x-0.5
@@ -210,6 +206,8 @@ class FollowerGyrus(ThreadedGyrus):
             self.forward_pid_controller.observe(error_forward)
             turn_amount=self.turn_pid_controller.get_response()
             forward_amount=self.forward_pid_controller.get_response()
+            if self.only_turn:
+                forward_amount=0
             #logger.info("error forward {}".format(error_forward))
             #logger.info("forward amount {}".format(forward_amount))
             left_throttle=turn_amount+forward_amount
