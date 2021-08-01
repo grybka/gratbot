@@ -33,7 +33,7 @@ class MyPID:
 def find_object_of_type(allowed_labels,tracks,min_seen_frames=1):
     #in track first, select whatever the first thing is
     for track in tracks:
-        if track["label"] in self.allowed_labels and track["seen_frames"]>min_seen_frames:
+        if track["label"] in allowed_labels and track["seen_frames"]>min_seen_frames:
             return track["id"]
     return None
 
@@ -121,7 +121,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     if time.time()-self.last_move>self.time_to_resting:
                         servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
                         self.broker.publish(servo_command,"servo_command")
-                        return
+                return
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
             angle_at_image_time=self.get_angle_before(image_time)
@@ -152,15 +152,16 @@ class FollowerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.tracked_object=None
-        self.target_follow_distance=1.5 #in meters
+        self.target_follow_distance=2.0 #in meters
         self.only_turn=False
-        self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-1,1])
-        self.forward_pid_controller=MyPID(-1.0,-0.5,0,output_clip=[-1,1])
+        self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-2,2])
+        self.forward_pid_controller=MyPID(-1.5,-0.5,0,output_clip=[-2,2])
         self.min_throttle=0.25
         self.latest_image_timestamp=0
         #this part maybe should go in a behavior
         self.mode="track_first"
         self.allowed_labels=["sports ball","orange","face","person"]
+        self.last_report=0
 
     def get_keys(self):
         return ["tracks","gyrus_config","rotation_vector"]
@@ -223,6 +224,9 @@ class FollowerGyrus(ThreadedGyrus):
                 motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":0.2,"right_duration": 0.2}}
                 self.broker.publish(motor_command,"motor_command")
                 self.last_move=time.time()
+                if time.time()-self.last_report>1.0:
+                    logger.info("Motor Speed {} {}".format(left_throttle,right_throttle))
+                    self.last_report=time.time()
 
 
 
