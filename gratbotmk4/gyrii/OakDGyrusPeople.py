@@ -97,7 +97,7 @@ class OakDGyrusPeople(ThreadedGyrus):
                     for detection in inDet.detections:
                         bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
                         spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
-                        label = detection.label
+                        label = model.labels[detection.label]
                         detection_message.append({"label": label,
                                                   "spatial_array": spatial_array,
                                                   "bbox_array": bbox_array,
