@@ -17,7 +17,10 @@ class OakDGyrusPeople(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         self.model="person-detection-retail-0013"
+        self.local_rotation=np.zeros(3)
+        self.last_gyro_Ts=0
         super().__init__(broker)
+
     def start_thread_called(self):
         logging.debug("starting OakD Comms Thread")
         self.oak_comm_thread = threading.Thread(target=self._oak_comm_thread_loop)
@@ -103,7 +106,7 @@ class OakDGyrusPeople(ThreadedGyrus):
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
-                self.tryget_image(previewQueue)
+                self.tryget_image(previewQueue,detectionNNQueue )
         logging.debug("Exiting OakD thread")
 
 
@@ -117,6 +120,10 @@ class OakDGyrusPeople(ThreadedGyrus):
         imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
         imu.setBatchReportThreshold(5)
         imu.setMaxBatchReports(20)
+        imu_xlinkOut = self.pipeline.createXLinkOut()
+        imu_xlinkOut.setStreamName("imu")
+        imu.out.link(imu_xlinkOut.input)
+
 
         #setup camera
         logger.info("Creating RGB Camera in pipeline")
@@ -125,7 +132,7 @@ class OakDGyrusPeople(ThreadedGyrus):
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-        xoutRgb = pipeline.createXLinkOut()
+        xoutRgb = self.pipeline.createXLinkOut()
         xoutRgb.setStreamName("rgb")
         camRgb.preview.link(xoutRgb.input)
 
@@ -144,7 +151,7 @@ class OakDGyrusPeople(ThreadedGyrus):
 
         #spatial detection of people
         model_name=self.model
-        spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
+        spatialDetectionNetwork = self.pipeline.createMobileNetSpatialDetectionNetwork()
         spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=6)))
         spatialDetectionNetwork.setConfidenceThreshold(0.5)
         spatialDetectionNetwork.input.setBlocking(False)
@@ -153,6 +160,6 @@ class OakDGyrusPeople(ThreadedGyrus):
         spatialDetectionNetwork.setDepthUpperThreshold(5000)
         camRgb.preview.link(spatialDetectionNetwork.input)
         stereo.depth.link(spatialDetectionNetwork.inputDepth)
-        xoutNN = pipeline.createXLinkOut()
+        xoutNN = self.pipeline.createXLinkOut()
         xoutNN.setStreamName("detections")
         spatialDetectionNetwork.out.link(xoutNN.input)

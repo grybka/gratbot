@@ -18,7 +18,8 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
-from OakDGyrus import OakDGyrus,OakDGyrusPeople
+from OakDGyrus import OakDGyrus
+from OakDGyrusPeople import OakDGyrusPeople
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
