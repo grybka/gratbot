@@ -17,8 +17,14 @@ class OakDGyrusPeople(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         #self.model="person-detection-retail-0013"
-        self.model1="person-detection-0200"
-        self.model2="face-detection-0200"
+        self.models=[ {"modelname": "person-detection-0200",
+                       "streamname": "person_detections",
+                       "labels": ["person"]},
+                      {"modelname": "face-detection-0200",
+                       "streamname": "face_detections",
+                       "labels": ["face"]}]
+        #self.model1="person-detection-0200"
+        #self.model2="face-detection-0200"
         self.local_rotation=np.zeros(3)
         self.last_gyro_Ts=0
         super().__init__(broker)
@@ -84,7 +90,8 @@ class OakDGyrusPeople(ThreadedGyrus):
             frame_message["image"]=frame
             frame_message["keys"]=["image"]
             detection_message=[]
-            for detectionNNQueue in detectionNNQueues:
+            for model in self.models:
+                detectionNNQueue=model["queue"]
                 inDet = detectionNNQueue.tryGet()
                 if inDet is not None:
                     for detection in inDet.detections:
@@ -105,12 +112,13 @@ class OakDGyrusPeople(ThreadedGyrus):
         with dai.Device(self.pipeline) as device:
             imuQueue = device.getOutputQueue(name="imu", maxSize=50, blocking=False)
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-            detectionNNQueue = device.getOutputQueue(name="person_detections", maxSize=4, blocking=False)
-            facedetectionNNQueue = device.getOutputQueue(name="face_detections", maxSize=4, blocking=False)
+
+            for model in self.models:
+                model["queue"] = device.getOutputQueue(name=model["queuename"], maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
-                self.tryget_image(previewQueue,[detectionNNQueue,facedetectionNNQueue])
+                self.tryget_image(previewQueue)
         logging.debug("Exiting OakD thread")
 
     def init_model(self,model_name,camRgb,stereo,streamname='detections',shaves=6):
@@ -168,5 +176,6 @@ class OakDGyrusPeople(ThreadedGyrus):
         monoLeft.out.link(stereo.left)
         monoRight.out.link(stereo.right)
 
-        self.init_model(self.model1,camRgb,stereo,streamname='person_detections',shaves=6)
-        self.init_model(self.model2,camRgb,stereo,streamname='face_detections',shaves=6)
+        for model in self.models:
+            self.init_model(model["modelname"],camRgb,stereo,streamname=model["streamname"],shaves=6)
+        #self.init_model(self.model2,camRgb,stereo,streamname='face_detections',shaves=6)
