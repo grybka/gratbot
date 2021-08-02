@@ -80,7 +80,7 @@ class OakDGyrusPeople(ThreadedGyrus):
                      "packets": dat}
             self.broker.publish(message,my_keys)
 
-    def tryget_image(self,previewQueue,detectionNNQueues):
+    def tryget_image(self,previewQueue):
         inPreview = previewQueue.tryGet()
         if inPreview is not None:
             frame = inPreview.getCvFrame()
@@ -114,7 +114,7 @@ class OakDGyrusPeople(ThreadedGyrus):
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
 
             for model in self.models:
-                model["queue"] = device.getOutputQueue(name=model["queuename"], maxSize=4, blocking=False)
+                model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
