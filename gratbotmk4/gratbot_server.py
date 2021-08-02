@@ -18,7 +18,7 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
-from OakDGyrus import OakDGyrus
+from OakDGyrus import OakDGyrus,OakDGyrusPeople
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -37,7 +37,8 @@ network_server.start_server(test_port)
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note"])) #TODO define keys here
-gyrii.append(OakDGyrus(broker))
+#gyrii.append(OakDGyrus(broker))
+gyrii.append(OakDGyrusPeople(broker))
 gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note"]))
