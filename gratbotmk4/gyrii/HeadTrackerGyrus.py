@@ -61,7 +61,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.time_to_resting=2
         self.last_move=0
         self.last_angle=90
-        self.position_target=0.25
+        #self.position_target=0.25 #0.25 puts it at top
+        self.position_target=0.70 #0.70 puts it at bottom, good for people
         #not used below
         self.rot_vector_history=deque([],maxlen=self.max_recent_history)
 
