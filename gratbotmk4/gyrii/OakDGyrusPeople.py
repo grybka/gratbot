@@ -17,7 +17,8 @@ class OakDGyrusPeople(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         #self.model="person-detection-retail-0013"
-        self.model="person-detection-0200"
+        self.model1="person-detection-0200"
+        self.model2="face-detection-0200"
         self.local_rotation=np.zeros(3)
         self.last_gyro_Ts=0
         super().__init__(broker)
@@ -103,13 +104,27 @@ class OakDGyrusPeople(ThreadedGyrus):
         with dai.Device(self.pipeline) as device:
             imuQueue = device.getOutputQueue(name="imu", maxSize=50, blocking=False)
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-            detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
+            detectionNNQueue = device.getOutputQueue(name="person_detections", maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
                 self.tryget_image(previewQueue,detectionNNQueue )
         logging.debug("Exiting OakD thread")
 
+    def init_model(self,model_name,camRgb,stereo,streamname='detections',shaves=6):
+        #spatial detection of people
+        spatialDetectionNetwork = self.pipeline.createMobileNetSpatialDetectionNetwork()
+        spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
+        spatialDetectionNetwork.setConfidenceThreshold(0.5)
+        spatialDetectionNetwork.input.setBlocking(False)
+        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+        spatialDetectionNetwork.setDepthLowerThreshold(100)
+        spatialDetectionNetwork.setDepthUpperThreshold(5000)
+        camRgb.preview.link(spatialDetectionNetwork.input)
+        stereo.depth.link(spatialDetectionNetwork.inputDepth)
+        xoutNN = self.pipeline.createXLinkOut()
+        xoutNN.setStreamName(streamname)
+        spatialDetectionNetwork.out.link(xoutNN.input)
 
     def init_oakd(self):
         self.pipeline = dai.Pipeline()
@@ -151,17 +166,4 @@ class OakDGyrusPeople(ThreadedGyrus):
         monoLeft.out.link(stereo.left)
         monoRight.out.link(stereo.right)
 
-        #spatial detection of people
-        model_name=self.model
-        spatialDetectionNetwork = self.pipeline.createMobileNetSpatialDetectionNetwork()
-        spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=6)))
-        spatialDetectionNetwork.setConfidenceThreshold(0.5)
-        spatialDetectionNetwork.input.setBlocking(False)
-        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
-        spatialDetectionNetwork.setDepthLowerThreshold(100)
-        spatialDetectionNetwork.setDepthUpperThreshold(5000)
-        camRgb.preview.link(spatialDetectionNetwork.input)
-        stereo.depth.link(spatialDetectionNetwork.inputDepth)
-        xoutNN = self.pipeline.createXLinkOut()
-        xoutNN.setStreamName("detections")
-        spatialDetectionNetwork.out.link(xoutNN.input)
+        self.init_model(self.model1,camRgb,stereo,streamname='person_detections',shaves=6)
