@@ -74,7 +74,7 @@ class OakDGyrusPeople(ThreadedGyrus):
                      "packets": dat}
             self.broker.publish(message,my_keys)
 
-    def tryget_image(self,previewQueue,detectionNNQueue):
+    def tryget_image(self,previewQueue,detectionNNQueues):
         inPreview = previewQueue.tryGet()
         if inPreview is not None:
             frame = inPreview.getCvFrame()
@@ -84,16 +84,17 @@ class OakDGyrusPeople(ThreadedGyrus):
             frame_message["image"]=frame
             frame_message["keys"]=["image"]
             detection_message=[]
-            inDet = detectionNNQueue.tryGet()
-            if inDet is not None:
-                for detection in inDet.detections:
-                    bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
-                    spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
-                    label = detection.label
-                    detection_message.append({"label": label,
-                                              "spatial_array": spatial_array,
-                                              "bbox_array": bbox_array,
-                                              "confidence": detection.confidence})
+            for detectionNNQueue in detectionNNQueues:
+                inDet = detectionNNQueue.tryGet()
+                if inDet is not None:
+                    for detection in inDet.detections:
+                        bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+                        spatial_array=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                        label = detection.label
+                        detection_message.append({"label": label,
+                                                  "spatial_array": spatial_array,
+                                                  "bbox_array": bbox_array,
+                                                  "confidence": detection.confidence})
             if len(detection_message)!=0:
                 self.broker.publish({"timestamp": time.time(),"image_timestamp": image_timestamp,"detections": detection_message, "keys": ["detections"]},["detections"]) #publish an indepedent detections message
                 frame_message["detections"]=detection_message #also append to image
@@ -105,10 +106,11 @@ class OakDGyrusPeople(ThreadedGyrus):
             imuQueue = device.getOutputQueue(name="imu", maxSize=50, blocking=False)
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
             detectionNNQueue = device.getOutputQueue(name="person_detections", maxSize=4, blocking=False)
+            facedetectionNNQueue = device.getOutputQueue(name="face_detections", maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
-                self.tryget_image(previewQueue,detectionNNQueue )
+                self.tryget_image(previewQueue,[detectionNNQueue,facedetectionNNQueue])
         logging.debug("Exiting OakD thread")
 
     def init_model(self,model_name,camRgb,stereo,streamname='detections',shaves=6):
@@ -167,3 +169,4 @@ class OakDGyrusPeople(ThreadedGyrus):
         monoRight.out.link(stereo.right)
 
         self.init_model(self.model1,camRgb,stereo,streamname='person_detections',shaves=6)
+        self.init_model(self.model2,camRgb,stereo,streamname='face_detections',shaves=6)
