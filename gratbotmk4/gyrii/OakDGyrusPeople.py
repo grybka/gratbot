@@ -16,7 +16,8 @@ logger.setLevel(logging.DEBUG)
 class OakDGyrusPeople(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
-        self.model="person-detection-retail-0013"
+        #self.model="person-detection-retail-0013"
+        self.model="person-detection-0200"
         self.local_rotation=np.zeros(3)
         self.last_gyro_Ts=0
         super().__init__(broker)
@@ -128,7 +129,8 @@ class OakDGyrusPeople(ThreadedGyrus):
         #setup camera
         logger.info("Creating RGB Camera in pipeline")
         camRgb = self.pipeline.createColorCamera()
-        camRgb.setPreviewSize(544, 320)
+        #camRgb.setPreviewSize(544, 320)
+        camRgb.setPreviewSize(256, 256)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
