@@ -27,7 +27,7 @@ class ServoGyrus(ThreadedGyrus):
     def set_servo_angle(self,servo_num,angle):
         m={"servo_number": servo_num,"angle": angle}
         angle=np.clip(angle,self.min_angle,self.max_angle)
-        self.kit.servo[0].angle=angle
+        self.kit.servo[servo_num].angle=angle
         self.broker.publish({"timestamp": time.time(),"servo_response": m},["servo_response"])
 
     def read_message(self,message):

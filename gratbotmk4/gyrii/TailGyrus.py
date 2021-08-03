@@ -18,8 +18,9 @@ class TailGyrus(ThreadedGyrus):
 
     def read_message(self,message):
         if "clock_pulse" in message:
-            freq=0.1
-            angle=90+10*np.sin(message["timestamp"]*freq)
+            freq=np.pi
+            angle=90+60*np.sin(message["timestamp"]*freq)
+            logger.debug("servo 1 to {}".format(angle))
 
             servo_command={"timestamp": time.time(),"servo_command": {"servo_number":1,"angle": angle}}
             self.broker.publish(servo_command,"servo_command")
