@@ -217,7 +217,7 @@ class RecordFinalTrackPos(GratbotBehavior):
         #old_rotvec=np.array(kwargs["short_term_memory"][self.last_rotvec_loc])
         #kwargs["short_term_memory"][self.rotvec_loc].append(np.array(kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"])-old_rotvec)
         final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],self.xcoord]
-        kwargs["short_term_memory"][self.final_loc]=[kwargs["short_term_memory"][self.final_loc],final_vec]
+        kwargs["short_term_memory"][self.final_loc].append([kwargs["short_term_memory"][self.init_loc],final_vec])
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class BroadcastCalibration(GratbotBehavior):
@@ -253,7 +253,7 @@ def calibrate_neck_motion_step(labels,step_size):
 
 def calibrate_neck_motion():
     allowed_labels=["face","orange","sports ball"]
-    servo_jumps=np.linspace(1,10,14)
+    servo_jumps=np.linspace(2,10,7)
     task_list=[]
     for j in servo_jumps:
         task_list.append(
