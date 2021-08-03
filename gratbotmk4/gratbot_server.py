@@ -12,6 +12,7 @@ from gyrii.ServoGyrus import ServoGyrus
 from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
 from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
+from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
@@ -44,16 +45,18 @@ gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
 gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note"]))
 gyrii.append(TrackerGyrusNoCV(broker))
-#gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 gyrii.append(HeadTrackerGyrus(broker))
-#gyrii.append(TurnTrackerGyrus(broker))
 gyrii.append(FollowerGyrus(broker))
+
+#gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
+#gyrii.append(TurnTrackerGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ServoUpAndDown()))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))
+gyrii.append(TailGyrus(broker))
 
 
 def main():
