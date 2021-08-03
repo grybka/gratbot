@@ -149,12 +149,16 @@ class NeckCenterFocusObject(GratbotBehavior):
         self.next_act_time=time.time()+self.wait_time
         return GratbotBehaviorStatus.INPROGRESS, {}
 
+#
+
 class NoteInitialTrackPos(GratbotBehavior):
     def __init__(self,xcoord):
-        self.track_loc="neck_calib_track_init"
-        self.xcoord_loc="neck_calib_dservo_init"
+        self.init_loc="neck_calib_init"
         self.xcoord=xcoord
-        self.rotvec_loc="neck_calib_rotvec_init"
+        #self.track_loc="neck_calib_track_init"
+        #self.xcoord_loc="neck_calib_dservo_init"
+        #self.xcoord=xcoord
+        #self.rotvec_loc="neck_calib_rotvec_init"
 
     def act(self,**kwargs):
         if "focus_track_id" not in kwargs:
@@ -168,19 +172,24 @@ class NoteInitialTrackPos(GratbotBehavior):
         #    kwargs["short_term_memory"][self.track_loc]=None
         #if self.xcoord_loc not in kwargs["short_term_memory"]:
         #    kwargs["short_term_memory"][self.xcoord]=None
-        kwargs["short_term_memory"][self.track_loc]=to_track["center"]
-        kwargs["short_term_memory"][self.xcoord_loc]=self.xcoord
-        kwargs["short_term_memory"][self.rotvec_loc]=kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"]
+        #kwargs["short_term_memory"][self.track_loc]=to_track["center"]
+        #kwargs["short_term_memory"][self.xcoord_loc]=self.xcoord
+        #kwargs["short_term_memory"][self.rotvec_loc]=kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"]
+        init_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],xcoord]
+        kwargs["short_term_memory"][self.init_loc]=init_vec
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class RecordFinalTrackPos(GratbotBehavior):
-    def __init__(self):
-        self.track_loc="neck_calib_track"
-        self.last_track_loc="neck_calib_track_init"
-        self.xcoord_loc="neck_calib_dservo"
-        self.last_xcoord_loc="neck_calib_dservo_init"
-        self.rotvec_loc="neck_calib_rotvec"
-        self.last_rotvec_loc="neck_calib_rotvec_init"
+    def __init__(self,xcoord):
+        self.init_loc="neck_calib_init"
+        self.final_loc="neck_calib"
+        self.xcoord=xcoord
+        #self.track_loc="neck_calib_track"
+        #self.last_track_loc="neck_calib_track_init"
+        #self.xcoord_loc="neck_calib_dservo"
+        #self.last_xcoord_loc="neck_calib_dservo_init"
+        #self.rotvec_loc="neck_calib_rotvec"
+        #self.last_rotvec_loc="neck_calib_rotvec_init"
     def act(self,**kwargs):
         if "focus_track_id" not in kwargs:
             logger.warning("focus track id not in kwargs")
@@ -195,32 +204,38 @@ class RecordFinalTrackPos(GratbotBehavior):
             logger.warning("Trying to record final state with no initial state")
             return GratbotBehaviorStatus.FAILED, {}
         to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
-        if self.track_loc not in kwargs["short_term_memory"]:
-            kwargs["short_term_memory"][self.track_loc]=[]
-        if self.xcoord_loc not in kwargs["short_term_memory"]:
-            kwargs["short_term_memory"][self.xcoord_loc]=[]
-        if self.rotvec_loc not in kwargs["short_term_memory"]:
-            kwargs["short_term_memory"][self.rotvec_loc]=[]
-        kwargs["short_term_memory"][self.xcoord_loc].append(kwargs["short_term_memory"][self.last_xcoord_loc])
-        kwargs["short_term_memory"][self.track_loc].append(np.array(to_track["center"])-np.array(kwargs["short_term_memory"][self.last_track_loc]))
-        old_rotvec=np.array(kwargs["short_term_memory"][self.last_rotvec_loc])
-        kwargs["short_term_memory"][self.rotvec_loc].append(np.array(kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"])-old_rotvec)
+        if self.final_loc not in kwargs["short_term_memory"]:
+             kwargs["short_term_memory"][self.final_loc]=[]
+        #if self.track_loc not in kwargs["short_term_memory"]:
+        #    kwargs["short_term_memory"][self.track_loc]=[]
+        #if self.xcoord_loc not in kwargs["short_term_memory"]:
+        #    kwargs["short_term_memory"][self.xcoord_loc]=[]
+        #if self.rotvec_loc not in kwargs["short_term_memory"]:
+        #    kwargs["short_term_memory"][self.rotvec_loc]=[]
+        #kwargs["short_term_memory"][self.xcoord_loc].append(kwargs["short_term_memory"][self.last_xcoord_loc])
+        #kwargs["short_term_memory"][self.track_loc].append(np.array(to_track["center"])-np.array(kwargs["short_term_memory"][self.last_track_loc]))
+        #old_rotvec=np.array(kwargs["short_term_memory"][self.last_rotvec_loc])
+        #kwargs["short_term_memory"][self.rotvec_loc].append(np.array(kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"])-old_rotvec)
+        final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],xcoord]
+        kwargs["short_term_memory"][self.final_loc]=[kwargs["short_term_memory"][self.final_loc],final_vec]
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class BroadcastCalibration(GratbotBehavior):
-    def __init__(self,xcoord_loc,ycoord_loc,rotvec_loc):
-        self.xcoord_loc=xcoord_loc
-        self.ycoord_loc=ycoord_loc
-        self.rotvec_loc=rotvec_loc
+    def __init__(self,data_loc):
+        #self.xcoord_loc=xcoord_loc
+        #self.ycoord_loc=ycoord_loc
+        #self.rotvec_loc=rotvec_loc
+        self.data_loc=data_loc
     def act(self,**kwargs):
         broker=kwargs["broker"]
         #kwargs["short_term_memory"][self.xcoord_loc]
         #kwargs["short_term_memory"][self.ycoord_loc]
         calib_note={"timestamp": time.time(), "logged_note":
                         {"name": "neck servo calibration",
-                         "xcoords": kwargs["short_term_memory"][self.xcoord_loc],
-                         "ycoords": kwargs["short_term_memory"][self.ycoord_loc],
-                         "rotvecs": kwargs["short_term_memory"][self.rotvec_loc]}}
+                         "data": kwargs["short_term_memory"][self.data_loc] }}
+                         #"xcoords": kwargs["short_term_memory"][self.xcoord_loc],
+                         #"ycoords": kwargs["short_term_memory"][self.ycoord_loc],
+                         #"rotvecs": kwargs["short_term_memory"][self.rotvec_loc]}}
         broker.publish(calib_note,"logged_note")
         return GratbotBehaviorStatus.COMPLETED, {}
 
@@ -234,11 +249,11 @@ def calibrate_neck_motion_step(labels,step_size):
         GratbotBehavior_Series([FocusOnObjectOfLabel(labels),NoteInitialTrackPos(step_size)]),
         RunServoDelta(0,step_size),
         GratbotBehavior_Wait(2.0),
-        GratbotBehavior_Series([FocusOnObjectOfLabel(labels),RecordFinalTrackPos()])])
+        GratbotBehavior_Series([FocusOnObjectOfLabel(labels),RecordFinalTrackPos(step_size)])])
 
 def calibrate_neck_motion():
     allowed_labels=["face","orange","sports ball"]
-    servo_jumps=np.linspace(1,12,14)
+    servo_jumps=np.linspace(1,10,14)
     task_list=[]
     for j in servo_jumps:
         task_list.append(
@@ -249,9 +264,12 @@ def calibrate_neck_motion():
                 GratbotBehavior_Wait(1.0),
                 Announce("Moving up {}".format(j)),
                 IgnoreFailure(calibrate_neck_motion_step(allowed_labels,j)),
+                IgnoreFailure(calibrate_neck_motion_step(allowed_labels,j)),
+                IgnoreFailure(calibrate_neck_motion_step(allowed_labels,-j)),
                 IgnoreFailure(calibrate_neck_motion_step(allowed_labels,-j))]))
     task_list.append(Announce("Saving Neck Servo Calibration"))
-    task_list.append(BroadcastCalibration("neck_calib_dservo","neck_calib_track","neck_calib_rotvec"))
+    #task_list.append(BroadcastCalibration("neck_calib_dservo","neck_calib_track","neck_calib_rotvec"))
+    task_list.append(BroadcastCalibration("neck_calib"))
     return DoOnce(GratbotBehavior_Checklist(task_list))
 
 
