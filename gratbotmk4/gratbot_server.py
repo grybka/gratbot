@@ -16,7 +16,7 @@ from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
-from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion
+from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 from OakDGyrus import OakDGyrus
@@ -52,7 +52,8 @@ gyrii.append(TrackerGyrusNoCV(broker))
 #gyrii.append(TurnTrackerGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ServoUpAndDown()))
-gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
+#gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
+gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))

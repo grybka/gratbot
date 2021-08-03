@@ -40,7 +40,7 @@ class RunServoDelta(GratbotBehavior):
         self.delta_servo_angle=delta_servo_angle
     def act(self,**kwargs):
         broker=kwargs["broker"]
-        logger.debug("servo delta {}".format(self.delta_servo_angle))
+        #logger.debug("servo delta {}".format(self.delta_servo_angle))
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"delta_angle": self.delta_servo_angle}}
         broker.publish(servo_command,"servo_command")
         return GratbotBehaviorStatus.COMPLETED,{}
@@ -134,7 +134,7 @@ class NeckCenterFocusObject(GratbotBehavior):
         if kwargs["focus_track_id"]==None:
             logger.warning("No track to focus neck on")
             return GratbotBehaviorStatus.FAILED, {}
-        logger.debug("focus track id {}".format(kwargs["focus_track_id"]))
+        #logger.debug("focus track id {}".format(kwargs["focus_track_id"]))
         to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
         if to_track==None:
             logger.debug("Neckcenterfocusobject no lost track")
@@ -144,6 +144,7 @@ class NeckCenterFocusObject(GratbotBehavior):
         if abs(error)<self.close_enough:
             logger.debug("Neckcenterfocusobject completed with error {}".format(error))
             return GratbotBehaviorStatus.COMPLETED, {}
+        #logger.debug("center is {} servo step is {}".format(to_trock["center"][1],-self.servo_step if error<0 else self.servo_step))
         to_do=RunServoDelta(self.servo_num,-self.servo_step if error<0 else self.servo_step)
         if to_do.act(**kwargs) == GratbotBehaviorStatus.FAILED:
             return GratbotBehaviorStatus.FAILED, {}
@@ -160,24 +161,25 @@ class TurnCenterFocusObject(GratbotBehavior):
     def act(self,**kwargs):
         if time.time()<self.next_act_time:
             return GratbotBehaviorStatus.INPROGRESS,{}
-        #logger.debug("NeckCenterFocusObject start")
+        logger.debug("TurnCenterFocusObject start")
         if "focus_track_id" not in kwargs:
             logger.warning("focus track id not in kwargs")
             return GratbotBehaviorStatus.FAILED, {}
         if kwargs["focus_track_id"]==None:
             logger.warning("No track to focus neck on")
             return GratbotBehaviorStatus.FAILED, {}
-        logger.debug("focus track id {}".format(kwargs["focus_track_id"]))
+        #logger.debug("focus track id {}".format(kwargs["focus_track_id"]))
         to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
         if to_track==None:
-            logger.debug("Neckcenterfocusobject no lost track")
+            logger.debug("Turn enterfocusobject no lost track")
             return GratbotBehaviorStatus.FAILED, {}
-        center_y=to_track["center"][1]
+        center_y=to_track["center"][0]
         error=center_y-self.target_position
         if abs(error)<self.close_enough:
-            logger.debug("Neckcenterfocusobject completed with error {}".format(error))
+            logger.debug("Turn enterfocusobject completed with error {}".format(error))
             return GratbotBehaviorStatus.COMPLETED, {}
         m=0.4 if error<0 else -0.4
+        logger.debug("Run motors {}".format(m))
         to_do=RunMotors(m,-m,0.1)
         if to_do.act(**kwargs) == GratbotBehaviorStatus.FAILED:
             return GratbotBehaviorStatus.FAILED, {}
@@ -185,8 +187,8 @@ class TurnCenterFocusObject(GratbotBehavior):
         return GratbotBehaviorStatus.INPROGRESS, {}
 
 class NoteInitialTrackPos(GratbotBehavior):
-    def __init__(self,xcoord):
-        self.init_loc="neck_calib_init"
+    def __init__(self,xcoord,init_loc="neck_calib_init"):
+        self.init_loc=init_loc
         self.xcoord=xcoord
 
     def act(self,**kwargs):
@@ -202,9 +204,9 @@ class NoteInitialTrackPos(GratbotBehavior):
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class RecordFinalTrackPos(GratbotBehavior):
-    def __init__(self,xcoord):
-        self.init_loc="neck_calib_init"
-        self.final_loc="neck_calib"
+    def __init__(self,xcoord,init_loc="neck_calib_init",mem_loc="neck_calib"):
+        self.init_loc=init_loc
+        self.final_loc=mem_loc
         self.xcoord=xcoord
     def act(self,**kwargs):
         if "focus_track_id" not in kwargs:
@@ -223,7 +225,7 @@ class RecordFinalTrackPos(GratbotBehavior):
         if self.final_loc not in kwargs["short_term_memory"]:
              kwargs["short_term_memory"][self.final_loc]=[]
         final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0],self.xcoord]
-        kwargs["short_term_memory"][self.final_loc].append[kwargs["short_term_memory"][self.init_loc],final_vec]
+        kwargs["short_term_memory"][self.final_loc].append([kwargs["short_term_memory"][self.init_loc],final_vec])
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class BroadcastCalibration(GratbotBehavior):
@@ -252,9 +254,9 @@ def calibrate_neck_motion_step(labels,step_size):
 def calibrate_turn_motion_step(labels,turn_speed,turn_duration):
     return GratbotBehavior_Checklist([
         GratbotBehavior_Series([FocusOnObjectOfLabel(labels),NoteInitialTrackPos([turn_speed,turn_duration])]),
-        RunMoters(turn_speed,-turn_speed,turn_duration),
+        RunMotors(turn_speed,-turn_speed,turn_duration),
         GratbotBehavior_Wait(2.0),
-        GratbotBehavior_Series([FocusOnObjectOfLabel(labels),RecordFinalTrackPos([turn_speed,turn_duration])])])
+        GratbotBehavior_Series([FocusOnObjectOfLabel(labels),RecordFinalTrackPos([turn_speed,turn_duration],mem_loc="turn_calib")])])
 
 def calibrate_neck_motion():
     allowed_labels=["face","orange","sports ball"]
@@ -280,19 +282,24 @@ def calibrate_neck_motion():
 def calibrate_turn_motion():
     allowed_labels=["face","orange","sports ball"]
     servo_jumps=np.linspace(1,10,14)
-    motor_speeds=np.linspace(-1.0,1.0,8)
+    motor_speeds=np.linspace(0.2,1.0,5)
     motor_speed_times_time=0.2
+    neck_poses=[0.2,0.5,0.8]
     task_list=[]
-    for j in motor_speeds:
-        task_list.append(
-            GratbotBehavior_Checklist([
-                GratbotBehavior_Series([
-                    locate_object_neck_with_label(allowed_labels),
-                    NeckCenterFocusObject()]),
-                GratbotBehavior_Wait(1.0),
-                Announce("Turning {}".format(j)),
-                IgnoreFailure(calibrate_turn_motion_step(allowed_labels,j,motor_speed_times_time/j)),
-                IgnoreFailure(calibrate_turn_motion_step(allowed_labels,-j,motor_speed_times_time/j))]))
+    for neck_pos in neck_poses:
+        for j in motor_speeds:
+            task_list.append(
+                GratbotBehavior_Checklist([
+                    GratbotBehavior_Series([
+                        locate_object_neck_with_label(allowed_labels),
+                        Announce("Adjusting Neck Position to {}".format(neck_pos)),
+                        NeckCenterFocusObject(target_position=neck_pos),
+                        Announce("Adjusting Turn Position"),
+                        TurnCenterFocusObject()]),
+                    GratbotBehavior_Wait(1.0),
+                    Announce("Turning {}".format(j)),
+                    IgnoreFailure(calibrate_turn_motion_step(allowed_labels,j,motor_speed_times_time/j)),
+                    IgnoreFailure(calibrate_turn_motion_step(allowed_labels,-j,motor_speed_times_time/j))]))
     task_list.append(Announce("Saving Turn Motor Calibration"))
     #task_list.append(BroadcastCalibration("neck_calib_dservo","neck_calib_track","neck_calib_rotvec"))
     task_list.append(BroadcastCalibration("turn_calib"))
