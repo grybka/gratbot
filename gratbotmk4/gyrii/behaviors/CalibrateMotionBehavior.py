@@ -217,7 +217,7 @@ class RecordFinalTrackPos(GratbotBehavior):
         #old_rotvec=np.array(kwargs["short_term_memory"][self.last_rotvec_loc])
         #kwargs["short_term_memory"][self.rotvec_loc].append(np.array(kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"])-old_rotvec)
         final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],xcoord]
-        kwargs["short_term_memory"][self.final_loc]=[kwargs["short_term_memory"][self.final_loc],final_vec]
+        kwargs["short_term_memory"][self.final_loc].append[kwargs["short_term_memory"][self.init_loc],final_vec]
         return GratbotBehaviorStatus.COMPLETED, {}
 
 class BroadcastCalibration(GratbotBehavior):
