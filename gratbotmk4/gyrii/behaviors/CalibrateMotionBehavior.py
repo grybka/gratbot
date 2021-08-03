@@ -175,7 +175,7 @@ class NoteInitialTrackPos(GratbotBehavior):
         #kwargs["short_term_memory"][self.track_loc]=to_track["center"]
         #kwargs["short_term_memory"][self.xcoord_loc]=self.xcoord
         #kwargs["short_term_memory"][self.rotvec_loc]=kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"]
-        init_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],xcoord]
+        init_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],self.xcoord]
         kwargs["short_term_memory"][self.init_loc]=init_vec
         return GratbotBehaviorStatus.COMPLETED, {}
 
@@ -197,12 +197,12 @@ class RecordFinalTrackPos(GratbotBehavior):
         if kwargs["focus_track_id"]==None:
             logger.warning("No track to focus neck on")
             return GratbotBehaviorStatus.FAILED, {}
-        if self.last_track_loc not in kwargs["short_term_memory"]:
+        if self.init_loc not in kwargs["short_term_memory"]:
             logger.warning("Trying to record final state with no initial state")
             return GratbotBehaviorStatus.FAILED, {}
-        if self.last_xcoord_loc not in kwargs["short_term_memory"]:
-            logger.warning("Trying to record final state with no initial state")
-            return GratbotBehaviorStatus.FAILED, {}
+        #if self.last_xcoord_loc not in kwargs["short_term_memory"]:
+        #    logger.warning("Trying to record final state with no initial state")
+        #    return GratbotBehaviorStatus.FAILED, {}
         to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
         if self.final_loc not in kwargs["short_term_memory"]:
              kwargs["short_term_memory"][self.final_loc]=[]
@@ -216,7 +216,7 @@ class RecordFinalTrackPos(GratbotBehavior):
         #kwargs["short_term_memory"][self.track_loc].append(np.array(to_track["center"])-np.array(kwargs["short_term_memory"][self.last_track_loc]))
         #old_rotvec=np.array(kwargs["short_term_memory"][self.last_rotvec_loc])
         #kwargs["short_term_memory"][self.rotvec_loc].append(np.array(kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"])-old_rotvec)
-        final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],xcoord]
+        final_vec=[time.time(),to_track["center"],kwargs["short_term_memory"]["packets"]["packets"][0]["local_rotation"],self.xcoord]
         kwargs["short_term_memory"][self.final_loc]=[kwargs["short_term_memory"][self.final_loc],final_vec]
         return GratbotBehaviorStatus.COMPLETED, {}
 
