@@ -18,7 +18,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_start_time=0
 
         #self.mode="show_detections"
-        self.mode="show_detections"
+        self.mode="show_tracks"
         super().__init__(broker)
 
         self.last_tracks_message={"tracks": []}
@@ -74,7 +74,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
                 #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                 cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, "{:.2f} {:.2f} Dist: {:.2f}m".format(t["center"][0],t["center"][1],t["center"][2]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+                #cv2.putText(frame, "{:.2f} {:.2f} Dist: {:.2f}m".format(t["center"][0],t["center"][1],t["center"][2]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+                cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
         if self.show_fps==True:
             self.update_fps_and_put_text(frame)
         self.display.update_image("camera",frame)

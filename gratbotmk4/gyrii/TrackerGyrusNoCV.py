@@ -61,11 +61,11 @@ class MotionCorrection: #to correct image frames from heading changes
                 #self.headings.append([message['packets'][0]["gyroscope_timestamp"],0 ])
                 self.headings.append([message['packets'][0]["gyroscope_timestamp"],np.array([0,0,0]) ])
             for packet in message["packets"]:
-                self.gyros.append( [packet["gyroscope_timestamp"],packet["gyroscope"]])
+                #self.gyros.append( [packet["gyroscope_timestamp"],packet["gyroscope"]])
                 self.accel=0.8*self.accel+0.2*np.array(packet["acceleration"])
                     #TODO I could do a fancier integration
-                #next_heading=self.headings[-1][1]+packet["gyroscope"][self.z_gyro_index]*(packet["gyroscope_timestamp"]-self.headings[-1][0])
-                next_heading=self.headings[-1][1]+np.array(packet["gyroscope"])*(packet["gyroscope_timestamp"]-self.headings[-1][0])
+                #next_heading=self.headings[-1][1]+np.array(packet["gyroscope"])*(packet["gyroscope_timestamp"]-self.headings[-1][0])
+                next_heading=packet["local_rotation"]
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
     def get_offset_and_update(self,image_timestamp):
@@ -78,7 +78,12 @@ class MotionCorrection: #to correct image frames from heading changes
         #return offset
         #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
         #TODO figure out how to line this up with gravity
-        offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
+        mag_accel=np.linalg.norm(self.accel)
+        cos_angle=self.accel[1]/mag_accel
+        sin_angle=self.accel[2]/mag_accel
+        turn_mag=delta_heading[self.z_gyro_index]*cos_angle-delta_heading[self.y_gyro_index]*sin_angle
+        #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
+        offset_x=turn_mag*self.angle_heading_slope
         offset_y=delta_heading[self.x_gyro_index]*self.angle_ygyro_slope
         return offset_x,offset_y
 
@@ -86,6 +91,8 @@ class TrackerGyrusTrackedObject:
     def __init__(self):
         self.id=uuid.uuid1()
 
+        self.info="NEW"
+        self.defunct=False
 
         #info from detections
         self.last_label=None
@@ -146,6 +153,7 @@ class TrackerGyrusTrackedObject:
         self.kfz.update(self.last_depth)
         self.frames_without_detection=0
         self.frames_with_detection+=1
+        self.info="DETECTED"
 
     def init_with_detection(self,image,det):
         self.shape=image.shape
@@ -207,6 +215,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             mess["missed_frames"]=tracker.frames_without_detection
             mess["seen_frames"]=tracker.frames_with_detection
             mess["label"]=tracker.last_label
+            mess["info"]=tracker.info
             mess["id"]=tracker.id
             ret.append(mess)
         return ret
@@ -216,7 +225,6 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             self.last_image_timestamp=image_timestamp
             return
         dt=image_timestamp-self.last_image_timestamp
-        dead_trackers=[]
 
         for tracker in self.trackers:
             tracker.update_kf_from_time(dt)
@@ -224,11 +232,29 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             tracker.kfy.x[0]+=offset_y
             if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
                 if tracker.frames_without_detection>self.max_frames_without_detection:
-                    dead_trackers.append(tracker)
+                    tracker.info="DISAPPEARED"
+                    logger.warning("Track {} disappeared".format(id_to_name(tracker.id)))
+                    tracker.defunct=True
             else:
+                if tracker.kfx.x[0]<0:
+                    tracker.info="EXIT LEFT"
+                elif tracker.kfx.x[0]>1:
+                    tracker.info="EXIT RIGHT"
+                elif tracker.kfy.x[0]<0:
+                    tracker.info="EXIT TOP"
+                elif tracker.kfy.x[0]>1:
+                    tracker.info="EXIT BOTTOM"
                 if tracker.frames_without_detection>self.max_frames_offscreen:
-                    dead_trackers.append(tracker)
+                    tracker.defunct=True
+            else:
+                tracker.info="LOST"
             tracker.frames_without_detection+=1
+
+    def drop_dead_tracks(self):
+        dead_trackers=[]
+        for tracker in self.trackers:
+            if tracker.defunct:
+                dead_trackers.append(tracker)
 
         for tracker in dead_trackers:
             print("dropping {} with missed frames {}".format(tracker.last_label,tracker.frames_without_detection))

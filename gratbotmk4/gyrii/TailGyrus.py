@@ -17,6 +17,9 @@ class TailGyrus(ThreadedGyrus):
         return "TailGyrus"
 
     def read_message(self,message):
+        if "gyrus_config" in message:
+            if message["gyrus_config"]["target_gyrus"]=="TailGyrus":
+                ...
         if "clock_pulse" in message:
             freq=np.pi
             angle=90+60*np.sin(message["timestamp"]*freq)
