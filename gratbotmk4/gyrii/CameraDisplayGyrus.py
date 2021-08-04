@@ -6,7 +6,8 @@ import numpy as np
 import cv2
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class CameraDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
@@ -82,9 +83,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.display.update_image("camera",frame)
 
     def update_depth(self):
-        frame=self.last_depth_message["depth"]
-        cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
-        self.display.update_image("depth",frame)
+        frame=self.last_depth_message["depth_image"]
+        logger.debug("frame shape {}".format(frame.shape))
+        #cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
+        #self.display.update_image("depth",frame)
 
     def read_message(self,message):
         if "image" in message:
@@ -94,6 +96,6 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_detections_message=message
         if "tracks" in message:
             self.last_tracks_message=message
-        if "depth" in message:
+        if "depth_image" in message:
             self.last_depth_message=message
             self.update_depth()
