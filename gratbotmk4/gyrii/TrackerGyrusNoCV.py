@@ -217,7 +217,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             bb=tracker.get_bestguess_bbox()
             mess["bbox_array"]=[ int(bb[0]-bb[2]/2),int(bb[0]+bb[2]/2),int(bb[1]-bb[3]/2),int(bb[1]+bb[3]/2)]
             mess["center"]=tracker.get_center()
-            mass["center_uncertainty"]=tracker.get_center_uncertainty()
+            mess["center_uncertainty"]=tracker.get_center_uncertainty()
             mess["velocity"]=tracker.get_velocity()
             mess["missed_frames"]=tracker.frames_without_detection
             mess["seen_frames"]=tracker.frames_with_detection

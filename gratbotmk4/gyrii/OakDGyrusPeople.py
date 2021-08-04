@@ -107,14 +107,16 @@ class OakDGyrusPeople(ThreadedGyrus):
                 frame_message["detections"]=detection_message #also append to image
             self.broker.publish(frame_message,frame_message["keys"])
 
-    def tryget_depth(depthQueue):
+    def tryget_depth(self,depthQueue):
         inDepth = depthQueue.tryGet()
-        if inDepth is not None:
+        inDepth = None
+        #if inDepth is not None:
+        if False:
             frame=inDepth.getFrame()
             frame_message={"timestamp": time.time()}
             image_timestamp=inDepth.getTimestamp().total_seconds()
             frame_message["image_timestamp"]=image_timestamp
-            frame_message["image"]=frame
+            frame_message["depth_image"]=frame
             frame_message["keys"]=["depth"]
             self.broker.publish(frame_message,frame_message["keys"])
 
@@ -188,9 +190,9 @@ class OakDGyrusPeople(ThreadedGyrus):
         stereo.setConfidenceThreshold(128) #TODO is this good?
         monoLeft.out.link(stereo.left)
         monoRight.out.link(stereo.right)
-        depthout=self.pipline.createXLinkOut()
+        depthout=self.pipeline.createXLinkOut()
         depthout.setStreamName("depth")
-        stereo.depth.link(depthout)
+        stereo.depth.link(depthout.input)
 
         for model in self.models:
             self.init_model(model["modelname"],camRgb,stereo,streamname=model["streamname"],shaves=6)
