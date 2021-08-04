@@ -107,11 +107,23 @@ class OakDGyrusPeople(ThreadedGyrus):
                 frame_message["detections"]=detection_message #also append to image
             self.broker.publish(frame_message,frame_message["keys"])
 
+    def tryget_depth(depthQueue):
+        inDepth = depthQueue.tryGet()
+        if inDepth is not None:
+            frame=inDepth.getFrame()
+            frame_message={"timestamp": time.time()}
+            image_timestamp=inDepth.getTimestamp().total_seconds()
+            frame_message["image_timestamp"]=image_timestamp
+            frame_message["image"]=frame
+            frame_message["keys"]=["depth"]
+            self.broker.publish(frame_message,frame_message["keys"])
+
     def _oak_comm_thread_loop(self):
         self.init_oakd()
         with dai.Device(self.pipeline) as device:
             imuQueue = device.getOutputQueue(name="imu", maxSize=50, blocking=False)
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+            depthQueue = device.getOutputQueue(name="depth", maxSize=4,blocking=False)
 
             for model in self.models:
                 model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
@@ -119,6 +131,7 @@ class OakDGyrusPeople(ThreadedGyrus):
             while not self.should_quit:
                 self.tryget_imudata(imuQueue)
                 self.tryget_image(previewQueue)
+                self.tryget_depth(depthQueue)
         logging.debug("Exiting OakD thread")
 
     def init_model(self,model_name,camRgb,stereo,streamname='detections',shaves=6):
@@ -175,6 +188,9 @@ class OakDGyrusPeople(ThreadedGyrus):
         stereo.setConfidenceThreshold(128) #TODO is this good?
         monoLeft.out.link(stereo.left)
         monoRight.out.link(stereo.right)
+        depthout=self.pipline.createXLinkOut()
+        depthout.setStreamName("depth")
+        stereo.depth.link(depthout)
 
         for model in self.models:
             self.init_model(model["modelname"],camRgb,stereo,streamname=model["streamname"],shaves=6)

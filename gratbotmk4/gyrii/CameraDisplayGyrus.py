@@ -24,9 +24,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.last_tracks_message={"tracks": []}
         self.last_detections_message={"detections": []}
         self.last_image_message={}
+        self.last_depth_message={}
 
     def get_keys(self):
-        return ["image","tracks"]
+        return ["image","tracks","depth"]
 
     def get_name(self):
         return "CameraDisplayGyrus"
@@ -80,6 +81,11 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.update_fps_and_put_text(frame)
         self.display.update_image("camera",frame)
 
+    def update_depth(self):
+        frame=self.last_depth_message["depth"]
+        cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
+        self.display.update_image("depth",frame)
+
     def read_message(self,message):
         if "image" in message:
             self.last_image_message=message
@@ -88,3 +94,6 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_detections_message=message
         if "tracks" in message:
             self.last_tracks_message=message
+        if "depth" in message:
+            self.last_depth_message=message
+            self.update_depth()

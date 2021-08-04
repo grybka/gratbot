@@ -177,6 +177,9 @@ class TrackerGyrusTrackedObject:
     def get_center(self):
         return [ self.kfx.x[0][0],self.kfy.x[0][0],self.kfz.x[0][0] ]
 
+    def get_center_uncertainty(self):
+        return [ np.sqrt(self.kfx.P[0][0]),np.sqrt(self.kfy.P[0][0]),np.sqrt(self.kfz.P[0][0]) ]
+
     def get_velocity(self):
         return [ self.kfx.x[1][0],self.kfy.x[1][0],self.kfz.x[1][0] ]
 
@@ -185,6 +188,7 @@ class TrackerGyrusTrackedObject:
 class TrackerGyrusNoCV(ThreadedGyrus):
     def __init__(self,broker):
         self.motion_corrector=MotionCorrection()
+        self.offset_uncertainty=0.1 #fractional uncertainty on an offset
 
         self.trackers=[]
         self.last_image_timestamp=0
@@ -211,6 +215,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             bb=tracker.get_bestguess_bbox()
             mess["bbox_array"]=[ int(bb[0]-bb[2]/2),int(bb[0]+bb[2]/2),int(bb[1]-bb[3]/2),int(bb[1]+bb[3]/2)]
             mess["center"]=tracker.get_center()
+            mass["center_uncertainty"]=tracker.get_center_uncertainty()
             mess["velocity"]=tracker.get_velocity()
             mess["missed_frames"]=tracker.frames_without_detection
             mess["seen_frames"]=tracker.frames_with_detection
@@ -228,8 +233,11 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
         for tracker in self.trackers:
             tracker.update_kf_from_time(dt)
+            total_offset=offset_x+offset_y
             tracker.kfx.x[0]+=offset_x
+            tracker.kfx.P[0][0]+=(total_offset*self.offset_uncertainty)**2
             tracker.kfy.x[0]+=offset_y
+            tracker.kfy.P[0][0]+=(total_offset*self.offset_uncertainty)**2
             if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
                 if tracker.frames_without_detection>self.max_frames_without_detection:
                     tracker.info="DISAPPEARED"
