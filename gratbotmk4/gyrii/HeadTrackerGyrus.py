@@ -63,6 +63,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.last_angle=90
         #self.position_target=0.25 #0.25 puts it at top
         self.position_target=0.70 #0.70 puts it at bottom, good for people
+        self.position_target=0.5
         #not used below
         self.rot_vector_history=deque([],maxlen=self.max_recent_history)
 
@@ -106,7 +107,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
             return #no reference time
         if "servo_response" in message:
         #    logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
-            self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
+            if message["servo_response"]["servo_number"]==0:
+                self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
         if "tracks" in message:
 
             if self.mode=="off":
@@ -143,8 +145,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if abs(correction_angle)>self.min_angle_correction:
                 new_angle=angle_at_image_time+correction_angle
                 if abs(new_angle-self.last_angle)>self.min_angle_correction:
-                    #logger.info("correction angle {}".format(correction_angle))
-                    #logger.info("new angle {}".format(new_angle))
+                    logger.info("correction angle {}".format(correction_angle))
+                    logger.info("new angle {}".format(new_angle))
                     self.last_angle=new_angle
                     servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
                     self.broker.publish(servo_command,"servo_command")

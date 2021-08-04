@@ -65,7 +65,7 @@ class MotionCorrection: #to correct image frames from heading changes
                 self.accel=0.8*self.accel+0.2*np.array(packet["acceleration"])
                     #TODO I could do a fancier integration
                 #next_heading=self.headings[-1][1]+np.array(packet["gyroscope"])*(packet["gyroscope_timestamp"]-self.headings[-1][0])
-                next_heading=packet["local_rotation"]
+                next_heading=np.array(packet["local_rotation"])
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
     def get_offset_and_update(self,image_timestamp):
@@ -125,8 +125,10 @@ class TrackerGyrusTrackedObject:
 
     def update_kf_from_time(self,dt):
         #assume 2.3 pixel creep per second
-        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=2**2)
-        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=2**2)
+        my_variance=4
+        my_variance=0.5
+        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=my_variance)
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=my_variance)
         #assume 1 cm creep per second
         self.kfz.Q=Q_discrete_white_noise(2,dt=dt,var=0.01**2)
         self.kfx.predict()
@@ -230,6 +232,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             tracker.update_kf_from_time(dt)
             tracker.kfx.x[0]+=offset_x
             tracker.kfy.x[0]+=offset_y
+            tracker.info="LOST"
             if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
                 if tracker.frames_without_detection>self.max_frames_without_detection:
                     tracker.info="DISAPPEARED"
@@ -246,9 +249,8 @@ class TrackerGyrusNoCV(ThreadedGyrus):
                     tracker.info="EXIT BOTTOM"
                 if tracker.frames_without_detection>self.max_frames_offscreen:
                     tracker.defunct=True
-            else:
-                tracker.info="LOST"
             tracker.frames_without_detection+=1
+        self.last_image_timestamp=image_timestamp
 
     def drop_dead_tracks(self):
         dead_trackers=[]
@@ -262,7 +264,6 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
 
 
-        self.last_image_timestamp=image_timestamp
 
     def get_match_score(self,tracker,det,imageshape):
         #so what's important?  Distance match, size match, and label match
@@ -337,6 +338,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
 
             message_out={"tracks": self.getTracks(),"timestamp": time.time(),"image_timestamp": message["image_timestamp"],"offset": [offset_x,offset_y]}
             self.broker.publish(message_out,["tracks"])
+            self.drop_dead_tracks()
 
             #timing
             self.spf_count+=1
