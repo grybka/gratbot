@@ -48,7 +48,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(15,6,12,output_clip=[-10,10]) #worked for faces
+        self.pid_controller=MyPID(6,4,6,output_clip=[-10,10]) #worked for faces
         #self.pid_controller=MyPID(8,3,9,output_clip=[-10,10])
         self.ratio=20
         self.min_angle_correction=1 #in degrees!
