@@ -39,6 +39,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.fps=self.fps_count_reset/(time.time()-self.fps_start_time)
             self.fps_start_time=time.time()
             self.fps_count=0
+        #frame=cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #print("frame type {}".format(frame.dtype))
+        #print("frame shape {}".format(frame.shape))
         color = (255, 0, 0)
         cv2.putText(frame, "NN fps: {:.2f}".format(self.fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
 
@@ -83,10 +86,13 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.display.update_image("camera",frame)
 
     def update_depth(self):
-        frame=self.last_depth_message["depth_image"]
-        logger.debug("frame shape {}".format(frame.shape))
-        #cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
-        #self.display.update_image("depth",frame)
+        return
+        if "depth_image" in self.last_depth_message:
+            frame=self.last_depth_message["depth_image"]
+            myframe=(255*frame/3e3).astype(np.uint8)
+            #logger.debug("frame shape {}".format(frame.shape))
+            #cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
+            #self.display.update_image("depth",frame)
 
     def read_message(self,message):
         if "image" in message:

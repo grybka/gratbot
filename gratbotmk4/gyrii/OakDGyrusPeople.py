@@ -196,8 +196,8 @@ class OakDGyrusPeople(ThreadedGyrus):
         monoRight.out.link(stereo.right)
         depthout=self.pipeline.createXLinkOut()
         depthout.setStreamName("depth")
-        #stereo.disparity.link(depthout.input)
-        stereo.depth.link(depthout.input)
+        stereo.disparity.link(depthout.input)
+        #stereo.depth.link(depthout.input)
 
         for model in self.models:
             self.init_model(model["modelname"],camRgb,stereo,streamname=model["streamname"],shaves=6)
