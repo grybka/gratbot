@@ -112,18 +112,15 @@ class OakDGyrusPeople(ThreadedGyrus):
         inDepth = depthQueue.tryGet()
         if inDepth is not None:
             frame=inDepth.getFrame()
-            logger.debug("frame type {}".format(type(frame)))
-            logger.debug("frame shape {}".format(frame.shape))
-            logger.debug("frame dtype {}".format(frame.dtype))
-            #logger.debug("frame type {}".format(type(frame[0][0])))
-            #frame=cv2.applyColorMap(frame,cv2.COLORMAP_HOT)
+            #logger.debug("frame type {}".format(type(frame)))
+            #logger.debug("frame shape {}".format(frame.shape))
+            #logger.debug("frame dtype {}".format(frame.dtype))
             frame_message={"timestamp": time.time()}
             image_timestamp=inDepth.getTimestamp().total_seconds()
             frame_message["image_timestamp"]=image_timestamp
             frame_message["depth_image"]=frame
-            #frame_message["depth_image"]=np.zeros([480,640]).astype(np.int8)
             frame_message["keys"]=["depth"]
-            #self.broker.publish(frame_message,frame_message["keys"])
+            self.broker.publish(frame_message,frame_message["keys"])
 
     def _oak_comm_thread_loop(self):
         self.init_oakd()
@@ -173,6 +170,7 @@ class OakDGyrusPeople(ThreadedGyrus):
         #setup camera
         logger.info("Creating RGB Camera in pipeline")
         camRgb = self.pipeline.createColorCamera()
+        camRgb.setFps(20)
         #camRgb.setPreviewSize(544, 320)
         camRgb.setPreviewSize(256, 256)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
@@ -185,7 +183,9 @@ class OakDGyrusPeople(ThreadedGyrus):
         #depth camera
         logger.info("Creating Stereo Camera in pipeline")
         monoLeft = self.pipeline.createMonoCamera()
+        monoLeft.setFps(20)
         monoRight = self.pipeline.createMonoCamera()
+        monoRight.setFps(20)
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
         monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
@@ -196,6 +196,7 @@ class OakDGyrusPeople(ThreadedGyrus):
         monoRight.out.link(stereo.right)
         depthout=self.pipeline.createXLinkOut()
         depthout.setStreamName("depth")
+        print("Max stereo disparity {}".format(stereo.getMaxDisparity()))
         stereo.disparity.link(depthout.input)
         #stereo.depth.link(depthout.input)
 

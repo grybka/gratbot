@@ -57,7 +57,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
-        self.resting_angle=110
+        self.resting_angle=140
+        #self.resting_angle=90
         self.time_to_resting=2
         self.last_move=0
         self.last_angle=90
@@ -123,7 +124,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
                 if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
                     self.tracked_object=None
                     if time.time()-self.last_move>self.time_to_resting:
-                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": 90}}
+                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": self.resting_angle}}
                         self.broker.publish(servo_command,"servo_command")
                 return
             image_time=message['image_timestamp']-self.time_ref

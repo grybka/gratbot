@@ -38,6 +38,7 @@ class ServoGyrus(ThreadedGyrus):
             servo_num=int(m["servo_number"])
             if "angle" in m:
                 angle=m["angle"]
+                logger.debug("servo {} to {}".format(servo_num,angle))
                 self.set_servo_angle(servo_num,angle)
             elif "delta_angle" in m:
 #                logger.debug("delta angle {} command received".format(m["delta_angle"]))
