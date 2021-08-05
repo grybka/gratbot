@@ -165,6 +165,7 @@ class FollowerGyrus(ThreadedGyrus):
         self.latest_image_timestamp=0
         #this part maybe should go in a behavior
         self.mode="track_first"
+        self.mode="track_target"
         self.allowed_labels=["sports ball","orange","face","person"]
         self.last_report=0
 

@@ -17,6 +17,7 @@ from gyrii.TailGyrus import TailGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
+from gyrii.behaviors.FollowBehavior import find_and_follow
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 from OakDGyrus import OakDGyrus
@@ -47,6 +48,7 @@ gyrii.append(ServoGyrus(broker))
 gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(HeadTrackerGyrus(broker))
 gyrii.append(FollowerGyrus(broker))
+gyrii.append(BehaviorGyrus(broker,find_and_follow(["person","face"])))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(TurnTrackerGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))

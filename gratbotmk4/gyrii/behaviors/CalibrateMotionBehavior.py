@@ -1,4 +1,5 @@
 from gyrii.behaviors.Behavior import *
+from gyrii.behaviors.FocusBehavior import *
 import time
 import numpy as np
 from math import sin,cos
