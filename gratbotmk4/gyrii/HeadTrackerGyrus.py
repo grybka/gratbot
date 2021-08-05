@@ -57,8 +57,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.max_recent_history=20
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
-        self.resting_angle=140
-        #self.resting_angle=90
+        #self.resting_angle=140
+        self.resting_angle=90
         self.time_to_resting=2
         self.last_move=0
         self.last_angle=90
@@ -146,8 +146,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if abs(correction_angle)>self.min_angle_correction:
                 new_angle=angle_at_image_time+correction_angle
                 if abs(new_angle-self.last_angle)>self.min_angle_correction:
-                    logger.info("correction angle {}".format(correction_angle))
-                    logger.info("new angle {}".format(new_angle))
+                    #logger.info("correction angle {}".format(correction_angle))
+                    #logger.info("new angle {}".format(new_angle))
                     self.last_angle=new_angle
                     servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
                     self.broker.publish(servo_command,"servo_command")
@@ -157,11 +157,11 @@ class FollowerGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.tracked_object=None
-        self.target_follow_distance=2.0 #in meters
-        self.only_turn=True
-        self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-2,2])
-        self.forward_pid_controller=MyPID(-1.5,-0.5,0,output_clip=[-2,2])
-        self.min_throttle=0.25
+        self.target_follow_distance=1.5 #in meters
+        self.only_turn=False
+        self.turn_pid_controller=MyPID(-0.4,-0.05,0,output_clip=[-2,2])
+        self.forward_pid_controller=MyPID(-0.5,-0.1,0,output_clip=[-2,2])
+        self.min_throttle=0.05
         self.latest_image_timestamp=0
         #this part maybe should go in a behavior
         self.mode="track_first"
@@ -207,6 +207,7 @@ class FollowerGyrus(ThreadedGyrus):
             center_z=track["center"][2]+track["velocity"][2]*image_is_late_by
             error_turn=center_x-0.5
             error_forward=center_z-self.target_follow_distance
+            #logger.info("error turn {} error forward {}".format(error_turn,error_forward))
             #use PID to determine response
             self.turn_pid_controller.observe(error_turn)
             self.forward_pid_controller.observe(error_forward)
@@ -227,6 +228,7 @@ class FollowerGyrus(ThreadedGyrus):
             #if there's enough change, move the motors
             if abs(left_throttle)>self.min_throttle or abs(right_throttle)>self.min_throttle:
                 motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":0.2,"right_duration": 0.2}}
+                #logger.info("publishing motor command")
                 self.broker.publish(motor_command,"motor_command")
                 self.last_move=time.time()
                 if time.time()-self.last_report>1.0:

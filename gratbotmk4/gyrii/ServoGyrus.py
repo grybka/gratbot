@@ -9,7 +9,7 @@ from Gyrus import ThreadedGyrus
 from adafruit_servokit import ServoKit
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class ServoGyrus(ThreadedGyrus):
     def __init__(self,broker):

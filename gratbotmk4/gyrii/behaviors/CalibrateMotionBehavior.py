@@ -283,7 +283,7 @@ def calibrate_turn_motion():
     allowed_labels=["face","orange","sports ball"]
     servo_jumps=np.linspace(1,10,14)
     motor_speeds=np.linspace(0.2,1.0,5)
-    motor_speed_times_time=0.2
+    motor_speed_times_time=0.1
     neck_poses=[0.2,0.5,0.8]
     task_list=[]
     for neck_pos in neck_poses:
