@@ -45,8 +45,7 @@ def json_to_message(object):
                 x=np.frombuffer(x,dtype=np.uint8)
                 return cv2.imdecode(x,cv2.IMREAD_COLOR)
             if object["_packed_type"]=="ndarray":
-
-                #return np.array(json_to_message(object["data"]))
+                return np.array(json_to_message(object["data"]))
             else:
                 raise Exception("json_to_message doesn't understand type {}".format(object["_packed_type"]))
         ret={}
