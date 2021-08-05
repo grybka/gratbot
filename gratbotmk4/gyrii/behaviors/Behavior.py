@@ -157,6 +157,12 @@ class IgnoreFailure(GratbotBehavior):
             return response, response_data
         return GratbotBehaviorStatus.COMPLETED, response_data
 
+class ReturnInProgress(GratbotBehavior):
+    def __init__(self):
+        ...
+    def act(self,**kwargs):
+        return GratbotBehaviorStatus.INPROGRESS, {}
+
 
 
 class DoOnce(GratbotBehavior):

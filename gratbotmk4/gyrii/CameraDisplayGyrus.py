@@ -86,13 +86,12 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.display.update_image("camera",frame)
 
     def update_depth(self):
-        return
         if "depth_image" in self.last_depth_message:
             frame=self.last_depth_message["depth_image"]
-            myframe=(255*frame/3e3).astype(np.uint8)
-            #logger.debug("frame shape {}".format(frame.shape))
+            frame=(frame*(255./95.)).astype(np.uint8)
+            #myframe=(255*frame/3e3).astype(np.uint8)
             #cv2.putText(frame, "{} x {}".format(frame.shape[0],frame.shape[1]))
-            #self.display.update_image("depth",frame)
+            self.display.update_image("depth",frame)
 
     def read_message(self,message):
         if "image" in message:

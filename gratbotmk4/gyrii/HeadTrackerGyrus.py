@@ -158,7 +158,7 @@ class FollowerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         self.target_follow_distance=2.0 #in meters
-        self.only_turn=False
+        self.only_turn=True
         self.turn_pid_controller=MyPID(-2,-0,-1,output_clip=[-2,2])
         self.forward_pid_controller=MyPID(-1.5,-0.5,0,output_clip=[-2,2])
         self.min_throttle=0.25
