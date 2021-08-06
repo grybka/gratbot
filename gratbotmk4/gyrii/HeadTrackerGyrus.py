@@ -158,9 +158,10 @@ class FollowerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         self.target_follow_distance=1.5 #in meters
+        self.target_follow_distance_allowance=1.5 #in meters
         self.only_turn=False
         self.turn_pid_controller=MyPID(-0.4,-0.05,0,output_clip=[-2,2])
-        self.forward_pid_controller=MyPID(-0.5,-0.1,0,output_clip=[-2,2])
+        self.forward_pid_controller=MyPID(-0.6,-0.1,0,output_clip=[-2,2])
         self.min_throttle=0.05
         self.latest_image_timestamp=0
         #this part maybe should go in a behavior
@@ -188,7 +189,10 @@ class FollowerGyrus(ThreadedGyrus):
                 self.only_turn=m["only_turn"]
             if "follow_distance" in m:
                 self.target_follow_distance=m["follow_distance"]
+            if "follow_distance_allowance" in m:
+                self.target_follow_distance_allowance=m["follow_distance_allowance"]
         #keep track of how far ahead my IMU is from my tracker
+
         if "packets" in message: #this tracks the
             self.latest_image_timestamp=message['packets'][-1]['gyroscope_timestamp']
 
@@ -208,6 +212,8 @@ class FollowerGyrus(ThreadedGyrus):
             center_z=track["center"][2]+track["velocity"][2]*image_is_late_by
             error_turn=center_x-0.5
             error_forward=center_z-self.target_follow_distance
+            if abs(error_forward)<self.target_follow_distance_allowance:
+                error_forward=0
             #logger.info("error turn {} error forward {}".format(error_turn,error_forward))
             #use PID to determine response
             self.turn_pid_controller.observe(error_turn)

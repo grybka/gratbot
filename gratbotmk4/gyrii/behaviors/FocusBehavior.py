@@ -27,7 +27,6 @@ class FocusOnObjectOfLabel(GratbotBehavior):
     def __init__(self,labels):
         self.labels=labels
     def act(self,**kwargs):
-        #logger.debug("FocusOnObjectOfLabel start")
         if "focus_track_id" in kwargs["state"]:
             to_track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
             if to_track["label"] in self.labels:
