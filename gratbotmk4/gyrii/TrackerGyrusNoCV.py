@@ -146,6 +146,9 @@ class TrackerGyrusTrackedObject:
         x_update,y_update=box[0]/image.shape[1],box[1]/image.shape[0]
         #print("x update, y update {},{} for {}".format(x_update,y_update,det["label"]))
         #assume 2 pixel resolution for a detection
+        self.kfx.H=np.array([[1.,0.]])
+        self.kfy.H=np.array([[1.,0.]])
+        self.kfz.H=np.array([[1.,0.]])
         self.kfx.R=np.array( [[ (2/image.shape[1])**2 ]])
         self.kfx.update(x_update)
         self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]])
@@ -153,6 +156,20 @@ class TrackerGyrusTrackedObject:
         #assume 5 cm resolution for depth
         self.kfz.R=np.array( [[ 0.05**2 ]])
         self.kfz.update(self.last_depth)
+        #TODO impose priors on velocities.
+        velocity_onesigma=1 #m/s
+        view_angle=1.6 #radians
+        xy_onesigma=(velocity_onesigma/self.kfz.x[0][0])/view_angle
+        self.kfx.H=np.array([[0.,1.]])
+        self.kfy.H=np.array([[0.,1.]])
+        self.kfz.H=np.array([[0.,1.]])
+        self.kfx.R=np.array( [[xy_onesigma**2]])
+        self.kfy.R=np.array( [[xy_onesigma**2]])
+        self.kfy.R=np.array( [[velocity_onesigma**2]])
+        self.kfx.update(0)
+        self.kfy.update(0)
+        self.kfz.update(0)
+
         self.frames_without_detection=0
         self.frames_with_detection+=1
         self.info="DETECTED"
