@@ -22,6 +22,13 @@ class RunMotors(GratbotBehavior):
         broker.publish(motor_command,"motor_command")
         return GratbotBehaviorStatus.COMPLETED,{}
 
+def extract_track_with_id(short_term_memory,id):
+    if "tracks" in short_term_memory:
+        for track in short_term_memory["tracks"]["tracks"]:
+            if track["id"]==id:
+                return track
+    return None
+
 class TrackObjectId(GratbotBehavior):
     def __init__(self):
         ...
@@ -30,8 +37,20 @@ class TrackObjectId(GratbotBehavior):
         message={"timestamp":time.time(),"gyrus_config":{"target_gyrus":"FollowerGyrus",
                                                          "tracked_object":kwargs["focus_track_id"],
                                                          "mode": "track_target"}}
+        track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
+        if track is not None:
+            if track["label"]=="person":
+                message["gyrus_config"]["follow_distance"]=1.8
+                message["gyrus_config"]["follow_distance_allowance"]=0.1
+            if track["label"]=="face":
+                message["gyrus_config"]["follow_distance"]=0.5
+                message["gyrus_config"]["follow_distance_allowance"]=0.3
+
         broker.publish(message,"gyrus_config")
         return GratbotBehaviorStatus.COMPLETED,{}
+
+
+
 
 #Look around for someone/something
 #if I find something, follow it
