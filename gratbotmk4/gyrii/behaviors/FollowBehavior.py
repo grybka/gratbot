@@ -18,7 +18,7 @@ class RunMotors(GratbotBehavior):
                                                                    "right_throttle": self.rmotor,
                                                                    "left_duration": self.duration,
                                                                    "right_duration": self.duration},"keys": ["motor_command"]}
-        logging.debug("Emitting Motor Command {}".format(motor_command))
+        #logging.debug("Emitting Motor Command {}".format(motor_command))
         broker.publish(motor_command,"motor_command")
         return GratbotBehaviorStatus.COMPLETED,{}
 

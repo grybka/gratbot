@@ -149,16 +149,30 @@ class TrackerGyrusTrackedObject:
         velocity_onesigma=1 #m/s
         view_angle=1.6 #radians
         xy_onesigma=(velocity_onesigma/self.kfz.x[0][0])/view_angle
-        self.kfx.H=np.array([[1.,1.]])
-        self.kfy.H=np.array([[1.,1.]])
-        self.kfz.H=np.array([[1.,1.]])
-        self.kfx.R=np.array( [[ (2/image.shape[1])**2,0 ],[0,xy_onesigma**2]])
-        self.kfx.update(np.array([x_update,0]))
-        self.kfy.R=np.array( [[ (2/image.shape[0])**2,0],[0,xy_onesigma**2]])
-        self.kfy.update(np.array([y_update.0]))
+        self.kfx.H=np.array([[1.,0.]])
+        self.kfy.H=np.array([[1.,0.]])
+        self.kfz.H=np.array([[1.,0.]])
+        self.kfx.R=np.array( [[ (2/image.shape[1])**2 ]] )
+        self.kfx.update(x_update)
+        self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]] )
+        self.kfy.update(y_update)
         #assume 5 cm resolution for depth
-        self.kfz.R=np.array( [[ 0.05**2,0 ],[0,velocity_onesigma]])
+        self.kfz.R=np.array( [[ 0.05**2]])
         self.kfz.update(self.last_depth)
+
+#        self.kfx.H=np.array([[1.,1.]])
+#        self.kfy.H=np.array([[1.,1.]])
+#        self.kfz.H=np.array([[1.,1.]])
+#        self.kfx.R=np.array( [[ (2/image.shape[1])**2,0 ],[0,xy_onesigma**2]])
+#        self.kfx.update(np.array([[x_update,0]]))
+#        self.kfy.R=np.array( [[ (2/image.shape[0])**2,0],[0,xy_onesigma**2]])
+#        self.kfy.update(np.array([[y_update,0]]))
+        #assume 5 cm resolution for depth
+#        self.kfz.R=np.array( [[ 0.05**2,0 ],[0,velocity_onesigma]])
+#        self.kfz.update(np.array([[self.last_depth,0]]))
+
+
+
 
         self.frames_without_detection=0
         self.frames_with_detection+=1
