@@ -59,11 +59,12 @@ class FocusOnObjectOfLabelOrdered(GratbotBehavior):
                 best_choice=to_track
         if "tracks" in short_term_memory:
             for track in short_term_memory["tracks"]["tracks"]:
-                if track["label"] in labels:
-                    if best_choice is None or self.labels.index(track["label"])<self.labels.index(best_choice["label"]):
-                        logger.debug("choosing to track a {}".format(track["label"]))
+                if track["label"] in self.labels:
+                    if best_choice is None or (self.labels.index(track["label"])<self.labels.index(best_choice["label"])):
                         best_choice=track
-        if to_track is None:
+        to_track=best_choice
+        if best_choice is None:
             return GratbotBehaviorStatus.FAILED,{"focus_track_id": None}
-        kwargs["state"]["focus_track"]=to_track["id"]
-        return GratbotBehaviorStatus.COMPLETED,{"focus_track_id": to_track["id"]}
+        #logger.debug("choosing to track a {}".format(best_choice["label"]))
+        kwargs["state"]["focus_track"]=best_choice["id"]
+        return GratbotBehaviorStatus.COMPLETED,{"focus_track_id": best_choice["id"]}
