@@ -49,7 +49,7 @@ gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","
 gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(HeadTrackerGyrus(broker))
 gyrii.append(FollowerGyrus(broker))
-gyrii.append(BehaviorGyrus(broker,find_and_follow(["person","face"])))
+gyrii.append(BehaviorGyrus(broker,find_and_follow(["face","person"])))
 #gyrii.append(BehaviorGyrus(broker,Announce("announcement")))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(TurnTrackerGyrus(broker))

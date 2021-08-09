@@ -64,7 +64,7 @@ class TrackObjectId(GratbotBehavior):
 #returns true if I've found something
 #in progress if I haven't
 def turn_search(allowed_labels):
-    return GratbotBehavior_Fallback([FocusOnObjectOfLabel(allowed_labels),GratbotBehavior_Checklist([Announce("Nothing found, turning"),RunMotors(0.5,-0.5,0.1),GratbotBehavior_Wait(0.4)])])
+    return GratbotBehavior_Fallback([FocusOnObjectOfLabelOrdered(allowed_labels),GratbotBehavior_Checklist([Announce("Nothing found, turning"),RunMotors(0.5,-0.5,0.1),GratbotBehavior_Wait(0.4)])])
 
 def do_follow():
     return GratbotBehavior_Series([Announce("turning tracking on"),TrackObjectId()])
