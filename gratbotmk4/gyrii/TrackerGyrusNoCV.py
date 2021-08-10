@@ -218,6 +218,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         #conditions to remove tracker
         self.max_frames_without_detection=30 #1 second
         self.max_frames_offscreen=90 #3 seconds
+        self.new_track_min_confidence=0.9
         super().__init__(broker)
         #for timing
         self.report_spf_count=30
@@ -262,7 +263,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             tracker.kfy.x[0]+=offset_y
             tracker.kfy.P[0][0]+=(total_offset*self.offset_uncertainty)**2
             if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
-                if tracker.frames_without_detection>self.max_frames_without_detection:
+                if tracker.frames_without_detection>min(self.max_frames_without_detection,self.frames_with_detection):
                     tracker.info="DISAPPEARED"
                     logger.warning("Track {} disappeared".format(id_to_name(tracker.id)))
                     tracker.defunct=True
@@ -275,7 +276,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
                     tracker.info="EXIT TOP"
                 elif tracker.kfy.x[0]>1:
                     tracker.info="EXIT BOTTOM"
-                if tracker.frames_without_detection>self.max_frames_offscreen:
+                if tracker.frames_without_detection>min(self.max_frames_offscreen,self.frames_with_detection):
                     tracker.defunct=True
             tracker.frames_without_detection+=1
         self.last_image_timestamp=image_timestamp
@@ -333,9 +334,12 @@ class TrackerGyrusNoCV(ThreadedGyrus):
                 self.trackers[col_ind[i]].update_with_detection(dets[row_ind[i]],image)
         #deal with leftover detections
         for i in range(len(leftover_dets)):
-            new_track=TrackerGyrusTrackedObject()
-            new_track.init_with_detection(image,dets[leftover_dets[i]])
-            self.trackers.append(new_track)
+            if dets[leftover_dets[i]]["confidence"]>self.new_track_min_confidence:
+                new_track=TrackerGyrusTrackedObject()
+                new_track.init_with_detection(image,dets[leftover_dets[i]])
+                self.trackers.append(new_track)
+            else:
+                logger.debug("Ignoring low confidence detection {} ({})".format(dets[leftover_dets[i]]["label"],dets[leftover_dets[i]]["confidence"]))
         #Do I need to deal with leftover tracks?  Maybe not, maybe deweight them TODO
         for i in range(len(leftover_trackers)):
             tracker=self.trackers[leftover_trackers[i]]
