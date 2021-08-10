@@ -87,6 +87,9 @@ class MotionCorrection: #to correct image frames from heading changes
         offset_y=delta_heading[self.x_gyro_index]*self.angle_ygyro_slope
         return offset_x,offset_y
 
+focal_length = 1/(2*np.tan(73.5/2/180*np.pi))  #multiply by image size
+
+
 class TrackerGyrusTrackedObject:
     def __init__(self):
         self.id=uuid.uuid1()
@@ -99,6 +102,9 @@ class TrackerGyrusTrackedObject:
         self.last_depth=None
         self.last_det_bbox=None
 
+        #infermation for height and distance inference
+        self.base_height=1
+        self.base_width=1
 
         #tracking misses
         self.last_success=True
@@ -111,6 +117,7 @@ class TrackerGyrusTrackedObject:
         self.kfx=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
         self.kfy=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
         self.kfz=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
+        self.kfz.x=np.array([1.0,0.0]) #because z=0 can cause problems
         self.kfx.P=1e9*np.eye(2) #covariance
         self.kfy.P=1e9*np.eye(2) #covariance
         self.kfz.P=1e9*np.eye(2) #covariance
@@ -158,7 +165,12 @@ class TrackerGyrusTrackedObject:
         self.kfy.update(y_update)
         #assume 5 cm resolution for depth
         if self.last_depth==0:
-            logger.warning("Detection with zero depth!!")
+            #guess from height
+            z_guess=image.shape[0]*focal_length*self.height/box[3]
+            z_guess_unc=image.shape[0]*focal_length*self.height_unc/box[3]
+            self.kfz.R=np.array( [[ z_guess_unc**2 ]])
+            self.kfz.update(z_guess)
+            logger.warning("Detection with zero depth!!, inferred {}+-{} from height".format(z_guess,z_guess_unc))
         else:
             self.kfz.R=np.array( [[ 0.05**2]])
             self.kfz.update(self.last_depth)
@@ -193,7 +205,7 @@ class TrackerGyrusTrackedObject:
         x=int(0.5*(det["bbox_array"][0]+det["bbox_array"][1])*self.shape[1])
         y=int(0.5*(det["bbox_array"][2]+det["bbox_array"][3])*self.shape[0])
         w=int((det["bbox_array"][1]-det["bbox_array"][0])*self.shape[1])
-        h=int((det["bbox_array"][3]-det["bbox_array"][2])*self.shape[1])
+        h=int((det["bbox_array"][3]-det["bbox_array"][2])*self.shape[0])
         return (x,y,w,h)
 
     def get_bestguess_bbox(self):
@@ -227,6 +239,17 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         self.report_spf_count=30
         self.spf_count=0
         self.spf_sum_time=0
+
+        #for size ineference
+        self.object_height_table={
+            "person": [1.5,0.5],
+            "face": [0.2,0.1]
+            }
+        self.object_width_table={
+            "person": [0.5,0.5],
+            "face": [0.2,0.1]
+            }
+
 
 
     def get_keys(self):
@@ -313,6 +336,14 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         size_cost=size_cost_weight*np.sqrt( (det_bbox[2]-tracker_bbox[2])**2+(det_bbox[3]-tracker_bbox[3])**2)
         return label_cost+dist_cost+size_cost
 
+    def initialize_tracker(self,image,det):
+        new_track=TrackerGyrusTrackedObject()
+        if det["label"] in self.object_height_table:
+            new_track.height=self.object_height_table[det["label"]][0]
+            new_track.height_unc=self.object_height_table[det["label"]][0]
+        new_track.init_with_detection(image,dets[leftover_dets[i]])
+        self.trackers.append(new_track)
+
     def match_trackers_to_detections(self,dets,image):
           #figure out best batches between the two
         cost_matrix=np.zeros( [len(dets),len(self.trackers)])
@@ -338,9 +369,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         #deal with leftover detections
         for i in range(len(leftover_dets)):
             if dets[leftover_dets[i]]["confidence"]>self.new_track_min_confidence:
-                new_track=TrackerGyrusTrackedObject()
-                new_track.init_with_detection(image,dets[leftover_dets[i]])
-                self.trackers.append(new_track)
+                self.initialize_tracker(image,dets[leftover_dets[i]])
             else:
                 logger.debug("Ignoring low confidence detection {} ({})".format(dets[leftover_dets[i]]["label"],dets[leftover_dets[i]]["confidence"]))
         #Do I need to deal with leftover tracks?  Maybe not, maybe deweight them TODO
