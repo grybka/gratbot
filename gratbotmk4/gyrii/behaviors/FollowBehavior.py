@@ -43,7 +43,7 @@ class TrackObjectId(GratbotBehavior):
                 message["gyrus_config"]["follow_distance"]=1.8
                 message["gyrus_config"]["follow_distance_allowance"]=0.1
             if track["label"]=="face":
-                message["gyrus_config"]["follow_distance"]=0.5
+                message["gyrus_config"]["follow_distance"]=1.8
                 message["gyrus_config"]["follow_distance_allowance"]=0.3
 
         broker.publish(message,"gyrus_config")
@@ -64,7 +64,7 @@ class TrackObjectId(GratbotBehavior):
 #returns true if I've found something
 #in progress if I haven't
 def turn_search(allowed_labels):
-    return GratbotBehavior_Fallback([FocusOnObjectOfLabelOrdered(allowed_labels),GratbotBehavior_Checklist([Announce("Nothing found, turning"),RunMotors(0.5,-0.5,0.1),GratbotBehavior_Wait(0.4)])])
+    return GratbotBehavior_Fallback([FocusOnObjectOfLabelOrdered(allowed_labels),GratbotBehavior_Checklist([RunMotors(0.5,-0.5,0.3),GratbotBehavior_Wait(1.0)])])
 
 def do_follow():
     return TrackObjectId()

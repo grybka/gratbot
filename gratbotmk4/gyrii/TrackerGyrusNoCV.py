@@ -148,7 +148,7 @@ class TrackerGyrusTrackedObject:
         #assume 2 pixel resolution for a detection
         velocity_onesigma=1 #m/s
         view_angle=1.6 #radians
-        xy_onesigma=(velocity_onesigma/self.kfz.x[0][0])/view_angle
+        #xy_onesigma=(velocity_onesigma/self.kfz.x[0][0])/view_angle
         self.kfx.H=np.array([[1.,0.]])
         self.kfy.H=np.array([[1.,0.]])
         self.kfz.H=np.array([[1.,0.]])
@@ -157,8 +157,11 @@ class TrackerGyrusTrackedObject:
         self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]] )
         self.kfy.update(y_update)
         #assume 5 cm resolution for depth
-        self.kfz.R=np.array( [[ 0.05**2]])
-        self.kfz.update(self.last_depth)
+        if self.last_depth==0:
+            logger.warning("Detection with zero depth!!")
+        else:
+            self.kfz.R=np.array( [[ 0.05**2]])
+            self.kfz.update(self.last_depth)
 
 #        self.kfx.H=np.array([[1.,1.]])
 #        self.kfy.H=np.array([[1.,1.]])
@@ -218,7 +221,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         #conditions to remove tracker
         self.max_frames_without_detection=30 #1 second
         self.max_frames_offscreen=90 #3 seconds
-        self.new_track_min_confidence=0.9
+        self.new_track_min_confidence=0.8
         super().__init__(broker)
         #for timing
         self.report_spf_count=30
@@ -263,7 +266,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             tracker.kfy.x[0]+=offset_y
             tracker.kfy.P[0][0]+=(total_offset*self.offset_uncertainty)**2
             if 0<tracker.kfx.x[0]<1.0 and 0<tracker.kfy.x[0]<1.0:
-                if tracker.frames_without_detection>min(self.max_frames_without_detection,self.frames_with_detection):
+                if tracker.frames_without_detection>min(self.max_frames_without_detection,tracker.frames_with_detection):
                     tracker.info="DISAPPEARED"
                     logger.warning("Track {} disappeared".format(id_to_name(tracker.id)))
                     tracker.defunct=True
@@ -276,7 +279,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
                     tracker.info="EXIT TOP"
                 elif tracker.kfy.x[0]>1:
                     tracker.info="EXIT BOTTOM"
-                if tracker.frames_without_detection>min(self.max_frames_offscreen,self.frames_with_detection):
+                if tracker.frames_without_detection>min(self.max_frames_offscreen,tracker.frames_with_detection):
                     tracker.defunct=True
             tracker.frames_without_detection+=1
         self.last_image_timestamp=image_timestamp
