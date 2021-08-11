@@ -28,7 +28,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.last_depth_message={}
 
     def get_keys(self):
-        return ["image","tracks","depth"]
+        return ["image","tracks","depth","test_image"]
 
     def get_name(self):
         return "CameraDisplayGyrus"
@@ -104,3 +104,6 @@ class CameraDisplayGyrus(ThreadedGyrus):
         if "depth_image" in message:
             self.last_depth_message=message
             self.update_depth()
+        if "test_image" in message:
+            frame=message["test_image"]
+            self.display.update_image("test",frame)
