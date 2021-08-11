@@ -239,7 +239,7 @@ class FollowerGyrus(ThreadedGyrus):
                 self.broker.publish(motor_command,"motor_command")
                 self.last_move=time.time()
                 if time.time()-self.last_report>1.0:
-                    logger.info("Motor Speed {} {}".format(left_throttle,right_throttle))
+                    #logger.info("Motor Speed {} {}".format(left_throttle,right_throttle))
                     self.last_report=time.time()
 
 

@@ -117,7 +117,7 @@ class TrackerGyrusTrackedObject:
         self.kfx=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
         self.kfy=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
         self.kfz=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
-        self.kfz.x=np.array([1.0,0.0]) #because z=0 can cause problems
+        self.kfz.x=np.array([[1.0],[0.0]]) #because z=0 can cause problems
         self.kfx.P=1e9*np.eye(2) #covariance
         self.kfy.P=1e9*np.eye(2) #covariance
         self.kfz.P=1e9*np.eye(2) #covariance
@@ -174,6 +174,16 @@ class TrackerGyrusTrackedObject:
         else:
             self.kfz.R=np.array( [[ 0.05**2]])
             self.kfz.update(self.last_depth)
+            height_update=self.kfz.x[0][0]*box[3]/(image.shape[0]*focal_length)
+            #dh=h(dz/z+db/b)
+            #dz is perhaps 10 percent of z
+            #db is perhaps 3 pixels
+            height_update_unc=height_update*np.sqrt(1e-2+(3/box[3])**2)
+            w1=1/self.height_unc**2
+            w2=1/height_update_unc**2
+            self.height=(self.height*w2+height_update*w1)/(w1+w2)
+            self.height_unc=min(self.height_unc,height_update_unc)
+            #people can bend over, so I don't want it to be a normal dist improvement
 
 #        self.kfx.H=np.array([[1.,1.]])
 #        self.kfy.H=np.array([[1.,1.]])
@@ -269,6 +279,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             mess["velocity"]=tracker.get_velocity()
             mess["missed_frames"]=tracker.frames_without_detection
             mess["seen_frames"]=tracker.frames_with_detection
+            mess["height"]tracker.height
             mess["label"]=tracker.last_label
             mess["info"]=tracker.info
             mess["id"]=tracker.id
@@ -341,7 +352,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         if det["label"] in self.object_height_table:
             new_track.height=self.object_height_table[det["label"]][0]
             new_track.height_unc=self.object_height_table[det["label"]][0]
-        new_track.init_with_detection(image,dets[leftover_dets[i]])
+        new_track.init_with_detection(image,det)
         self.trackers.append(new_track)
 
     def match_trackers_to_detections(self,dets,image):
