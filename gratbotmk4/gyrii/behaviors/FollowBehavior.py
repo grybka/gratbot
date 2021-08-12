@@ -54,10 +54,16 @@ class SetTailMood(GratbotBehavior):
     def __init__(self,mood):
         self.mood=mood
     def act(self,**kwargs):
+        broker=kwargs["broker"]
         message={"timestamp":time.time(),"gyrus_config":{"target_gyrus":"TailGyrus",
                                                          "tail_mood": self.mood}}
         broker.publish(message,"gyrus_config")
-        return GratbotBehaviorStatus.COMPLETED
+        return GratbotBehaviorStatus.COMPLETED,{}
+
+def tail_test():
+    return GratbotBehavior_Series([GratbotBehavior_Checklist([SetTailMood("disappointment"),GratbotBehavior_Wait(5.0),
+                                                      SetTailMood("anticipation"),GratbotBehavior_Wait(5.0),
+                                                      SetTailMood("happiness"),GratbotBehavior_Wait(5.0)])])
 
 
 
@@ -88,4 +94,4 @@ class Abehavior(GratbotBehavior):
     def __init__(self):
         ...
     def act(self,**kwargs):
-        return GratbotBehaviorStatus.COMPLETED
+        return GratbotBehaviorStatus.COMPLETED,{}
