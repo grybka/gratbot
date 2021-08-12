@@ -9,8 +9,16 @@ logger.setLevel(logging.DEBUG)
 class TailGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
+        self.tail_mood="impassive"
         self.how_often=0.2
-        self.next_act=0
+        self.last_act=0
+        #
+        self.high_low_servo_num=2
+        self.side_side_servo_num=1
+        #for wagging
+        self.wag_phase=0
+        self.wag_frequency=np.pi
+        self.wag_amplitude=20
 
     def get_keys(self):
         return ["clock_pulse","servo_response","gyrus_config"]
@@ -18,16 +26,34 @@ class TailGyrus(ThreadedGyrus):
     def get_name(self):
         return "TailGyrus"
 
+    def set_tail_high(self):
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":self.high_low_servo_num,"angle": 70}}
+        self.broker.publish(servo_command,"servo_command")
+
+    def set_tail_low(self):
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":self.high_low_servo_num,"angle": 110}}
+        self.broker.publish(servo_command,"servo_command")
+
+    def wag_tail(self,dt):
+        self.wag_phase+=self.wag_frequency*dt
+        angle=90+self.wag_amplitude*np.sin(self.wag_phase)
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":self.side_side_servo_num,"angle": angle}}
+        self.broker.publish(servo_command,"servo_command")
+
     def read_message(self,message):
         if "gyrus_config" in message:
             if message["gyrus_config"]["target_gyrus"]=="TailGyrus":
-                ...
+                if "tail_mood" in message["gyrus_config"]["mood"]:
+                    self.tail_mood=message["gyrus_config"]["mood"]
         if "clock_pulse" in message:
-            if time.time()>self.next_act:
-                self.next_act=time.time()+self.how_often
-
-                freq=np.pi
-                angle=90+40*np.sin(message["timestamp"]*freq)
-
-                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":1,"angle": angle}}
-                self.broker.publish(servo_command,"servo_command")
+            dt=time.time()-self.last_act
+            if dt<self.how_often:
+                return
+            self.last_act=time.time()
+            if self.tail_mood=="anticipation":
+                self.set_tail_high()
+            if self.tail_mood=="happiness":
+                self.set_tail_high()
+                self.wag_tail(dt)
+            if self.tail_mood=="disappointment"
+                self.set_tail_low()

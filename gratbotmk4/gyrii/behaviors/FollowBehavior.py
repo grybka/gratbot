@@ -50,6 +50,15 @@ class TrackObjectId(GratbotBehavior):
         return GratbotBehaviorStatus.COMPLETED,{}
 
 
+class SetTailMood(GratbotBehavior):
+    def __init__(self,mood):
+        self.mood=mood
+    def act(self,**kwargs):
+        message={"timestamp":time.time(),"gyrus_config":{"target_gyrus":"TailGyrus",
+                                                         "tail_mood": self.mood}}
+        broker.publish(message,"gyrus_config")
+        return GratbotBehaviorStatus.COMPLETED
+
 
 
 #Look around for someone/something
@@ -64,14 +73,14 @@ class TrackObjectId(GratbotBehavior):
 #returns true if I've found something
 #in progress if I haven't
 def turn_search(allowed_labels):
-    return GratbotBehavior_Fallback([FocusOnObjectOfLabelOrdered(allowed_labels),GratbotBehavior_Checklist([RunMotors(0.5,-0.5,0.3),GratbotBehavior_Wait(1.0)])])
+    return GratbotBehavior_Fallback([FocusOnObjectOfLabelOrdered(allowed_labels),GratbotBehavior_Checklist([SetTailMood("disappointment"),RunMotors(0.5,-0.5,0.3),GratbotBehavior_Wait(1.0)])])
 
 def do_follow():
     return TrackObjectId()
     #return GratbotBehavior_Series([Announce("turning tracking on"),TrackObjectId()])
 
 def find_and_follow(allowed_labels):
-    return GratbotBehavior_Series([turn_search(allowed_labels),do_follow()])
+    return GratbotBehavior_Series([turn_search(allowed_labels),SetTailMood("anticipation"),do_follow()])
 
 
 
