@@ -17,7 +17,7 @@ class TailGyrus(ThreadedGyrus):
         self.side_side_servo_num=1
         #for wagging
         self.wag_phase=0
-        self.wag_frequency=np.pi
+        self.wag_frequency=2*np.pi
         self.wag_amplitude=60
 
     def get_keys(self):

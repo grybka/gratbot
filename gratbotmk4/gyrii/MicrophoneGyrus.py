@@ -21,6 +21,14 @@ class MicrophoneGyrus(ThreadedGyrus):
 
     def mic_callback(self,recognizer, audio):
         logger.debug("Mic callback called")
+        start_time=time.time()
+        try:
+            text=recognizer.recognize_sphinx(audio)
+            logger.debug("Decoded audio as {}".format(text))
+        except sr.UnknownValueError:
+            logger.debug("Unintelligiable")
+        except sr.RequestError as e:
+            logger.debug("Sphinx error; {0}".format(e))
         #TODO handle this
 
     def start_thread_called(self):
