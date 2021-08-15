@@ -279,7 +279,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             mess["velocity"]=tracker.get_velocity()
             mess["missed_frames"]=tracker.frames_without_detection
             mess["seen_frames"]=tracker.frames_with_detection
-            mess["height"]tracker.height
+            mess["height"]=tracker.height
             mess["label"]=tracker.last_label
             mess["info"]=tracker.info
             mess["id"]=tracker.id
