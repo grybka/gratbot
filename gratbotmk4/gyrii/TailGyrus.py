@@ -4,7 +4,7 @@ import numpy as np
 import logging
 import time
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class TailGyrus(ThreadedGyrus):
     def __init__(self,broker):

@@ -29,6 +29,7 @@ class MicrophoneGyrus(ThreadedGyrus):
             logger.debug("Unintelligiable")
         except sr.RequestError as e:
             logger.debug("Sphinx error; {0}".format(e))
+        logger.debug("It took {} ms to make the inference".format(1000*(time.time()-start_time)))
         #TODO handle this
 
     def start_thread_called(self):
