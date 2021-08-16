@@ -15,6 +15,7 @@ from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
+from gyrii.MicrophoneGyrus import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
@@ -62,6 +63,7 @@ gyrii.append(BehaviorGyrus(broker,tail_test()))
 #gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))
 gyrii.append(TailGyrus(broker))
+gyrii.append(MicrophoneGyrus(broker))
 
 
 def main():
