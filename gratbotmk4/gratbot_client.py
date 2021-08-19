@@ -24,6 +24,7 @@ from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 from gyrii.HandTrackerGyrus import HandTrackerGyrus
+from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -95,6 +96,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
 gyrii.append(HandTrackerGyrus(broker))
+gyrii.append(SoundDisplayGyrus(broker,display_loop))
 
 def main():
     try:
