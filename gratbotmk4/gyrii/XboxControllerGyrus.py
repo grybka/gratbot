@@ -71,7 +71,9 @@ class XboxControllerGyrus(ThreadedGyrus):
             if self.joystick.get_button(0):
                 #behavior_command={"behavior_request": {"name": "trackifseen"}}
                 #behavior_command={"behavior_request": {"name": "exerciseservo"}}
-                ...
+                config_command={"gyrus_config":{"target_gyrus":"SoundRecordGyrus","command": "start"}}
+                self.broker.publish(config_command,["gyrus_config"])
+                logger.debug("requesting recording")
             if self.joystick.get_button(3):
                 behavior_command={"behavior_request": {"name": "nothing"}}
             if behavior_command is not None:
