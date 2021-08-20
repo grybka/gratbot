@@ -31,6 +31,8 @@ def message_to_json(object):
         return float(object)
     if type(object) == np.int32:
         return int(object)
+    if type(object) == bytes:
+        return {"_packed_type":"bytes","data": base64.b64encode(object).decode('utf-8')}
     #presume anything else is OK.  I could have some more checks here
     if type(object) in [str,int,float,complex,bool]:
         return object
@@ -46,8 +48,10 @@ def json_to_message(object):
                 return cv2.imdecode(x,cv2.IMREAD_COLOR)
             if object["_packed_type"]=="ndarray":
                 return np.array(json_to_message(object["data"]))
-            else:
-                raise Exception("json_to_message doesn't understand type {}".format(object["_packed_type"]))
+            if object["_packed_type"]=="bytes":
+                x=bytes(object["data"],encoding='utf-8')
+                return base64.b64decode(x)
+            raise Exception("json_to_message doesn't understand type {}".format(object["_packed_type"]))
         ret={}
         for key in object:
             ret[key]=json_to_message(object[key])

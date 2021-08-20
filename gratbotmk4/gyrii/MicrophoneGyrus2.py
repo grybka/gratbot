@@ -1,5 +1,6 @@
 
 from Gyrus import ThreadedGyrus
+import threading
 
 import logging
 import time
@@ -11,8 +12,10 @@ class MicrophoneGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.paudio=pyaudio.PyAudio()
-        devinfo=self.paudio.get_default_input_device_info()
-        logger.debug("Connected to audio input device {}".format(devinfo))
+        #for i in range(self.paudio.get_device_count()):
+        #    print(self.paudio.get_device_info_by_index(i))
+        self.devinfo=self.paudio.get_default_input_device_info()
+        logger.debug("Connected to audio input device {}".format(self.devinfo))
         self.sample_size=1 #in seconds
         self.format=pyaudio.paInt16
         self.chunk=4096
@@ -40,7 +43,7 @@ class MicrophoneGyrus(ThreadedGyrus):
         return None
 
     def _mic_thread_loop(self):
-        self.stream=self.paudio.open(format=self.format,rate=self.sample_rate,channels=self.chans,input_device_index=self.dev_index,input=True,frames_per_buffer=self.chunk)
+        self.stream=self.paudio.open(format=self.format,rate=self.sample_rate,channels=self.chans,input_device_index=self.devinfo['index'],input=True,frames_per_buffer=self.chunk)
         #this thread stops motors when they are supposed to stop
         while not self.should_quit:
             rec=self.stream.read(self.chunk)
