@@ -18,6 +18,8 @@ class SoundRecordGyrus(ThreadedGyrus):
         self.avg_energy=0
         self.avg_run=0.9
         self.records=[]
+        self.paudio=pyaudio.PyAudio()
+
 
     def get_keys(self):
         return ["microphone_data","gyrus_config"]
@@ -35,11 +37,11 @@ class SoundRecordGyrus(ThreadedGyrus):
     def end_and_save(self):
         self.is_recording=False
         self.start_timestr = time.strftime("%Y%m%d-%H%M%S")
-        out_fname="sounds/sound_save_{}.txt".format(self.start_timestr)
+        out_fname="sounds/sound_save_{}.wav".format(self.start_timestr)
         logger.debug("Saving {}".format(out_fname))
         wf = wave.open(out_fname, 'wb')
         wf.setnchannels(1)
-        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+        wf.setsampwidth(self.paudio.get_sample_size(pyaudio.paInt16))
         wf.setframerate(16000)
         wf.writeframes(b''.join(self.records))
         wf.close()
@@ -58,7 +60,7 @@ class SoundRecordGyrus(ThreadedGyrus):
             energy=self.get_chunk_energy(data)
             self.avg_energy=self.avg_energy*self.avg_run+(1-self.avg_run)*energy
             if self.is_recording:
-                if energy<self.avg_energy:
+                if (time.time()>self.recording_start+self.min_sound_time) and energy<self.avg_energy:
                     self.end_and_save()
                 else:
                     self.records.append(data)
