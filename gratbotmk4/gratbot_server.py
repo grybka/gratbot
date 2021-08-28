@@ -22,7 +22,7 @@ from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_nec
 from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
-from SpeechDetectorGyrus import SpeechDetectorGyrus
+#from SpeechDetectorGyrus import SpeechDetectorGyrus
 from OakDGyrus import OakDGyrus
 from OakDGyrusPeople import OakDGyrusPeople
 
@@ -65,7 +65,7 @@ gyrii.append(BehaviorGyrus(broker,tail_test()))
 gyrii.append(ClockGyrus(broker))
 gyrii.append(TailGyrus(broker))
 gyrii.append(MicrophoneGyrus(broker))
-gyrii.append(SpeechDetectorGyrus(broker))
+#gyrii.append(SpeechDetectorGyrus(broker))
 
 def main():
     try:
