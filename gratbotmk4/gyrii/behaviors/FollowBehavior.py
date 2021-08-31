@@ -40,10 +40,10 @@ class TrackObjectId(GratbotBehavior):
         track=extract_track_with_id(kwargs["short_term_memory"],kwargs["focus_track_id"])
         if track is not None:
             if track["label"]=="person":
-                message["gyrus_config"]["follow_distance"]=1.8
+                message["gyrus_config"]["follow_distance"]=1.0
                 message["gyrus_config"]["follow_distance_allowance"]=0.1
             if track["label"]=="face":
-                message["gyrus_config"]["follow_distance"]=1.8
+                message["gyrus_config"]["follow_distance"]=1.5
                 message["gyrus_config"]["follow_distance_allowance"]=0.3
 
         broker.publish(message,"gyrus_config")

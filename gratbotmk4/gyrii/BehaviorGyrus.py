@@ -64,10 +64,10 @@ class BehaviorGyrus(ThreadedGyrus):
                 return
             if command=="right":
                 logger.info("right")
-                self.on_behavior=RunMotors(-0.5,0.5,0.5)
+                self.on_behavior=RunMotors(-0.5,0.5,1.0)
             if command=="left":
                 logger.info("left")
-                self.on_behavior=RunMotors(0.5,-0.5,0.5)
+                self.on_behavior=RunMotors(0.5,-0.5,1.0)
             if command=="come":
                 logger.info("come - Find and follow")
                 self.on_behavior=find_and_follow(["person","face"])
