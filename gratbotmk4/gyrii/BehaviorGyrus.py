@@ -64,15 +64,15 @@ class BehaviorGyrus(ThreadedGyrus):
                 return
             if command=="right":
                 logger.info("right")
-                self.on_behavior=RunMotors(0.5,-0.5,0.5)
+                self.on_behavior=RunMotors(-0.5,0.5,0.5)
             if command=="left":
                 logger.info("left")
-                self.on_behavior=RunMotors(-0.5,0.5,0.5)
+                self.on_behavior=RunMotors(0.5,-0.5,0.5)
             if command=="come":
-                logger.info("Find and follow")
+                logger.info("come - Find and follow")
                 self.on_behavior=find_and_follow(["person","face"])
             if command=="heel":
-                logger.info("Find and follow")
+                logger.info("heel - Find and follow")
                 self.on_behavior=find_and_follow(["person","face"])
             if command=="stop":
                 logger.info("Stop")
@@ -91,7 +91,7 @@ class BehaviorGyrus(ThreadedGyrus):
         if resp==GratbotBehaviorStatus.COMPLETED:
             logger.warning("Behavior Completed.  Halting")
             self.on_behavior=None
-        if resp==GratbotBehaviorStatus.COMPLETED:
+        if resp==GratbotBehaviorStatus.FALIED:
             logger.warning("Behavior Failed.  Halting")
             self.on_behavior=None
         self.skip_until_time=time.time()
