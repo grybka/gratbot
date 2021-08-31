@@ -89,7 +89,6 @@ def find_and_follow(allowed_labels):
     return GratbotBehavior_Series([turn_search(allowed_labels),SetTailMood("anticipation"),do_follow()])
 
 
-
 class Abehavior(GratbotBehavior):
     def __init__(self):
         ...

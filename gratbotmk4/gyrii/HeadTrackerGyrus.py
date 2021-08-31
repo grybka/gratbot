@@ -155,11 +155,11 @@ class HeadTrackerGyrus(ThreadedGyrus):
 
 class FollowerGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        super().__init__(broker)
+        super().__init__(broker,only_turn=True)
         self.tracked_object=None
         self.target_follow_distance=1.5 #in meters
         self.target_follow_distance_allowance=1.5 #in meters
-        self.only_turn=True
+        self.only_turn=only_turn
         self.turn_pid_controller=MyPID(-0.4,-0.05,0,output_clip=[-2,2])
         self.forward_pid_controller=MyPID(-0.6,-0.1,0,output_clip=[-2,2])
         self.min_throttle=0.05
@@ -198,6 +198,8 @@ class FollowerGyrus(ThreadedGyrus):
 
         #react to tracks message
         if "tracks" in message:
+            if self.mode=="off":
+                return
             #Find something to track if nothing tracked
             if self.tracked_object is None and self.mode=="track_first":
                 self.tracked_object=find_object_of_type(self.allowed_labels,message["tracks"],2)

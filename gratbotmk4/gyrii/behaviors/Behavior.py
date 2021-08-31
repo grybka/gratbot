@@ -207,6 +207,15 @@ class TestElem(GratbotBehavior):
                 return GratbotBehaviorStatus.COMPLETED,{}
         return GratbotBehaviorStatus.FAILED,{}
 
+class GratbotBehavior_Broadcast(GratbotBehavior):
+    def __init__(self,message,keys):
+        self.message=message
+        self.keys=keys
+
+    def act(self,**kwargs):
+        broker=kwargs["broker"]
+        broker.publish(self.message,self.keys)
+        return GratbotBehaviorStatus.COMPLETED,{}
 
 #class GratbotBehavior_Series(GratbotBehavior):
     #Do a bunch of steps in order, abort on fail

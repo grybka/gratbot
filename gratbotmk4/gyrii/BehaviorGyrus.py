@@ -76,7 +76,7 @@ class BehaviorGyrus(ThreadedGyrus):
                 self.on_behavior=find_and_follow(["person","face"])
             if command=="stop":
                 logger.info("Stop")
-                self.on_behavior=None
+                self.on_behavior=GratbotBehavior_Broadcast({"gyrus_config":{"target_gyrus":"FollowerGyrus","mode": "off"} }, ["gyrus_config"])
 
     def execute_behavior(self):
         #returns a list of messages
