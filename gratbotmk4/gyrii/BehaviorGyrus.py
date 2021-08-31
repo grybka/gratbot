@@ -57,7 +57,7 @@ class BehaviorGyrus(ThreadedGyrus):
                 ...
             else:
                 logging.warning("Got invalid behavior request: {}".format(message["behavior_request"]))
-        if "command_received": #used for verbal commands.  Interrupt in behavior later?
+        if "command_received" in message: #used for verbal commands.  Interrupt in behavior later?
             command=message["command_received"]["command"]
             if message["command_received"]["confidence"]<0.7:
                 logging.info("Confidence too low, ignoring command that could have been {}".format(command))
