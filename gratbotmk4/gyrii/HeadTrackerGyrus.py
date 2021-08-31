@@ -154,8 +154,8 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     self.last_move=time.time()
 
 class FollowerGyrus(ThreadedGyrus):
-    def __init__(self,broker):
-        super().__init__(broker,only_turn=True)
+    def __init__(self,broker,only_turn=True):
+        super().__init__(broker)
         self.tracked_object=None
         self.target_follow_distance=1.5 #in meters
         self.target_follow_distance_allowance=1.5 #in meters

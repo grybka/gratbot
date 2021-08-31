@@ -1,6 +1,6 @@
 
 from Gyrus import ThreadedGyrus
-from behaviors.Behavior import GratbotBehaviorStatus
+from behaviors.Behavior import GratbotBehaviorStatus,GratbotBehavior_Broadcast
 import time
 import logging
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
@@ -91,7 +91,7 @@ class BehaviorGyrus(ThreadedGyrus):
         if resp==GratbotBehaviorStatus.COMPLETED:
             logger.warning("Behavior Completed.  Halting")
             self.on_behavior=None
-        if resp==GratbotBehaviorStatus.FALIED:
+        if resp==GratbotBehaviorStatus.FAILED:
             logger.warning("Behavior Failed.  Halting")
             self.on_behavior=None
         self.skip_until_time=time.time()
