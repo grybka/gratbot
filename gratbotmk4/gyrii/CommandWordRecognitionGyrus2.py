@@ -47,13 +47,13 @@ class WordRecognizer():
     def load_from_file(self,fname):
         checkpoint=torch.load(fname)
         self.classifier.load_state_dict(checkpoint["classifier"])
+        self.classifier.eval()
 
     def classify_wave_tensor(self,t):
         rel_length=torch.tensor([1.0])
         xv = self.encoder.encode_batch(t,rel_length)
         #print("xv shape {}".format(xv.shape))
-        with self.classifier.eval():
-            logprobs=self.classifier(xv[0,:,:])
+        logprobs=self.classifier(xv[0,:,:])
         #print("lpshape {}".format(logprobs.shape))
         return self.softmax(logprobs)[0,:].detach().numpy()
 
@@ -66,7 +66,7 @@ class WordRecognizer():
 
     def guess_label(self,x):
         i=np.argmax(x)
-        return self.word_list[i],x[i]
+        return self.word_list[i],float(x[i])
 
 
 
