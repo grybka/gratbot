@@ -89,6 +89,6 @@ class SpeechDetectorGyrus(ThreadedGyrus):
                     self.recording_start=time.time()
                     self.records.append(self.last_record)
                     self.records.append(message["microphone_data"])
-                elif confidences[0]>0.1:
-                    logger.debug("confidence {}".format(confidences[0]))
+                #elif confidences[0]>0.1:
+                #    logger.debug("confidence {}".format(confidences[0]))
             self.last_record=message["microphone_data"]

@@ -5,6 +5,7 @@ import time
 import logging
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.behaviors.CalibrateMotionBehavior import ExerciseServo
+from gyrii.behaviors.FollowBehavior import find_and_follow, RunMotors
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -28,7 +29,7 @@ class BehaviorGyrus(ThreadedGyrus):
 
 
     def get_keys(self):
-        return ["clock_pulse","tracks","behavior_request","servo_response","rotation_vector"]
+        return ["clock_pulse","tracks","behavior_request","servo_response","rotation_vector","command_received"]
 
     def get_name(self):
         return "BehaviorGyrus"
@@ -56,6 +57,23 @@ class BehaviorGyrus(ThreadedGyrus):
                 ...
             else:
                 logging.warning("Got invalid behavior request: {}".format(message["behavior_request"]))
+        if "command_received": #used for verbal commands.  Interrupt in behavior later?
+            command=message["command_received"]["command"]
+            if message["command_received"]["confidence"]<0.7:
+                logging.info("Confidence too low, ignoring command that could have been {}".format(command))
+                return
+            if command=="right":
+                logger.info("right")
+                self.on_behavior=RunMotors(0.5,-0.5,0.5)
+            if command=="left":
+                logger.info("left")
+                self.on_behavior=RunMotors(-0.5,0.5,0.5)
+            if command=="come":
+                logger.info("Find and follow")
+                self.on_behavior=find_and_follow(["person","face"])
+            if command=="heel":
+                logger.info("Find and follow")
+                self.on_behavior=find_and_follow(["person","face"])
 
     def execute_behavior(self):
         #returns a list of messages
