@@ -74,7 +74,7 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #TODO this should be in gyrus config
-        target_words=["unknown","left","right","come","heel"]
+        target_words=["unknown","left","right","come","heel","stop"]
         self.wordrecognizer=WordRecognizer(target_words)
         self.wordrecognizer.load_from_file("config/command_word_classifier.pt")
 
