@@ -36,7 +36,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
     def update_fps_and_put_text(self,frame):
         self.fps_count+=1
         if self.fps_count>=self.fps_count_reset:
-            self.fps=self.fps_count_reset/(time.time()-self.fps_start_time)
+            self.fps=self.fps_count_reset/(abs(time.time()-self.fps_start_time)+1e-3)
             self.fps_start_time=time.time()
             self.fps_count=0
         #frame=cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

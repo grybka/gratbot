@@ -23,9 +23,11 @@ from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion
 
 from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
-from gyrii.HandTrackerGyrus import HandTrackerGyrus
+#from gyrii.HandTrackerGyrus import HandTrackerGyrus
 from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
+from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
+from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -93,12 +95,14 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-gyrii.append(XboxControllerGyrus(broker))
+#gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
-gyrii.append(HandTrackerGyrus(broker))
+#gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
-gyrii.append(SoundRecordGyrus(broker))
+#gyrii.append(SoundRecordGyrus(broker))
+gyrii.append(SpeechDetectorGyrus(broker,save_to_file=False))
+gyrii.append(CommandWordRecognitionGyrus(broker))
 
 def main():
     try:
