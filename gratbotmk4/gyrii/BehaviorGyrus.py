@@ -74,6 +74,9 @@ class BehaviorGyrus(ThreadedGyrus):
             if command=="heel":
                 logger.info("Find and follow")
                 self.on_behavior=find_and_follow(["person","face"])
+            if command=="stop":
+                logger.info("Stop")
+                self.on_behavior=None
 
     def execute_behavior(self):
         #returns a list of messages
@@ -84,11 +87,11 @@ class BehaviorGyrus(ThreadedGyrus):
         the_kwargs["state"]=self.state
         the_kwargs["broker"]=self.broker
         #resp=self.on_behavior.act(short_term_memory=self.short_term_memory,message_queue=message_queue)
-        resp=self.on_behavior.act(**the_kwargs)
+        resp,_=self.on_behavior.act(**the_kwargs)
         if resp==GratbotBehaviorStatus.COMPLETED:
-            print("Behavior Completed.  Halting")
-            on_behavior=None
+            logger.warning("Behavior Completed.  Halting")
+            self.on_behavior=None
         if resp==GratbotBehaviorStatus.COMPLETED:
-            print("Behavior Failed.  Halting")
-            on_behavior=None
+            logger.warning("Behavior Failed.  Halting")
+            self.on_behavior=None
         self.skip_until_time=time.time()
