@@ -185,7 +185,9 @@ class TrackerGyrusTrackedObject:
             self.height=(self.height*w2+height_update*w1)/(w1+w2)
             self.height_unc=min(self.height_unc,height_update_unc)
         if include_subimage:
-            self.subimage=image[box[0]:box[1],box[2]:box[3]]
+            my_bbox=det["bbox_array"]
+            self.subimage=image[int(my_bbox[0]*self.shape[1]):int(my_bbox[1]*self.shape[1]),
+                                int(my_bbox[2]*self.shape[0]):int(my_bbox[3]*self.shape[0])]
             #people can bend over, so I don't want it to be a normal dist improvement
 
 #        self.kfx.H=np.array([[1.,1.]])

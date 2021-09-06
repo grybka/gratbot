@@ -78,7 +78,8 @@ if args.sim:
     logging.debug("Starting Simulation")
     #gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
     #gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt",slomo=1))
-    gyrii.append(ReplayGyrus(broker,"config/track_replay.txt"))
+    #gyrii.append(ReplayGyrus(broker,"config/track_replay.txt"))
+    gyrii.append(ReplayGyrus(broker,"config/subimage_replay.txt"))
 else:
     logging.debug("Starting Server")
     test_port=23033

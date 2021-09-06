@@ -18,6 +18,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count_reset=10
         self.fps_start_time=0
 
+        self.display_subimages=True
+
         #self.mode="show_detections"
         self.mode="show_tracks"
         super().__init__(broker)
@@ -103,6 +105,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_detections_message=message
         if "tracks" in message:
             self.last_tracks_message=message
+            if self.display_subimages and len(message["tracks"])>0:
+                self.display.update_image("subimage",message["tracks"][0]["subimage"])
+
         if "depth_image" in message:
             self.last_depth_message=message
             self.update_depth()
