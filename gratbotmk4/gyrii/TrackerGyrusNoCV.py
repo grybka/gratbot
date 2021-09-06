@@ -241,7 +241,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         self.trackers=[]
         self.last_image_timestamp=0
         #conditions to remove tracker
-        self.max_frames_without_detection=30 #1 second
+        self.max_frames_without_detection=15 #0.5 second
         self.max_frames_offscreen=90 #3 seconds
         self.new_track_min_confidence=0.8
         super().__init__(broker)

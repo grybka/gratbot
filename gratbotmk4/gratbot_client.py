@@ -28,6 +28,7 @@ from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
+from gyrii.ObjectMapGyrus import ObjectMapGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -75,7 +76,7 @@ logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 if args.sim:
     logging.debug("Starting Simulation")
-    gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
+    #gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
     #gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt",slomo=1))
 else:
     logging.debug("Starting Server")
@@ -102,7 +103,8 @@ gyrii.append(ClockGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
 gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
-gyrii.append(CommandWordRecognitionGyrus(broker))
+#gyrii.append(CommandWordRecognitionGyrus(broker))
+gyrii.append(ObjectMapGyrus(broker,display_loop))
 
 def main():
     try:

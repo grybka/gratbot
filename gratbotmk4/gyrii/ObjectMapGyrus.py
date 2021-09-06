@@ -3,16 +3,21 @@ from Gyrus import ThreadedGyrus
 import logging
 import uuid
 from uncertainties import ufloat,umath
+from underpinnings.BayesianArray import BayesianArray
 from underpinnings.id_to_name import id_to_name
+import time
+import numpy as np
+import cv2 as cv
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 #records where objects are relative to me
 
 class ObjectMapGyrusObject:
-    def __init__(self,position=np.zeros(3),track_id=None):
+    def __init__(self,position=np.zeros(3),track_id=None,label=None):
         self.position=position #BayesianArray of x,y,z
         self.id=uuid.uuid1() #or tie to tracker id?
+        self.object_label=label
 
     def update_position(self,position):
         self.position=self.position.updated(position)
@@ -36,15 +41,22 @@ class ObjectMapGyrus(ThreadedGyrus):
         self.objects=[]
 
         #self.focal_length=640/(2*np.tan(np.pi*73.5/2/180)) #in pixels
-        self.focal_length_x=640/(2*np.tan(np.pi*73.5/2/180)) #in fraction of image
-        self.focal_length_y=640/(2*np.tan(np.pi*73.5/2/180)) #in fraction of image
+        self.focal_length=1.0/(2*np.tan(np.pi*73.5/2/180)) #in fraction of image
+        self.focal_length_x=self.focal_length
+        self.focal_length_y=self.focal_length
         #tracking pose offsets
         self.last_used_heading=np.array([0,0,0])
         self.z_gyro_index=0
         self.y_gyro_index=2
         self.x_gyro_index=1
 
+        #for identifying objects
         self.score_cutoff=6.0
+        self.track_object_map={}
+
+        #for drawing
+        self.next_draw_update=0
+        self.draw_update_period=0.5
 
     def get_keys(self):
         return ["tracks","packets","clock_pulse"]
@@ -58,6 +70,63 @@ class ObjectMapGyrus(ThreadedGyrus):
         for obj in objects:
             obj.update_turn(rot_mat)
 
+    def get_objects_in_view_cone(self):
+        ret_inview=[]
+        ret_almostinview=[]
+        x_fov=np.pi*73.5/2/180
+        for obj in self.objects:
+            x_angle=obj.position.vals[0]/obj.position.vals[2]
+            y_angle=obj.position.vals[1]/obj.position.vals[2]
+            #TODO z clipping?
+            if abs(x_angle)<0.5 and abs(y_angle)<0.5:
+                ret_inview.append(obj)
+                ret_almostinview.append(obj)
+            if abs(x_angle)<1.0 and abs(y_angle)<1.0:
+                ret_almostinview.append(obj)
+        return ret_inview,ret_almostinview
+
+
+    def update_from_tracks(self,tracks):
+        #first figure out what I -ought- to see
+
+        #for each thing that I ought to see, figure out if I -do- see it
+            #Question do I count tracks that exist but are missing a frame?
+
+        #logger.debug("{} tracks".format(len(tracks)))
+        #logger.debug("{} objects".format(len(self.objects)))
+        inview,almost_inview=self.get_objects_in_view_cone()
+        scores=np.zeros([len(almost_inview),len(tracks)])
+        for obj in almost_inview:
+            for track in tracks:
+                score=self.is_this_that(obj,track)
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        leftover_tracks=np.setdiff1d(np.arange(len(dets)),row_ind)
+        leftover_objs=np.setdiff1d(np.arange(len(self.trackers)),col_ind)
+        max_assignment_cost=6.0
+        for i in range(len(row_ind)):
+            if cost_matrix[row_ind[i],col_ind[i]]>max_assignment_cost:
+                np.append(leftover_tracks,row_ind[i])
+                np.append(leftover_objs,col_ind[i])
+            else:
+                position=self.convert_track_pos_to_xyz(tracks[col_ind[i]])
+                obj.update_position(position)
+        #deal with unmatched tracks
+        for i in range(len(leftover_tracks)):
+            track=leftover_tracks[i]
+            if track["seen_frames"]>5:
+                position=self.convert_track_pos_to_xyz(track)
+                self.objects.append(ObjectMapGyrusObject(position=position,track_id=track["id"],label=track["label"]))
+        #deal with unmatched objects
+        for i in range(len(leftover_objs)):
+            if leftover_objs[i] in inview:
+                logger.debug("missing object! {}".format(leftover_objs[i].id))
+            #otherwise it's perepheral, reasonable to miss
+            ...
+
+    def get_track_object_score(self,obj,track):
+        position=self.convert_track_pos_to_xyz(track)
+            score=self.is_this_that(track,obj)
+
     def update_from_track(self,track):
         #figure out if this track is already an object I know or not
         #   - keep a dict of trackid -> object id mapping
@@ -70,14 +139,21 @@ class ObjectMapGyrus(ThreadedGyrus):
         best_obj=None
         for obj in self.objects:
             score=self.is_this_that(track,obj)
+            #logger.debug("scoer is {}".format(score))
             if score<best_score:
+
                 best_score=score
                 best_obj=obj
         if best_score<self.score_cutoff:
+            logger.debug("Match! with score {}".format(best_score))
             ... #old object
             obj.update_position(position)
         else:
             #new object
+            logger.debug("new object with best score {}".format(best_score))
+            logger.debug("my pos {}".format(position))
+            if best_obj is not None:
+                logger.debug("its pos {}".format(best_obj.position))
             self.objects.append(ObjectMapGyrusObject(position=position,track_id=track["id"],label=track["label"]))
 
     def convert_track_pos_to_xyz(self,track):
@@ -88,12 +164,12 @@ class ObjectMapGyrus(ThreadedGyrus):
         track_center_unc=track["center_uncertainty"]
         #TODO do I include extent here?
         angle_x=ufloat((track_center[0]-0.5)/self.focal_length_x,(x_extent+track_center_unc[0])/self.focal_length_x)
-        angle_y=ufloat((track_center[1]-0.5)/self.focal_length_1,(y_extent+track_center_unc[1])/self.focal_length_1)
-        dist=ufloat(track_center[2],track_center_unc[2]
+        angle_y=ufloat((track_center[1]-0.5)/self.focal_length_y,(y_extent+track_center_unc[1])/self.focal_length_y)
+        dist=ufloat(track_center[2],track_center_unc[2])
         #convert to xyz
         x=dist*angle_x
         y=dist*angle_y
-        z=dist*np.cos(angle_x)*np.cos(angle_y)
+        z=dist*umath.cos(angle_x)*umath.cos(angle_y)
         return BayesianArray.from_ufloats([x,y,z])
 
     def is_this_that(self,track,obj):
@@ -106,10 +182,11 @@ class ObjectMapGyrus(ThreadedGyrus):
     def read_message(self,message):
         #I could ask it where to find something?
         if 'clock_pulse' in message:
-            self.draw_object_map()
+            if time.time()>self.next_draw_update:
+                self.draw_object_map()
+                self.next_draw_update=time.time()+self.draw_update_period
         if 'tracks' in message:
-            for track in message["tracks"]:
-                self.update_from_track(track)
+            self.update_from_tracks(message["tracks"])
         if 'packets' in message: #rotation etc
             #I'm really only interested in the last measurement
             packet=message['packets'][-1]
@@ -124,3 +201,43 @@ class ObjectMapGyrus(ThreadedGyrus):
             #inteperet this as a pose offset
             self.update_with_turn(turn,turn_unc*turn)
             self.last_used_heading=next_heading
+
+    def draw_object_map(self):
+        xsize=640
+        ysize=480
+        scale=xsize/8 #pixels per meter
+        toshow=np.zeros([ysize,xsize,3],np.uint8)
+        inview,almost_inview=self.get_objects_in_view_cone()
+        for sobj in self.objects:
+            position=sobj.position
+            x,y,h1,h2,theta=position.get_error_ellipse(var1=0,var2=2)
+            h1*=5
+            h2*=5
+
+            ex=int(y*scale+xsize/2)
+            ey=int(x*scale+ysize/2)
+
+            if sobj in inview:
+                #logger.debug("inview")
+                color = (255, 150, 150)
+            elif sobj in almost_inview:
+                #logger.debug("almost inview")
+                color = (150, 255, 150)
+            else:
+                color = (150, 150, 150)
+            thickness = 2
+            theta=-np.degrees(theta)
+            cv.ellipse(toshow,(ex,ey),( int(h1*scale),int(h2*scale)),theta,0,360,color,thickness)
+
+            color = (255, 255, 255)
+            fontScale = 0.4
+            # Line thickness of 2 px
+            thickness = 1
+            font = cv.FONT_HERSHEY_SIMPLEX
+            text="{} ({})".format(sobj.object_label,id_to_name(sobj.id))
+            #text="{}".format(sobj.object_label,id_to_name(sobj.id))
+            org=( ex,ey)
+            toshow = cv.putText(toshow, text, org, font,  fontScale, color, thickness, cv.LINE_AA)
+        #cv.arrowedLine(toshow,(320,200),(320,180),(255,255,255),1, cv.LINE_AA, 0, 0.3)
+        cv.arrowedLine(toshow,(320,240),(340,240),(255,255,255),1, cv.LINE_AA, 0, 0.3)
+        self.display.update_image("Objectmap",toshow)
