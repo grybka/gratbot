@@ -44,7 +44,8 @@ class ObjectMapGyrus(ThreadedGyrus):
         self.objects=[]
 
         #self.focal_length=640/(2*np.tan(np.pi*73.5/2/180)) #in pixels
-        self.focal_length=1.0/(2*np.tan(np.pi*73.5/2/180)) #in fraction of image
+        #self.focal_length=1.0/(2*np.tan(np.pi*73.5/360)) #in fraction of image
+        self.focal_length=1.0/(2*np.tan(np.pi*51.5/360)) #in fraction of image
         self.focal_length_x=self.focal_length
         self.focal_length_y=self.focal_length
         #tracking pose offsets
@@ -76,7 +77,7 @@ class ObjectMapGyrus(ThreadedGyrus):
     def get_objects_in_view_cone(self):
         ret_inview=[]
         ret_almostinview=[]
-        x_fov=np.pi*73.5/360
+        x_fov=np.pi*51.6/360
         for obj in self.objects:
             x_angle=obj.position.vals[0]/obj.position.vals[2]
             y_angle=obj.position.vals[1]/obj.position.vals[2]
@@ -118,6 +119,7 @@ class ObjectMapGyrus(ThreadedGyrus):
                 np.append(leftover_objs,col_ind[i])
             else:
                 #logger.debug("match")
+                self.track_object_map[tracks[row_ind[i]]["id"]]=obj.id
                 position,size_scale=self.convert_track_pos_to_xyz(tracks[row_ind[i]])
                 obj.update_position(position,size_scale)
         #deal with unmatched tracks
@@ -138,24 +140,30 @@ class ObjectMapGyrus(ThreadedGyrus):
 
     def convert_track_pos_to_xyz(self,track):
         bbox=track["bbox_array"]
-        picture_size=480
         track_center=track["center"]
         track_center_unc=track["center_uncertainty"]
         #TODO do I include extent here?
         angle_x=ufloat((track_center[0]-0.5)/self.focal_length_x,(track_center_unc[0])/self.focal_length_x)
-        angle_x_extent=((bbox[1]-bbox[0])/picture_size)/self.focal_length_x
+        angle_x_extent=(bbox[1]-bbox[0])/self.focal_length_x
         angle_y=ufloat((track_center[1]-0.5)/self.focal_length_y,(track_center_unc[1])/self.focal_length_y)
-        angle_y_extent=((bbox[3]-bbox[1])/picture_size)/self.focal_length_y
-        dist=ufloat(track_center[2],track_center_unc[2])
+        angle_y_extent=(bbox[3]-bbox[1])/self.focal_length_y
+        size_scale=float(max(angle_x_extent,angle_y_extent)*track_center[2])
+        dist=ufloat(track_center[2]+size_scale/2,track_center_unc[2])
         #convert to xyz
         x=dist*angle_x
         y=dist*angle_y
         z=dist*umath.cos(angle_x)*umath.cos(angle_y)
-        size_scale=float(max(angle_x_extent,angle_y_extent)*dist.n)
         return BayesianArray.from_ufloats([x,y,z]),size_scale
 
     def is_this_that(self,track,obj):
         #returns the likelyhood that an track actually corresponds to an object in my memory
+        chisq=0
+        #if I'm already tracking, cut it some slack
+        if track["id"] in self.track_object_map and self.track_object_map[track['id']]==obj.id:
+            chisq-=1
+        #if the label isn't right, that's a problem
+        if track["label"] != obj.object_label:
+            chisq+1
         #location part
         center,size_scale=self.convert_track_pos_to_xyz(track)
         center.covariance[0][0]+=size_scale*size_scale
@@ -196,9 +204,11 @@ class ObjectMapGyrus(ThreadedGyrus):
         for sobj in self.objects:
             occupancy=sobj.position.copy()
             print("object size scale {}".format(sobj.size_scale))
-            occupancy.covariance[0][0]+=sobj.size_scale**2
-            occupancy.covariance[1][1]+=sobj.size_scale**2
-            occupancy.covariance[2][2]+=sobj.size_scale**2
+            print("object dist {}".format(np.sqrt(occupancy.vals[0]**2+occupancy.vals[1]**2+occupancy.vals[2])))
+            extra_cov=(sobj.size_scale/2)**2
+            occupancy.covariance[0][0]+=extra_cov
+            occupancy.covariance[1][1]+=extra_cov
+            occupancy.covariance[2][2]+=extra_cov
 
             x,y,h1,h2,theta=occupancy.get_error_ellipse(var1=0,var2=2)
 

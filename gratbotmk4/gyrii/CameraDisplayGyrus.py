@@ -71,6 +71,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
                     cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
         elif self.mode=="show_tracks":
             color = (255, 0, 0)
+            height = frame.shape[0]
+            width  = frame.shape[1]
             for t in self.last_tracks_message["tracks"]:
                 x1 = int(t["bbox_array"][0]*width )
                 x2 = int(t["bbox_array"][1]*height)

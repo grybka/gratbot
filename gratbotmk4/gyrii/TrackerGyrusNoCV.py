@@ -96,6 +96,7 @@ class TrackerGyrusTrackedObject:
 
         self.info="NEW"
         self.defunct=False
+        self.subimage=None
 
         #info from detections
         self.last_label=None
@@ -142,7 +143,7 @@ class TrackerGyrusTrackedObject:
         self.kfy.predict()
         self.kfz.predict()
 
-    def update_with_detection(self,det,image):
+    def update_with_detection(self,det,image,include_subimage=False):
         box=self.get_det_bbox(det)
         if "spatial_array" in det:
             self.last_depth=det["spatial_array"][2]/1000 #in m
@@ -183,6 +184,8 @@ class TrackerGyrusTrackedObject:
             w2=1/height_update_unc**2
             self.height=(self.height*w2+height_update*w1)/(w1+w2)
             self.height_unc=min(self.height_unc,height_update_unc)
+        if include_subimage:
+            self.subimage=image[box[0]:box[1],box[2]:box[3]]
             #people can bend over, so I don't want it to be a normal dist improvement
 
 #        self.kfx.H=np.array([[1.,1.]])
@@ -203,10 +206,9 @@ class TrackerGyrusTrackedObject:
         self.frames_with_detection+=1
         self.info="DETECTED"
 
-    def init_with_detection(self,image,det):
+    def init_with_detection(self,image,det,include_subimage=False):
         self.shape=image.shape
-
-        self.update_with_detection(det,image)
+        self.update_with_detection(det,image,include_subimage)
 
     def get_centroid(self):
         return (int(self.kfx.x[0][0]*self.shape[1]),int(self.kfy.x[0][0]*self.shape[1]))
@@ -238,9 +240,10 @@ class TrackerGyrusTrackedObject:
 
 
 class TrackerGyrusNoCV(ThreadedGyrus):
-    def __init__(self,broker):
+    def __init__(self,broker,include_subimages=False):
         self.motion_corrector=MotionCorrection()
         self.offset_uncertainty=0.1 #fractional uncertainty on an offset
+        self.include_subimages=include_subimages
 
         self.trackers=[]
         self.last_image_timestamp=0
@@ -287,6 +290,8 @@ class TrackerGyrusNoCV(ThreadedGyrus):
             mess["label"]=tracker.last_label
             mess["info"]=tracker.info
             mess["id"]=tracker.id
+            if self.include_subimages:
+                mess["subimage"]=tracker.subimage
             ret.append(mess)
         return ret
 
@@ -356,7 +361,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         if det["label"] in self.object_height_table:
             new_track.height=self.object_height_table[det["label"]][0]
             new_track.height_unc=self.object_height_table[det["label"]][0]
-        new_track.init_with_detection(image,det)
+        new_track.init_with_detection(image,det,self.include_subimages)
         self.trackers.append(new_track)
 
     def match_trackers_to_detections(self,dets,image):
@@ -380,7 +385,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
                 np.append(leftover_dets,row_ind[i])
                 np.append(leftover_trackers,col_ind[i])
             else:
-                self.trackers[col_ind[i]].update_with_detection(dets[row_ind[i]],image)
+                self.trackers[col_ind[i]].update_with_detection(dets[row_ind[i]],image,include_subimage=self.include_subimages)
         #deal with leftover detections
         for i in range(len(leftover_dets)):
             if dets[leftover_dets[i]]["confidence"]>self.new_track_min_confidence:
