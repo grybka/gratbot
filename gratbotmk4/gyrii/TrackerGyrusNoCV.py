@@ -188,8 +188,7 @@ class TrackerGyrusTrackedObject:
             my_bbox=det["bbox_array"]
             my_bbox=[int(my_bbox[0]*self.shape[1]),int(my_bbox[1]*self.shape[1]),
                     int(my_bbox[2]*self.shape[0]),int(my_bbox[3]*self.shape[0])]
-            logger.debug("my bbox {}".format(my_bbox))
-            self.subimage=image[my_bbox[0],my_bbox[1],my_bbox[2],my_bbox[3]]
+            self.subimage=image[my_bbox[2]:my_bbox[3],my_bbox[0]:my_bbox[1],:]
             #people can bend over, so I don't want it to be a normal dist improvement
 
 #        self.kfx.H=np.array([[1.,1.]])
