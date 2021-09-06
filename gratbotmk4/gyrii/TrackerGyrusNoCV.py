@@ -189,6 +189,8 @@ class TrackerGyrusTrackedObject:
             my_bbox=[int(my_bbox[0]*self.shape[1]),int(my_bbox[1]*self.shape[1]),
                     int(my_bbox[2]*self.shape[0]),int(my_bbox[3]*self.shape[0])]
             self.subimage=image[my_bbox[2]:my_bbox[3],my_bbox[0]:my_bbox[1],:]
+            if self.subimage.shape[0]==0 or self.subimage.shape[1]==0:
+                self.subimage=None
             #people can bend over, so I don't want it to be a normal dist improvement
 
 #        self.kfx.H=np.array([[1.,1.]])

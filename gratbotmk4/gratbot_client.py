@@ -105,7 +105,7 @@ gyrii.append(ClockGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
 gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
-#gyrii.append(CommandWordRecognitionGyrus(broker))
+gyrii.append(CommandWordRecognitionGyrus(broker))
 gyrii.append(ObjectMapGyrus(broker,display_loop))
 
 def main():
