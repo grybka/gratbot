@@ -5,6 +5,7 @@ import uuid
 from uncertainties import ufloat,umath
 from underpinnings.BayesianArray import BayesianArray
 from underpinnings.id_to_name import id_to_name
+from scipy.optimize import linear_sum_assignment
 import time
 import numpy as np
 import cv2 as cv
@@ -92,40 +93,44 @@ class ObjectMapGyrus(ThreadedGyrus):
         #for each thing that I ought to see, figure out if I -do- see it
             #Question do I count tracks that exist but are missing a frame?
 
-        #logger.debug("{} tracks".format(len(tracks)))
-        #logger.debug("{} objects".format(len(self.objects)))
+        logger.debug("{} tracks".format(len(tracks)))
         inview,almost_inview=self.get_objects_in_view_cone()
-        scores=np.zeros([len(almost_inview),len(tracks)])
+        logger.debug("{} objects".format(len(almost_inview)))
+        cost_matrix=np.zeros([len(tracks),len(almost_inview)])
         for obj in almost_inview:
             for track in tracks:
-                score=self.is_this_that(obj,track)
+                score=self.is_this_that(track,obj)
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        leftover_tracks=np.setdiff1d(np.arange(len(dets)),row_ind)
-        leftover_objs=np.setdiff1d(np.arange(len(self.trackers)),col_ind)
+        leftover_tracks=np.setdiff1d(np.arange(len(tracks)),row_ind)
+        leftover_objs=np.setdiff1d(np.arange(len(almost_inview)),col_ind)
+        logger.debug("col ind {}".format(col_ind))
+        logger.debug("other {}".format(np.arange(len(almost_inview))))
+
+        logger.debug("{} matches, {} unmatched objects, {} unmatched tracks".format(len(row_ind),len(leftover_objs),len(leftover_tracks)))
         max_assignment_cost=6.0
         for i in range(len(row_ind)):
             if cost_matrix[row_ind[i],col_ind[i]]>max_assignment_cost:
+                logger.debug("cost too big, no match {}".format(cost_matrix[row_ind[i],col_ind[i]]))
                 np.append(leftover_tracks,row_ind[i])
                 np.append(leftover_objs,col_ind[i])
             else:
-                position=self.convert_track_pos_to_xyz(tracks[col_ind[i]])
+                logger.debug("match")
+                position=self.convert_track_pos_to_xyz(tracks[row_ind[i]])
                 obj.update_position(position)
         #deal with unmatched tracks
         for i in range(len(leftover_tracks)):
-            track=leftover_tracks[i]
+            track=tracks[leftover_tracks[i]]
             if track["seen_frames"]>5:
+                logger.debug("New Object")
                 position=self.convert_track_pos_to_xyz(track)
                 self.objects.append(ObjectMapGyrusObject(position=position,track_id=track["id"],label=track["label"]))
         #deal with unmatched objects
         for i in range(len(leftover_objs)):
-            if leftover_objs[i] in inview:
-                logger.debug("missing object! {}".format(leftover_objs[i].id))
+            if almost_inview[leftover_objs[i]] in inview:
+                obj=almost_inview[leftover_objs[i]]
+                logger.debug("missing object! {}".format(obj.id))
             #otherwise it's perepheral, reasonable to miss
             ...
-
-    def get_track_object_score(self,obj,track):
-        position=self.convert_track_pos_to_xyz(track)
-            score=self.is_this_that(track,obj)
 
     def update_from_track(self,track):
         #figure out if this track is already an object I know or not

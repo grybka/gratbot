@@ -47,7 +47,7 @@ gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.ou
 gyrii.append(OakDGyrusPeople(broker))
 gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
-#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections","image"]))
 gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(HeadTrackerGyrus(broker))
 gyrii.append(FollowerGyrus(broker,only_turn=False))
