@@ -72,10 +72,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
         elif self.mode=="show_tracks":
             color = (255, 0, 0)
             for t in self.last_tracks_message["tracks"]:
-                x1 = int(t["bbox_array"][0] )
-                x2 = int(t["bbox_array"][1] )
-                y1 = int(t["bbox_array"][2] )
-                y2 = int(t["bbox_array"][3] )
+                x1 = int(t["bbox_array"][0]*width )
+                x2 = int(t["bbox_array"][1]*height)
+                y1 = int(t["bbox_array"][2]*width )
+                y2 = int(t["bbox_array"][3]*height )
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
                 #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
                 cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)

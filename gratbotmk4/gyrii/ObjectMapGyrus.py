@@ -15,13 +15,15 @@ logger.setLevel(logging.DEBUG)
 #records where objects are relative to me
 
 class ObjectMapGyrusObject:
-    def __init__(self,position=np.zeros(3),track_id=None,label=None):
+    def __init__(self,position=np.zeros(3),track_id=None,label=None,size_scale=0):
         self.position=position #BayesianArray of x,y,z
+        self.size_scale=size_scale
         self.id=uuid.uuid1() #or tie to tracker id?
         self.object_label=label
 
-    def update_position(self,position):
+    def update_position(self,position,size_scale):
         self.position=self.position.updated(position)
+        self.size_scale=size_scale
 
     def update_linear_motion(self,my_motion):
         #my_motion should be a BayesianArray
@@ -74,7 +76,7 @@ class ObjectMapGyrus(ThreadedGyrus):
     def get_objects_in_view_cone(self):
         ret_inview=[]
         ret_almostinview=[]
-        x_fov=np.pi*73.5/2/180
+        x_fov=np.pi*73.5/360
         for obj in self.objects:
             x_angle=obj.position.vals[0]/obj.position.vals[2]
             y_angle=obj.position.vals[1]/obj.position.vals[2]
@@ -82,7 +84,7 @@ class ObjectMapGyrus(ThreadedGyrus):
             if abs(x_angle)<0.5 and abs(y_angle)<0.5:
                 ret_inview.append(obj)
                 ret_almostinview.append(obj)
-            if abs(x_angle)<1.0 and abs(y_angle)<1.0:
+            elif abs(x_angle)<1.0 and abs(y_angle)<1.0:
                 ret_almostinview.append(obj)
         return ret_inview,ret_almostinview
 
@@ -93,9 +95,10 @@ class ObjectMapGyrus(ThreadedGyrus):
         #for each thing that I ought to see, figure out if I -do- see it
             #Question do I count tracks that exist but are missing a frame?
 
-        logger.debug("{} tracks".format(len(tracks)))
+        #logger.debug("{} tracks".format(len(tracks)))
         inview,almost_inview=self.get_objects_in_view_cone()
-        logger.debug("{} objects".format(len(almost_inview)))
+        #logger.debug("{} objects".format(len(almost_inview)))
+        #logger.debug("out of {} objects".format(len(self.objects)))
         cost_matrix=np.zeros([len(tracks),len(almost_inview)])
         for obj in almost_inview:
             for track in tracks:
@@ -103,10 +106,10 @@ class ObjectMapGyrus(ThreadedGyrus):
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         leftover_tracks=np.setdiff1d(np.arange(len(tracks)),row_ind)
         leftover_objs=np.setdiff1d(np.arange(len(almost_inview)),col_ind)
-        logger.debug("col ind {}".format(col_ind))
-        logger.debug("other {}".format(np.arange(len(almost_inview))))
+        #logger.debug("col ind {}".format(col_ind))
+        #logger.debug("other {}".format(np.arange(len(almost_inview))))
 
-        logger.debug("{} matches, {} unmatched objects, {} unmatched tracks".format(len(row_ind),len(leftover_objs),len(leftover_tracks)))
+        #logger.debug("{} matches, {} unmatched objects, {} unmatched tracks".format(len(row_ind),len(leftover_objs),len(leftover_tracks)))
         max_assignment_cost=6.0
         for i in range(len(row_ind)):
             if cost_matrix[row_ind[i],col_ind[i]]>max_assignment_cost:
@@ -114,73 +117,50 @@ class ObjectMapGyrus(ThreadedGyrus):
                 np.append(leftover_tracks,row_ind[i])
                 np.append(leftover_objs,col_ind[i])
             else:
-                logger.debug("match")
-                position=self.convert_track_pos_to_xyz(tracks[row_ind[i]])
-                obj.update_position(position)
+                #logger.debug("match")
+                position,size_scale=self.convert_track_pos_to_xyz(tracks[row_ind[i]])
+                obj.update_position(position,size_scale)
         #deal with unmatched tracks
         for i in range(len(leftover_tracks)):
             track=tracks[leftover_tracks[i]]
             if track["seen_frames"]>5:
-                logger.debug("New Object")
-                position=self.convert_track_pos_to_xyz(track)
-                self.objects.append(ObjectMapGyrusObject(position=position,track_id=track["id"],label=track["label"]))
+                position,size_scale=self.convert_track_pos_to_xyz(track)
+                logger.debug("New Object at {}".format(position.pretty_str()))
+                self.objects.append(ObjectMapGyrusObject(position=position,size_scale=size_scale,track_id=track["id"],label=track["label"]))
+                logger.debug("I will name it {}".format(id_to_name(self.objects[-1].id)))
         #deal with unmatched objects
         for i in range(len(leftover_objs)):
             if almost_inview[leftover_objs[i]] in inview:
                 obj=almost_inview[leftover_objs[i]]
-                logger.debug("missing object! {}".format(obj.id))
+                logger.debug("missing object! {}".format(id_to_name(obj.id)))
             #otherwise it's perepheral, reasonable to miss
             ...
 
-    def update_from_track(self,track):
-        #figure out if this track is already an object I know or not
-        #   - keep a dict of trackid -> object id mapping
-        #   - failing that, if its in roughtly the same location with the same label, assign it
-        #   - failing that, we have to decide if it is new or spurious
-        #Also more importantly; how to deal with an object not where I think it should be?
-        #TODO I should hash this somehow, otherwise it could be slow
-        position=self.convert_track_pos_to_xyz(track)
-        best_score=np.inf
-        best_obj=None
-        for obj in self.objects:
-            score=self.is_this_that(track,obj)
-            #logger.debug("scoer is {}".format(score))
-            if score<best_score:
-
-                best_score=score
-                best_obj=obj
-        if best_score<self.score_cutoff:
-            logger.debug("Match! with score {}".format(best_score))
-            ... #old object
-            obj.update_position(position)
-        else:
-            #new object
-            logger.debug("new object with best score {}".format(best_score))
-            logger.debug("my pos {}".format(position))
-            if best_obj is not None:
-                logger.debug("its pos {}".format(best_obj.position))
-            self.objects.append(ObjectMapGyrusObject(position=position,track_id=track["id"],label=track["label"]))
-
     def convert_track_pos_to_xyz(self,track):
         bbox=track["bbox_array"]
-        x_extent=(bbox[1]-bbox[0])/400
-        y_extent=(bbox[3]-bbox[2])/400
+        picture_size=480
         track_center=track["center"]
         track_center_unc=track["center_uncertainty"]
         #TODO do I include extent here?
-        angle_x=ufloat((track_center[0]-0.5)/self.focal_length_x,(x_extent+track_center_unc[0])/self.focal_length_x)
-        angle_y=ufloat((track_center[1]-0.5)/self.focal_length_y,(y_extent+track_center_unc[1])/self.focal_length_y)
+        angle_x=ufloat((track_center[0]-0.5)/self.focal_length_x,(track_center_unc[0])/self.focal_length_x)
+        angle_x_extent=((bbox[1]-bbox[0])/picture_size)/self.focal_length_x
+        angle_y=ufloat((track_center[1]-0.5)/self.focal_length_y,(track_center_unc[1])/self.focal_length_y)
+        angle_y_extent=((bbox[3]-bbox[1])/picture_size)/self.focal_length_y
         dist=ufloat(track_center[2],track_center_unc[2])
         #convert to xyz
         x=dist*angle_x
         y=dist*angle_y
         z=dist*umath.cos(angle_x)*umath.cos(angle_y)
-        return BayesianArray.from_ufloats([x,y,z])
+        size_scale=float(max(angle_x_extent,angle_y_extent)*dist.n)
+        return BayesianArray.from_ufloats([x,y,z]),size_scale
 
     def is_this_that(self,track,obj):
         #returns the likelyhood that an track actually corresponds to an object in my memory
         #location part
-        center=self.convert_track_pos_to_xyz(track)
+        center,size_scale=self.convert_track_pos_to_xyz(track)
+        center.covariance[0][0]+=size_scale*size_scale
+        center.covariance[1][1]+=size_scale*size_scale
+        center.covariance[2][2]+=size_scale*size_scale
         chisq=obj.position.chi_square_from_pose(center)
         return chisq
 
@@ -214,10 +194,13 @@ class ObjectMapGyrus(ThreadedGyrus):
         toshow=np.zeros([ysize,xsize,3],np.uint8)
         inview,almost_inview=self.get_objects_in_view_cone()
         for sobj in self.objects:
-            position=sobj.position
-            x,y,h1,h2,theta=position.get_error_ellipse(var1=0,var2=2)
-            h1*=5
-            h2*=5
+            occupancy=sobj.position.copy()
+            print("object size scale {}".format(sobj.size_scale))
+            occupancy.covariance[0][0]+=sobj.size_scale**2
+            occupancy.covariance[1][1]+=sobj.size_scale**2
+            occupancy.covariance[2][2]+=sobj.size_scale**2
+
+            x,y,h1,h2,theta=occupancy.get_error_ellipse(var1=0,var2=2)
 
             ex=int(y*scale+xsize/2)
             ey=int(x*scale+ysize/2)

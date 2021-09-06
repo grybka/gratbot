@@ -222,6 +222,10 @@ class TrackerGyrusTrackedObject:
         centroid=self.get_centroid()
         return [centroid[0],centroid[1],self.last_det_bbox[2],self.last_det_bbox[3]]
 
+    def get_bestguess_bbox_unscaled(self):
+        [a,b,c,d]=self.get_bestguess_bbox()
+        return [a/self.shape[1],b/self.shape[0],c/self.shape[1],d/self.shape[0]]
+
     def get_center(self):
         return [ self.kfx.x[0][0],self.kfy.x[0][0],self.kfz.x[0][0] ]
 
@@ -272,7 +276,7 @@ class TrackerGyrusNoCV(ThreadedGyrus):
         ret=[]
         for tracker in self.trackers:
             mess={}
-            bb=tracker.get_bestguess_bbox()
+            bb=tracker.get_bestguess_bbox_uscaled()
             mess["bbox_array"]=[ int(bb[0]-bb[2]/2),int(bb[0]+bb[2]/2),int(bb[1]-bb[3]/2),int(bb[1]+bb[3]/2)]
             mess["center"]=tracker.get_center()
             mess["center_uncertainty"]=tracker.get_center_uncertainty()
