@@ -94,6 +94,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "gyrus_config" in message and message["gyrus_config"]["target_gyrus"]=="HeadTrackerGyrus":
             m=message["gyrus_config"]
+            print("receieved config {}".format(m))
             if "mode" in m:
                 self.mode=m["mode"]
             if "labels" in m:

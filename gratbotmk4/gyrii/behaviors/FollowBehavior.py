@@ -22,6 +22,18 @@ class RunMotors(GratbotBehavior):
         broker.publish(motor_command,"motor_command")
         return GratbotBehaviorStatus.COMPLETED,{}
 
+class RunServo(GratbotBehavior):
+    def __init__(self,servo_num,servo_angle):
+        self.servo_num=servo_num
+        self.servo_angle=servo_angle
+    def act(self,**kwargs):
+        broker=kwargs["broker"]
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"angle": self.servo_angle}}
+        broker.publish(servo_command,"servo_command")
+        return GratbotBehaviorStatus.COMPLETED,{}
+
+
+
 def extract_track_with_id(short_term_memory,id):
     if "tracks" in short_term_memory:
         for track in short_term_memory["tracks"]["tracks"]:
@@ -91,20 +103,24 @@ def find_and_follow(allowed_labels):
 def look_around():
     #turn off tracking
     #look low, left, up, right, down, back
-    return GratbotBehaviorChecklist([
+    up_angle=90
+    horiz_angle=120
+    return GratbotBehavior_Checklist([
             GratbotBehavior_Broadcast({"gyrus_config":{"target_gyrus":"FollowerGyrus","mode": "off"}},"gyrus_config"),
+            GratbotBehavior_Broadcast({"gyrus_config":{"target_gyrus":"HeadTrackerGyrus","mode": "off"}},"gyrus_config"),
             GratbotBehavior_Wait(0.5),
-            RunServo(0,90),
+            RunServo(0,up_angle),
             GratbotBehavior_Wait(0.5),
             RunMotors(0.5,-0.5,0.5),
-            GratbotBehavior_Wait(0.6),
-            RunServo(0,140),
+            GratbotBehavior_Wait(0.7),
+            RunServo(0,horiz_angle),
             GratbotBehavior_Wait(0.5),
             RunMotors(-0.5,0.5,1.0),
-            GratbotBehavior_Wait(1.1),
-            RunServo(0,90),
+            GratbotBehavior_Wait(1.2),
+            RunServo(0,up_angle),
+            GratbotBehavior_Wait(0.5),
             RunMotors(0.5,-0.5,0.5),
-            GratbotBehavior_Wait(0.6)
+            GratbotBehavior_Wait(0.7)
         ])
 
 class Abehavior(GratbotBehavior):
