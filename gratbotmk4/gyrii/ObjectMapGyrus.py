@@ -16,10 +16,13 @@ logger.setLevel(logging.DEBUG)
 
 class ObjectMapGyrusObject:
     def __init__(self,position=np.zeros(3),track_id=None,label=None,size_scale=0):
+        self.id=uuid.uuid1() #or tie to tracker id?
+        #location information
         self.position=position #BayesianArray of x,y,z
         self.size_scale=size_scale
-        self.id=uuid.uuid1() #or tie to tracker id?
-        self.object_label=label
+        #how does it look
+        self.appearance_vector=None
+        self.object_label=label #label from tracker
 
     def update_position(self,position,size_scale):
         self.position=self.position.updated(position)

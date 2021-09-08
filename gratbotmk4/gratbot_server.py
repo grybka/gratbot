@@ -19,7 +19,7 @@ from gyrii.MicrophoneGyrus2 import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
-from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test
+from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_around
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 #from SpeechDetectorGyrus import SpeechDetectorGyrus
@@ -51,7 +51,8 @@ gyrii.append(ServoGyrus(broker))
 gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
 gyrii.append(HeadTrackerGyrus(broker))
 gyrii.append(FollowerGyrus(broker,only_turn=True))
-gyrii.append(BehaviorGyrus(broker,None))
+#gyrii.append(BehaviorGyrus(broker,None))
+gyrii.append(BehaviorGyrus(broker,look_around()))
 #gyrii.append(BehaviorGyrus(broker,find_and_follow(["face","person"])))
 #gyrii.append(BehaviorGyrus(broker,tail_test()))
 #gyrii.append(BehaviorGyrus(broker,Announce("announcement")))

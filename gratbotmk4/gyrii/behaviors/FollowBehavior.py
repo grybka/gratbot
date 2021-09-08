@@ -88,6 +88,24 @@ def do_follow():
 def find_and_follow(allowed_labels):
     return GratbotBehavior_Series([turn_search(allowed_labels),SetTailMood("anticipation"),do_follow()])
 
+def look_around():
+    #turn off tracking
+    #look low, left, up, right, down, back
+    return GratbotBehaviorChecklist([
+            GratbotBehavior_Broadcast({"gyrus_config":{"target_gyrus":"FollowerGyrus","mode": "off"}},"gyrus_config"),
+            GratbotBehavior_Wait(0.5),
+            RunServo(0,90),
+            GratbotBehavior_Wait(0.5),
+            RunMotors(0.5,-0.5,0.5),
+            GratbotBehavior_Wait(0.6),
+            RunServo(0,140),
+            GratbotBehavior_Wait(0.5),
+            RunMotors(-0.5,0.5,1.0),
+            GratbotBehavior_Wait(1.1),
+            RunServo(0,90),
+            RunMotors(0.5,-0.5,0.5),
+            GratbotBehavior_Wait(0.6)
+        ])
 
 class Abehavior(GratbotBehavior):
     def __init__(self):
