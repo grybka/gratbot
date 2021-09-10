@@ -92,7 +92,6 @@ class ObjectMapGyrus(ThreadedGyrus):
                 ret_almostinview.append(obj)
         return ret_inview,ret_almostinview
 
-
     def update_from_tracks(self,tracks):
         #first figure out what I -ought- to see
 
