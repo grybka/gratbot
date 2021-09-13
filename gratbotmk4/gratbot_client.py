@@ -29,6 +29,7 @@ from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 from gyrii.ObjectMapGyrus import ObjectMapGyrus
+from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -106,7 +107,7 @@ gyrii.append(ClockGyrus(broker))
 #gyrii.append(SoundRecordGyrus(broker))
 gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
 gyrii.append(CommandWordRecognitionGyrus(broker))
-gyrii.append(ObjectMapGyrus(broker,display_loop))
+gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
 
 def main():
     try:

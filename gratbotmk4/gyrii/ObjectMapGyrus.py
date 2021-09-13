@@ -16,6 +16,7 @@ logger.setLevel(logging.DEBUG)
 
 class ObjectMapGyrusObject:
     def __init__(self,position=np.zeros(3),track_id=None,label=None,size_scale=0):
+        super().__init__(broker)
         self.id=uuid.uuid1() #or tie to tracker id?
         #location information
         self.position=position #BayesianArray of x,y,z
