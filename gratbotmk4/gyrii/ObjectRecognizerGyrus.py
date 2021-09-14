@@ -13,6 +13,9 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
         self.memory=ObjectMemory()
         self.memory.load_face_encodings()
 
+        # Maps current tracks to known objects
+        self.track_object_map={}
+
         #for timing
         self.check_every=0.5 #seconds
         self.last_check=0
@@ -31,7 +34,11 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
 
     def update_from_tracks(self,tracks):
         track_object_map={}
+        annotated_tracks=[]
         for track in tracks:
+            if track["id"] in self.track_object_map:
+                continue #don't need to reid
+
             features={"position": self.track_to_position(track),
                       "image_label": track["label"],
                       "image": track["subimage"]}
@@ -41,13 +48,18 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 the_pair=object_id_and_scores[0]
                 if the_pair[0]>1.:
                     track_object_map[track["id"]]=the_pair[0]
-                    logger.debug("match found")
+                    #logger.debug("match found")
+                    track["object_id"]=the_pair[0]
                     continue
             #no object found
+            #TODO  figure out if I should instantiate_new_object
             logger.debug("no match found")
+            id=self.memory.instantiate_new_object(features)
+            track_object_map[track["id"]]=features
 
         #TODO decide if something needs attention
-        #self.broker.publish({"timestamp": time.time(),"object_attention": rec},["attention"])
+        #publish the annotated tracks
+        self.broker.publish({"timestamp": time.time(),"annotated_tracks": annotated_tracks},["annotated_tracks"])
 
 
     def track_to_position(self,track):

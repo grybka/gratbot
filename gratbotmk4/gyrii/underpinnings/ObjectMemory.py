@@ -48,7 +48,6 @@ class ObjectMemory:
             id=self.instantiate_new_object({"face_encoding": the_encoding, "proper_name": name})
             self.known_face_encodings.append(the_encoding)
             self.known_face_encoding_ids.append(id)
-        self.known_face_encodings=np.stack(self.known_face_encodings,axis=0)
 
 
     def instantiate_new_object(self,features):
@@ -56,6 +55,13 @@ class ObjectMemory:
         #to create a new object in memory
         id=uuid.uuid1()
         self.objects[id]=features
+        #face specific
+        if "image_label" in features and features["image_label"]=="face" and "image" in features:
+            subimage=features["image"]
+            bbox=(0,0,subimage.shape[0],subimage.shape[1])
+            face_encoding = face_recognition.face_encodings(subimage,[bbox])[0]
+            self.known_face_encodings.append(face_encoding)
+            self.known_face_encoding_ids.append(id)
         return id
 
     def get_object_features(self,object_id):
@@ -92,11 +98,12 @@ class ObjectMemory:
         ...
 
     def get_score_image_face_only(self,subimage):
+        if len(self.known_face_encodings)==0:
+            return {}
         bbox=(0,0,subimage.shape[0],subimage.shape[1])
         face_encodings = face_recognition.face_encodings(subimage,[bbox])
         #logger.debug("face encoding is {}".format(face_encodings))
-        face_distances = face_recognition.face_distance(self.known_face_encodings, face_encodings)
-        logger.debug("face distances shape {}".format(face_distances.shape))
+        face_distances = face_recognition.face_distance(np.stack(self.known_face_encodings,axis=0), face_encodings)
         ret={}
         for i in range(len(self.known_face_encoding_ids)):
             ret[self.known_face_encoding_ids[i]]=face_distances[i]
