@@ -32,35 +32,38 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 self.update_from_tracks(message["tracks"])
                 self.last_check=message["timestamp"]
 
-    def update_from_tracks(self,tracks):
-        track_object_map={}
-        annotated_tracks=[]
-        for track in tracks:
-            if track["id"] in self.track_object_map:
-                continue #don't need to reid
+    def update_track(self,object_id,track):
+        ...
 
-            features={"position": self.track_to_position(track),
+    def new_track(self,track):
+        features={"position": self.track_to_position(track),
                       "image_label": track["label"],
                       "image": track["subimage"]}
-            object_id_and_scores=self.memory.identify_object_from_features(features)
-            logger.debug(object_id_and_scores)
-            if len(object_id_and_scores)>0:
-                the_pair=object_id_and_scores[0]
-                if the_pair[0]>1.:
-                    track_object_map[track["id"]]=the_pair[0]
-                    #logger.debug("match found")
-                    track["object_id"]=the_pair[0]
-                    continue
-            #no object found
-            #TODO  figure out if I should instantiate_new_object
-            logger.debug("no match found")
-            id=self.memory.instantiate_new_object(features)
-            track_object_map[track["id"]]=features
+        object_id_and_scores=self.memory.identify_object_from_features(features)
+        logger.debug(object_id_and_scores)
+        if len(object_id_and_scores)>0:
+            the_pair=object_id_and_scores[0]
+            if the_pair[0]>1.:
+                track_object_map[track["id"]]=the_pair[0]
+                #logger.debug("match found")
+                track["object_id"]=the_pair[0]
+                continue
+        #no object found
+        #TODO  figure out if I should instantiate_new_object
+        logger.debug("no match found, making new")
+        id=self.memory.instantiate_new_object(features)
+        self.track_object_map[track["id"]]=id
 
+    def update_from_tracks(self,tracks):
+        #annotated_tracks=[]
+        for track in tracks:
+            if track["id"] in self.track_object_map:
+                self.update_track(self.track_object_map[track["id"]],track)
+            else:
+                self.new_track(track)
         #TODO decide if something needs attention
         #publish the annotated tracks
-        self.broker.publish({"timestamp": time.time(),"annotated_tracks": annotated_tracks},["annotated_tracks"])
-
+        #self.broker.publish({"timestamp": time.time(),"annotated_tracks": annotated_tracks},["annotated_tracks"])
 
     def track_to_position(self,track):
         ...
