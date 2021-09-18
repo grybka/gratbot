@@ -50,7 +50,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
     def update_display(self):
         if "image" not in self.last_image_message:
             return
+        #logger.debug("saw image")
         frame=np.copy(self.last_image_message["image"])
+        logger.debug("frame size {}".format(frame.shape))
         if self.mode=="show_detections":
             color = (255, 0, 0)
             height = frame.shape[0]

@@ -47,7 +47,8 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 track_object_map[track["id"]]=the_pair[0]
                 #logger.debug("match found")
                 track["object_id"]=the_pair[0]
-                continue
+                return
+                
         #no object found
         #TODO  figure out if I should instantiate_new_object
         logger.debug("no match found, making new")

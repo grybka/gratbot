@@ -16,9 +16,11 @@ logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 #From the camera, generate
-# - yolo detections with subimages
-# - depth map
-# - 640x480 full image
+# - preview -> nndectors -> bboxes
+# - depth ->   ^
+# - depth -> out
+# - video (640x480)-> out
+# - imu -> out
 
 # Tiny yolo v3/4 label texts
 labelMap = [
@@ -40,9 +42,10 @@ class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         #self.model="person-detection-retail-0013"
-        self.models=[ {"modelname": "person-detection-0200",
-                       "streamname": "person_detections",
-                       "labels": ["person"]} ]
+        self.models=[]
+        #self.models=[ {"modelname": "person-detection-0200",
+        #               "streamname": "person_detections",
+        #               "labels": ["person"]} ]
         #self.models=[ {"modelname": "face-detection-0200",
         #               "streamname": "face_detections",
         #               "labels": ["face"]}]
@@ -111,8 +114,10 @@ class OakDGyrus(ThreadedGyrus):
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+        camRgb.setVideoSize(640, 480)
         xoutRgb = self.pipeline.createXLinkOut()
         xoutRgb.setStreamName("rgb")
+        camRgb.video.link(xoutRgb.input)
         #camRgb.preview.link(xoutRgb.input)
 
         #manip = self.pipeline.createImageManip()
@@ -138,4 +143,3 @@ class OakDGyrus(ThreadedGyrus):
         for model in self.models:
             init_model(self.pipeline,model["modelname"],camRgb.preview,stereo,streamname=model["streamname"],shaves=6)
             #init_model(self.pipeline,model["modelname"],manip.out,stereo,streamname=model["streamname"],shaves=6)
-
