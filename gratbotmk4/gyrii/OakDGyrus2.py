@@ -43,9 +43,9 @@ class OakDGyrus(ThreadedGyrus):
         self.oak_comm_thread=None
         #self.model="person-detection-retail-0013"
         self.models=[]
-        #self.models=[ {"modelname": "person-detection-0200",
-        #               "streamname": "person_detections",
-        #               "labels": ["person"]} ]
+        self.models=[ {"modelname": "person-detection-0200",
+                       "streamname": "person_detections",
+                       "labels": ["person"]} ]
         #self.models=[ {"modelname": "face-detection-0200",
         #               "streamname": "face_detections",
         #               "labels": ["face"]}]
@@ -87,8 +87,8 @@ class OakDGyrus(ThreadedGyrus):
                 model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             while not self.should_quit:
-                #tryget_imudata(imuQueue,self.broker)
-                #tryget_depth(depthQueue,self.broker)
+                tryget_imudata(imuQueue,self.broker)
+                tryget_depth(depthQueue,self.broker)
                 image_timestamp,frame=tryget_image(previewQueue,self.broker)
                 #MOODEL THNIGLABL
                 for model in self.models:

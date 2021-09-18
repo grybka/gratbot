@@ -163,6 +163,9 @@ def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
+        print("indet is a {}".format(type(inDet.getData())))
+        print("indet is {}".format(inDet.getData()))
+        detection_message=[]
         for detection in inDet.detections:
             det_item={}
             bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
@@ -171,11 +174,18 @@ def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
             det_item["label"] = model_labels[detection.label]
             det_item["confidence"] = detection.confidence
             if image is not None:
-                det_item["subimage"]=image[detection.ymin,detection.ymax,detection.xmin,detectionxmax]
+                height = image.shape[0]
+                width = image.shape[1]
+                x1 = int(detection.xmin * width)
+                x2 = int(detection.xmax * width)
+                y1 = int(detection.ymin * height)
+                y2 = int(detection.ymax * height)
+                det_item["subimage"]=image[y1:y2,x1:x2]
             detection_message.append(det_item)
         if len(detection_message)!=0:
+            frame_message={"timestamp": time.time()}
             frame_message["detections"]=detection_message
-            broker.publish(frame_message,frame_message["keys"])
+            broker.publish(frame_message,["detections"])
         return None
     else:
         return None

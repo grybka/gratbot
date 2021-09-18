@@ -49,7 +49,7 @@ class MicrophoneGyrus(ThreadedGyrus):
         self.stream=self.paudio.open(format=self.format,rate=self.sample_rate,channels=self.chans,input_device_index=self.devinfo['index'],input=True,frames_per_buffer=self.chunk)
         #this thread stops motors when they are supposed to stop
         while not self.should_quit:
-            rec=self.stream.read(self.chunk)
+            rec=self.stream.read(self.chunk,exception_on_overflow=False)
             self.broker.publish({"timestamp": time.time(),"microphone_data": rec},["microphone_data"])
         self.stream.stop_stream()
         self.stream.close()
