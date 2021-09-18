@@ -1,12 +1,21 @@
 import depthai as dai
 import logging
 import time
+import numpy as np
+import os
+from pathlib import Path
+import blobconverter
+
+
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
+
 #### Initializing Things
-def create_imu(pipline,name="imu"):
+def create_imu(pipeline,name="imu"):
     imu = pipeline.createIMU()
     imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
     imu.setBatchReportThreshold(5)
@@ -35,7 +44,7 @@ def create_depth(pipeline,name="depth"):
     stereo.disparity.link(depthout.input)
     return stereo
 
-def create_yolo(pipline,name="detections"):
+def create_yolo(pipeline,name="detections"):
     logger.info("Creating Spatial Detection Network")
     spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
     spatialDetectionNetwork.setBlobPath(nnBlobPath)
@@ -52,16 +61,35 @@ def create_yolo(pipline,name="detections"):
     spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
     spatialDetectionNetwork.setIouThreshold(0.5)
 
-    xoutNN = self.pipeline.createXLinkOut()
+    xoutNN = pipeline.createXLinkOut()
     xoutNN.setStreamName(name)
     spatialDetectionNetwork.out.link(xoutNN.input)
     return spatialDetectionNetwork
+
+#mobilenet models
+def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=6):
+    #spatial detection of people
+    spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
+    spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
+    spatialDetectionNetwork.setConfidenceThreshold(0.5)
+    spatialDetectionNetwork.input.setBlocking(False)
+    spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+    spatialDetectionNetwork.setDepthLowerThreshold(100)
+    spatialDetectionNetwork.setDepthUpperThreshold(5000)
+    camera.link(spatialDetectionNetwork.input)
+    stereo.depth.link(spatialDetectionNetwork.inputDepth)
+    xoutNN = pipeline.createXLinkOut()
+    xoutNN.setStreamName(streamname)
+    spatialDetectionNetwork.out.link(xoutNN.input)
+
 
 ##### Getting things
 last_gyro_Ts=0
 local_rotation=np.zeros(3)
 
 def tryget_imudata(imuQueue,broker):
+    global local_rotation
+    global last_gyro_Ts
     #get accelerometry data
     #return nothing
     imuData = imuQueue.tryGet()
@@ -104,6 +132,7 @@ def tryget_depth(depthQueue,broker):
         #logger.debug("frame dtype {}".format(frame.dtype))
         frame_message={"timestamp": time.time()}
         image_timestamp=inDepth.getTimestamp().total_seconds()
+        #logger.debug("got image {}".format(image_timestamp))
         frame_message["image_timestamp"]=image_timestamp
         frame_message["depth_image"]=frame
         frame_message["keys"]=["depth"]
@@ -120,13 +149,14 @@ def tryget_image(previewQueue,broker):
         frame = inPreview.getCvFrame()
         frame_message={"timestamp": time.time()}
         image_timestamp=inPreview.getTimestamp().total_seconds()
+        logger.debug("image at {}".format(image_timestamp))
         frame_message["image_timestamp"]=image_timestamp
         frame_message["image"]=frame
         frame_message["keys"]=["image"]
         broker.publish(frame_message,frame_message["keys"])
         return image_timestamp,frame
     else:
-        return None
+        return None,None
 
 def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
     #publish detections from a nn

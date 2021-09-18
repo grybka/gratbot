@@ -40,7 +40,7 @@ class SoundRecordGyrus(ThreadedGyrus):
         out_fname="sounds/sound_save_{}.wav".format(self.start_timestr)
         logger.debug("Saving {}".format(out_fname))
         wf = wave.open(out_fname, 'wb')
-        wf.setnchannels(1)
+        wf.setnchannels(4)
         wf.setsampwidth(self.paudio.get_sample_size(pyaudio.paInt16))
         wf.setframerate(16000)
         wf.writeframes(b''.join(self.records))
@@ -58,6 +58,11 @@ class SoundRecordGyrus(ThreadedGyrus):
         if "microphone_data" in message:
             data=message["microphone_data"]
             energy=self.get_chunk_energy(data)
+            print("energy {}".format(energy))
+            if energy>1100000000:
+                self.is_recording=True
+                logger.debug("start recording")
+                self.recording_start=time.time()
             self.avg_energy=self.avg_energy*self.avg_run+(1-self.avg_run)*energy
             if self.is_recording:
                 if (time.time()>self.recording_start+self.min_sound_time) and energy<self.avg_energy:

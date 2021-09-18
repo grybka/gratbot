@@ -14,15 +14,18 @@ class MicrophoneGyrus(ThreadedGyrus):
         self.paudio=pyaudio.PyAudio()
         #for i in range(self.paudio.get_device_count()):
         #    print(self.paudio.get_device_info_by_index(i))
-        self.devinfo=self.paudio.get_default_input_device_info()
+        #self.devinfo=self.paudio.get_default_input_device_info()
+        self.devinfo=self.paudio.get_device_info_by_index(2)
         logger.debug("Connected to audio input device {}".format(self.devinfo))
         self.sample_size=1 #in seconds
         self.format=pyaudio.paInt16
-        self.chunk=4096
+        #self.chunk=4096
+        self.chunk=2048
         #self.sample_rate=44100
         self.sample_rate=16000
-        self.dev_index=1
-        self.chans=1
+        #self.dev_index=1
+        #self.chans=1
+        self.chans=4
         self.mic_thread=None
 
 

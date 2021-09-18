@@ -20,10 +20,11 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
 from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
 from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_around
+from gyrii.SoundRecordGyrus import SoundRecordGyrus
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 #from SpeechDetectorGyrus import SpeechDetectorGyrus
-from OakDGyrus import OakDGyrus
+from OakDGyrus2 import OakDGyrus
 from OakDGyrusPeople import OakDGyrusPeople
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -43,16 +44,16 @@ network_server.start_server(test_port)
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
-#gyrii.append(OakDGyrus(broker))
-gyrii.append(OakDGyrusPeople(broker))
+gyrii.append(OakDGyrus(broker))
+#gyrii.append(OakDGyrusPeople(broker))
 gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections","image"]))
 gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
-gyrii.append(HeadTrackerGyrus(broker))
-gyrii.append(FollowerGyrus(broker,only_turn=True))
+#gyrii.append(HeadTrackerGyrus(broker))
+#gyrii.append(FollowerGyrus(broker,only_turn=True))
 #gyrii.append(BehaviorGyrus(broker,None))
-gyrii.append(BehaviorGyrus(broker,look_around()))
+#gyrii.append(BehaviorGyrus(broker,look_around()))
 #gyrii.append(BehaviorGyrus(broker,find_and_follow(["face","person"])))
 #gyrii.append(BehaviorGyrus(broker,tail_test()))
 #gyrii.append(BehaviorGyrus(broker,Announce("announcement")))
@@ -67,6 +68,7 @@ gyrii.append(BehaviorGyrus(broker,look_around()))
 gyrii.append(ClockGyrus(broker))
 gyrii.append(TailGyrus(broker))
 gyrii.append(MicrophoneGyrus(broker))
+#gyrii.append(SoundRecordGyrus(broker))
 #gyrii.append(SpeechDetectorGyrus(broker))
 
 def main():
