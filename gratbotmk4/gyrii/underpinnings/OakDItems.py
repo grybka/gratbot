@@ -149,7 +149,7 @@ def tryget_image(previewQueue,broker):
         frame = inPreview.getCvFrame()
         frame_message={"timestamp": time.time()}
         image_timestamp=inPreview.getTimestamp().total_seconds()
-        logger.debug("image at {}".format(image_timestamp))
+        #logger.debug("image at {}".format(image_timestamp))
         frame_message["image_timestamp"]=image_timestamp
         frame_message["image"]=frame
         frame_message["keys"]=["image"]
@@ -163,8 +163,6 @@ def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
-        print("indet is a {}".format(type(inDet.getData())))
-        print("indet is {}".format(inDet.getData()))
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
@@ -176,10 +174,26 @@ def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
             if image is not None:
                 height = image.shape[0]
                 width = image.shape[1]
-                x1 = int(detection.xmin * width)
-                x2 = int(detection.xmax * width)
+                #  (x-0.5)+w/(2h)
+                xmin=(detection.xmin-0.5)*height/width+0.5
+                xmax=(detection.xmax-0.5)*height/width+0.5
+
+                bbox_array=[xmin,xmax,detection.ymin,detection.ymax]
+                det_item["bbox_array"]=bbox_array
+                #so the awkward thing is that I am looking at a square, so the height is the determining factor
+                #and the x maps 0.5 -> 0.5,  x -> (x-0.5)*height+width/2
+                #logger.debug("{} {} {} {}".format(detection.xmin,detection.xmax,detection.ymin,detection.ymax))
+                x1 = int( (detection.xmin -0.5)* height+width/2)
+                x2 = int( (detection.xmax -0.5)* height+width/2)
                 y1 = int(detection.ymin * height)
                 y2 = int(detection.ymax * height)
+                x1=np.clip(x1,1,min(width-1,x2))
+                x2=np.clip(x2,max(1,x1),width-1)
+                y1=np.clip(y1,1,min(height-1,y2))
+                y2=np.clip(y2,max(1,y1),height-1)
+
+                #logger.debug("image shape {}".format(image.shape))
+                #logger.debug("x1 x2 y1 y2 {} {} {} {}".format(x1,x2,y1,y2))
                 det_item["subimage"]=image[y1:y2,x1:x2]
             detection_message.append(det_item)
         if len(detection_message)!=0:

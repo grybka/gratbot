@@ -86,13 +86,16 @@ class OakDGyrus(ThreadedGyrus):
             for model in self.models:
                 model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
+            last_frame=None
             while not self.should_quit:
                 tryget_imudata(imuQueue,self.broker)
                 tryget_depth(depthQueue,self.broker)
                 image_timestamp,frame=tryget_image(previewQueue,self.broker)
+                if frame is not None:
+                    last_frame=frame
                 #MOODEL THNIGLABL
                 for model in self.models:
-                    tryget_nndetections(model["queue"],self.broker,frame,model["labels"])
+                    tryget_nndetections(model["queue"],self.broker,last_frame,model["labels"])
         logging.debug("Exiting OakD thread")
 
     def init_oakd(self):
@@ -117,6 +120,7 @@ class OakDGyrus(ThreadedGyrus):
         camRgb.setVideoSize(640, 480)
         xoutRgb = self.pipeline.createXLinkOut()
         xoutRgb.setStreamName("rgb")
+        #camRgb.video.link(xoutRgb.input)
         camRgb.video.link(xoutRgb.input)
         #camRgb.preview.link(xoutRgb.input)
 
