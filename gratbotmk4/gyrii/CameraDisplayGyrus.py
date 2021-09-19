@@ -52,7 +52,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
             return
         #logger.debug("saw image")
         frame=np.copy(self.last_image_message["image"])
-        logger.debug("frame size {}".format(frame.shape))
+        #logger.debug("frame size {}".format(frame.shape))
         if self.mode=="show_detections":
             color = (255, 0, 0)
             height = frame.shape[0]
@@ -104,6 +104,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_image_message=message
             self.update_display()
         if "detections" in message:
+            logger.debug("{} detections".format(len(message["detections"])))
             self.last_detections_message=message
             if self.display_subimages and len(message["detections"])>0:
                 self.display.update_image("detsubimage",message["detections"][0]["subimage"])
