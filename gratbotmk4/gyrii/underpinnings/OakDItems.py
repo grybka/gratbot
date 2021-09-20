@@ -204,7 +204,7 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
                 det_item["subimage"]=image[y1:y2,x1:x2]
             detection_message.append(det_item)
         if len(detection_message)!=0:
-            frame_message={"timestamp": time.time(),"device_timestamp": device_timestamp}
+            frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
             frame_message["detections"]=detection_message
             broker.publish(frame_message,["detections"])
         return None
