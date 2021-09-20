@@ -83,8 +83,8 @@ def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=
     spatialDetectionNetwork.out.link(xoutNN.input)
     xoutNNpassthru = pipeline.createXLinkOut()
     xoutNNpassthru.setMetadataOnly(True)
-    xoutNNpassthru.setStreamName(streamname+"_passthrough")
-    spatialDetectionNetwork.passthrough.link(xoitNNPassthru.input)
+    xoutNNpassthru.setStreamName(streamname+"_passthru")
+    spatialDetectionNetwork.passthrough.link(xoutNNpassthru.input)
 
 
 ##### Getting things

@@ -96,7 +96,7 @@ class OakDGyrus(ThreadedGyrus):
                     last_frame=frame
                 #MOODEL THNIGLABL
                 for model in self.models:
-                    tryget_nndetections(model["queue"],self.broker,last_frame,model["labels"])
+                    tryget_nndetections(model["queue"],model["queue_passthru"],self.broker,last_frame,model["labels"])
         logging.debug("Exiting OakD thread")
 
     def init_oakd(self):
