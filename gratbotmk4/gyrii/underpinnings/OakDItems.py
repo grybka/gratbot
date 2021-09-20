@@ -167,8 +167,9 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
-        image_seqnum=passthruQueue.get().getSequenceNum()
-        device_timestamp=passthruQueue.get().getTimestamp()
+        metadata=passthruQueue.get()
+        #image_seqnum=metadata.getSequenceNum()
+        device_timestamp=metadata.total_seconds()
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
