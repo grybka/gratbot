@@ -85,6 +85,7 @@ class OakDGyrus(ThreadedGyrus):
             depthQueue = device.getOutputQueue(name="depth", maxSize=4,blocking=False)
             for model in self.models:
                 model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
+                model["queue_passthru"] = device.getOutputQueue(name=model["streamname"]+"_passthru", maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             last_frame=None
             while not self.should_quit:

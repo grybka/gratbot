@@ -13,6 +13,7 @@ from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
+from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
@@ -65,7 +66,8 @@ class DisplayLoop(VideoDisplay):
         key = cv.waitKey(30)
 
     def __del__(self):
-        cv.destroyAllWindows()
+        if cv is not None:
+            cv.destroyAllWindows()
 display_loop=DisplayLoop()
 
 
@@ -102,6 +104,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
+gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))

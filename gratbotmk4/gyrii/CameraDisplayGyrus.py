@@ -30,7 +30,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.last_depth_message={}
 
     def get_keys(self):
-        return ["image","tracks","depth","test_image"]
+        return ["image","tracks","depth","test_image","detections"]
 
     def get_name(self):
         return "CameraDisplayGyrus"
@@ -104,10 +104,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_image_message=message
             self.update_display()
         if "detections" in message:
-            logger.debug("{} detections".format(len(message["detections"])))
             self.last_detections_message=message
             if self.display_subimages and len(message["detections"])>0:
-                self.display.update_image("detsubimage",message["detections"][0]["subimage"])
+                if "subimage" in message["detections"][0]:
+                    self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message:
             self.last_tracks_message=message
             if self.display_subimages and len(message["tracks"])>0:

@@ -81,6 +81,10 @@ def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=
     xoutNN = pipeline.createXLinkOut()
     xoutNN.setStreamName(streamname)
     spatialDetectionNetwork.out.link(xoutNN.input)
+    xoutNNpassthru = pipeline.createXLinkOut()
+    xoutNNpassthru.setMetadataOnly(True)
+    xoutNNpassthru.setStreamName(streamname+"_passthrough")
+    spatialDetectionNetwork.passthrough.link(xoitNNPassthru.input)
 
 
 ##### Getting things
@@ -158,11 +162,13 @@ def tryget_image(previewQueue,broker):
     else:
         return None,None
 
-def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
+def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels):
     #publish detections from a nn
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
+        image_seqnum=passthruQueue.get().getSequenceNum()
+        device_timestamp=passthruQueue.get().getTimestamp()
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
@@ -197,7 +203,7 @@ def tryget_nndetections(detectionNNQueue,broker,image,model_labels):
                 det_item["subimage"]=image[y1:y2,x1:x2]
             detection_message.append(det_item)
         if len(detection_message)!=0:
-            frame_message={"timestamp": time.time()}
+            frame_message={"timestamp": time.time(),"device_timestamp": device_timestamp}
             frame_message["detections"]=detection_message
             broker.publish(frame_message,["detections"])
         return None
