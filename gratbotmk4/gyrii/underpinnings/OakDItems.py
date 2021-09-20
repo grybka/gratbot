@@ -83,8 +83,8 @@ def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=
     spatialDetectionNetwork.out.link(xoutNN.input)
     xoutNNpassthru = pipeline.createXLinkOut()
     xoutNNpassthru.setMetadataOnly(True)
-    xoutNNpassthru.setStreamName(streamname+"_passthrough")
-    spatialDetectionNetwork.passthrough.link(xoitNNPassthru.input)
+    xoutNNpassthru.setStreamName(streamname+"_passthru")
+    spatialDetectionNetwork.passthrough.link(xoutNNpassthru.input)
 
 
 ##### Getting things
@@ -169,7 +169,7 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
     if inDet is not None:
         metadata=passthruQueue.get()
         #image_seqnum=metadata.getSequenceNum()
-        device_timestamp=metadata.total_seconds()
+        device_timestamp=metadata.getTimestamp().total_seconds()
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
