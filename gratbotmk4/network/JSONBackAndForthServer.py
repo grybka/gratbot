@@ -6,8 +6,8 @@ import logging
 import sys, time
 import select
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -102,7 +102,19 @@ class JSONBackAndForth():
                         break
                     read_size=int.from_bytes(length,byteorder='big')
                     logger.debug("readed length {}".format(length))
-                    data=self.sock.recv(read_size)
+                    data=b''
+                    while(read_size>0):
+                        newdata=self.sock.recv(read_size)
+                        if newdata==b'':
+                            logger.info("Closing connection to ".format(self.host))
+                            break
+                        data+=newdata
+                        read_size=read_size-len(newdata)
+
+
+
+                    #data=self.sock.recv(read_size)
+                    #logger.debug("got {} wanted {}".format(len(data),read_size))
 
                     #while data[-1]!=10:
                     #    logger.debug("data end character is {}".format(int(data[-1])))
@@ -115,12 +127,12 @@ class JSONBackAndForth():
 
                     try:
                         #json_strings=data.decode().split('\n') #andle multiple messages all in one go
-                        json_strings=data.decode() #andle multiple messages all in one go
-                        json_strings.pop(-1)
-                        for s in json_strings:
+                        json_string=data.decode() #andle multiple messages all in one go
+                        #json_strings.pop(-1)
+                        #for s in json_strings:
                             #logger.debug("message is {}".format(s))
-                            datastructure=json.loads(s+'\n')
-                            self.input_queue.put(datastructure)
+                        datastructure=json.loads(json_string+'\n')
+                        self.input_queue.put(datastructure)
                     except Exception as error:
                         logger.error("Error parsing json")
                         logger.exception(error)
