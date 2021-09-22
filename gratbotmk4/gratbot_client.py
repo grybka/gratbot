@@ -7,7 +7,7 @@ import cv2 as cv
 import argparse
 from network.JSONBackAndForthServer import JSONBackAndForth
 from MessageBroker import MessageBroker
-from gyrii.Gyrus import GyrusList,VideoDisplay
+from gyrii.Gyrus import ThreadedGyrus,GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.ReplayGyrus import ReplayGyrus
@@ -43,6 +43,22 @@ args=argparser.parse_args()
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.DEBUG)
+
+class TestGyrus(ThreadedGyrus):
+    def __init__(self,broker,keys):
+        self.keys=keys
+        super().__init__(broker)
+
+    def get_keys(self):
+        return self.keys
+
+    def get_name(self):
+        return "TestGyrus"
+
+    def read_message(self,message):
+        for key in self.keys:
+            if key in message:
+                logging.debug("message with key {}".format(key))
 
 class DisplayLoop(VideoDisplay):
     def __init__(self):
@@ -92,7 +108,8 @@ else:
     network_client=JSONBackAndForth()
     network_client.start_client(server_address,test_port)
     gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","servo_command","behavior_request","command_received"]))
-gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_response","logged_note"]))
+gyrii.append(TestGyrus(broker,["image"]))
+#gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_response","logged_note"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
@@ -103,15 +120,15 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-gyrii.append(TrackerGyrus(broker))
+#gyrii.append(TrackerGyrus(broker))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
-gyrii.append(ClockGyrus(broker))
+#gyrii.append(ClockGyrus(broker))
 #gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
-gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
+#gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
 #gyrii.append(CommandWordRecognitionGyrus(broker))
 #gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
 

@@ -6,7 +6,8 @@ import logging
 import sys, time
 import select
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -93,23 +94,28 @@ class JSONBackAndForth():
                     #first receive number of bytes message is
                     logger.debug("reading")
 
-                    data=self.sock.recv(1024)
-                    logger.debug("readed")
+                    #data=self.sock.recv(1024)
+                    length=self.sock.recv(4)
                     #logger.debug("got data {}".format(data))
                     if data==b'':
                         logger.info("Closing connection to ".format(self.host))
                         break
-                    while data[-1]!=10:
-                        logger.debug("data end character is {}".format(int(data[-1])))
-                        newdata=self.sock.recv(1024)
-                        data+=newdata
-                        #logger.debug("got data {}".format(data))
-                        if newdata==b'':
-                            logger.warning("Connection broken ".format(self.host))
-                            break
+                    read_size=int.from_bytes(length)
+                    logger.debug("readed length {}".format(length))
+                    data=self.sock.recv(read_size)
+
+                    #while data[-1]!=10:
+                    #    logger.debug("data end character is {}".format(int(data[-1])))
+                    #    newdata=self.sock.recv(1024)
+                    #    data+=newdata
+                    #    #logger.debug("got data {}".format(data))
+                    #    if newdata==b'':
+                    #        logger.warning("Connection broken ".format(self.host))
+                    #        break
 
                     try:
-                        json_strings=data.decode().split('\n') #andle multiple messages all in one go
+                        #json_strings=data.decode().split('\n') #andle multiple messages all in one go
+                        json_strings=data.decode() #andle multiple messages all in one go
                         json_strings.pop(-1)
                         for s in json_strings:
                             #logger.debug("message is {}".format(s))
@@ -121,7 +127,11 @@ class JSONBackAndForth():
                 if self.sock in writable:
                     if not self.output_queue.empty():
                         logger.debug("writing")
-                        self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
+                        #self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
+                        tosend=(json.dumps(self.output_queue.get())).encode()
+                        length=len(tosend).to_bytes(4)
+                        self.sock.sendall(length)
+                        self.sock.sendall(tosend)
                     else:
                         logger.debug("short sleep")
                         time.sleep(0.001) #just for a break
@@ -130,7 +140,7 @@ class JSONBackAndForth():
             self.sock.close()
 
 if __name__ == '__main__':
-    logger.basicConfig(level=logging.WARNING)
+    #logger.basicConfig(level=logging.WARNING)
     test_port=23033
     if sys.argv[1]=='server':
         server=JSONBackAndForth(debug=True)

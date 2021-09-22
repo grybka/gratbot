@@ -74,6 +74,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "microphone_data" in message:
             audio_int16 = np.frombuffer(message["microphone_data"], np.int16);
+            logger.debug("audio array size {}".format(audio_int16.shape))
             audio_float32 = torch.from_numpy(int2float(audio_int16))
             with torch.no_grad():
                 outs=self.model(audio_float32)
