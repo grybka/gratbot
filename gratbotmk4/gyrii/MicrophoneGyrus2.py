@@ -6,7 +6,7 @@ import logging
 import time
 import pyaudio
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class MicrophoneGyrus(ThreadedGyrus):
     def __init__(self,broker):
