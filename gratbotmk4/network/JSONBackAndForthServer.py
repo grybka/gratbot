@@ -97,10 +97,10 @@ class JSONBackAndForth():
                     #data=self.sock.recv(1024)
                     length=self.sock.recv(4)
                     #logger.debug("got data {}".format(data))
-                    if data==b'':
+                    if length==b'':
                         logger.info("Closing connection to ".format(self.host))
                         break
-                    read_size=int.from_bytes(length)
+                    read_size=int.from_bytes(length,byteorder='big')
                     logger.debug("readed length {}".format(length))
                     data=self.sock.recv(read_size)
 
@@ -129,7 +129,7 @@ class JSONBackAndForth():
                         logger.debug("writing")
                         #self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
                         tosend=(json.dumps(self.output_queue.get())).encode()
-                        length=len(tosend).to_bytes(4)
+                        length=len(tosend).to_bytes(4,byteorder='big')
                         self.sock.sendall(length)
                         self.sock.sendall(tosend)
                     else:
