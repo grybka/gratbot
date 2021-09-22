@@ -15,6 +15,7 @@ from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
+from gyrii.TrackerGyrus2 import TrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
@@ -102,14 +103,15 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
+gyrii.append(TrackerGyrus(broker))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
-gyrii.append(ObjectTaggerGyrus(broker))
+#gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
-#gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
+gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
 #gyrii.append(CommandWordRecognitionGyrus(broker))
 #gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
 
