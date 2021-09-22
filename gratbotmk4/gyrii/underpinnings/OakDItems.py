@@ -167,9 +167,11 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
+        #logger.debug("nn deetection got")
         metadata=passthruQueue.get()
         #image_seqnum=metadata.getSequenceNum()
         device_timestamp=metadata.getTimestamp().total_seconds()
+        #logger.debug("metadata deetection got timestamp {}".format(device_timestamp))
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
