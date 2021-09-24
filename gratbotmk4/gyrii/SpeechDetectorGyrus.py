@@ -40,7 +40,8 @@ class SpeechDetectorGyrus(ThreadedGyrus):
          state_generator,
          single_audio_stream,
          collect_chunks) = self.utils
-        self.trigger_confidence=0.4  #0.25 looks too low.
+        #self.trigger_confidence=0.4  #0.25 looks too low.
+        self.trigger_confidence=0.2  #0.25 looks too low.
         self.last_data=None
         self.is_recording=False
         self.min_sound_time=0.5
@@ -61,7 +62,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
             out_fname="sounds/sound_save_{}.wav".format(self.start_timestr)
             logger.debug("Saving {}".format(out_fname))
             wf = wave.open(out_fname, 'wb')
-            wf.setnchannels(1)
+            wf.setnchannels(4)
             wf.setsampwidth(self.paudio.get_sample_size(pyaudio.paInt16))
             wf.setframerate(16000)
             wf.writeframes(b''.join(self.records))
@@ -74,11 +75,14 @@ class SpeechDetectorGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "microphone_data" in message:
             audio_int16 = np.frombuffer(message["microphone_data"], np.int16);
-            logger.debug("audio array size {}".format(audio_int16.shape))
-            audio_float32 = torch.from_numpy(int2float(audio_int16))
+            audio_int16=np.reshape(audio_int16,(-1,4))
+
+            #select channel 1
+            audio_float32 = torch.from_numpy(int2float(audio_int16[:,0]))
             with torch.no_grad():
                 outs=self.model(audio_float32)
             confidences=outs[:,1]
+            #logger.debug(confidences)
             if self.is_recording:
                 self.records.append(message["microphone_data"])
                 if (time.time()>self.recording_start+self.min_sound_time) and confidences[0]<self.trigger_confidence:

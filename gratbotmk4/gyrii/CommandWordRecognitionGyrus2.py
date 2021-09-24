@@ -32,20 +32,43 @@ def buildEncoderClassifier():
     # Now return the system
     return EncoderClassifier(hparams["modules"], hparams, **kwargs)
 
+import torch.nn as nn
+
+class WordClassifier(nn.Module):
+    def __init__(self,input_size,n_words,n_speakers):
+        super(WordClassifier, self).__init__()
+        n_middle=2*max(n_words,n_speakers)
+        self.layer1=nn.Sequential(nn.Linear(input_size,n_middle),nn.Sigmoid())
+        self.word_layer=nn.Linear(n_middle,n_words)
+        self.speaker_layer=nn.Linear(n_middle,n_speakers)
+
+    def forward(self,x):
+        mid=self.layer1(x)
+        return self.word_layer(mid),self.speaker_layer(mid)
+
+
+
 class WordRecognizer():
-    def __init__(self,word_list):
+    def __init__(self,word_list=None,speaker_list=None):
         self.encoder=buildEncoderClassifier()
         self.word_list=word_list
-        n_classes=len(self.word_list)
-        input_size=512 #this is set by my encoder
-        self.classifier=nn.Sequential(nn.Linear(input_size,2*n_classes),nn.Sigmoid(),nn.Linear(2*n_classes,n_classes))
+        self.speaker_list=speaker_list
+        self.input_size=512 #this is set by my encoder
+        #self.classifier=nn.Sequential(nn.Linear(input_size,2*n_classes),nn.Sigmoid(),nn.Linear(2*n_classes,n_classes))
+        if word_list is not None:
+            self.classifier=WordClassifier(self.input_size,len(self.word_list),len(self.speaker_list))
         self.softmax=nn.Softmax(dim=1)
 
     def save_to_file(self,fname):
-        torch.save({"classifier": self.classifier.state_dict()},fname)
+        torch.save({"classifier": self.classifier.state_dict(),
+                    "word_list": self.word_list,
+                    "speaker_list": self.speaker_list},fname)
 
     def load_from_file(self,fname):
         checkpoint=torch.load(fname)
+        self.word_list=checkpoint["word_list"]
+        self.speaker_list=checkpoint["speaker_list"]
+        self.classifier=WordClassifier(self.input_size,len(self.word_list),len(self.speaker_list))
         self.classifier.load_state_dict(checkpoint["classifier"])
         self.classifier.eval()
 
@@ -53,9 +76,9 @@ class WordRecognizer():
         rel_length=torch.tensor([1.0])
         xv = self.encoder.encode_batch(t,rel_length)
         #print("xv shape {}".format(xv.shape))
-        logprobs=self.classifier(xv[0,:,:])
+        logprobs_word,logprob_speakers=self.classifier(xv[0,:,:])
         #print("lpshape {}".format(logprobs.shape))
-        return self.softmax(logprobs)[0,:].detach().numpy()
+        return self.softmax(logprobs_words)[0,:].detach().numpy(),self.softmax(logprobs_speakers)[0,:].detach().numpy()
 
     def classify_wave(self,raw_bytes,sr):
         audio_int16 = np.frombuffer(raw_bytes, np.int16);
@@ -68,15 +91,19 @@ class WordRecognizer():
         i=np.argmax(x)
         return self.word_list[i],float(x[i])
 
+    def guess_speaker(self,x):
+        i=np.argmax(x)
+        return self.speaker_list[i],float(x[i])
+
 
 
 class CommandWordRecognitionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #TODO this should be in gyrus config
-        target_words=["unknown","left","right","come","heel","stop","no","go"]
+        #target_words=["unknown","left","right","come","heel","stop","no","go","robot"]
 
-        self.wordrecognizer=WordRecognizer(target_words)
+        self.wordrecognizer=WordRecognizer()
         self.wordrecognizer.load_from_file("config/command_word_classifier.pt")
 
     def get_keys(self):
@@ -88,7 +115,10 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "speech_detected" in message:
             data=b''.join(message["speech_detected"])
-            word,score=self.wordrecognizer.guess_label(self.wordrecognizer.classify_wave(data,16000))
+            output_word,output_speaker=self.wordrecognizer.classify_wave(data,16000)
+            word,score=self.wordrecognizer.guess_label(output_word)
+            speaker,score=self.wordrecognizer.guess_speaker(output_speaker)
             #word,score=self.encoderclassifier.classify_wave(data)
             logger.debug("Recognized word -{}- with score {}".format(word,score))
+            logger.debug("Recognized speaker -{}- with score {}".format(word,score))
             self.broker.publish({"timestamp": time.time(),"command_received": {"command": word, "confidence": score}},["command_received"])
