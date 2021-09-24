@@ -76,7 +76,7 @@ class WordRecognizer():
         rel_length=torch.tensor([1.0])
         xv = self.encoder.encode_batch(t,rel_length)
         #print("xv shape {}".format(xv.shape))
-        logprobs_word,logprob_speakers=self.classifier(xv[0,:,:])
+        logprobs_words,logprobs_speakers=self.classifier(xv[0,:,:])
         #print("lpshape {}".format(logprobs.shape))
         return self.softmax(logprobs_words)[0,:].detach().numpy(),self.softmax(logprobs_speakers)[0,:].detach().numpy()
 
@@ -120,5 +120,5 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
             speaker,score=self.wordrecognizer.guess_speaker(output_speaker)
             #word,score=self.encoderclassifier.classify_wave(data)
             logger.debug("Recognized word -{}- with score {}".format(word,score))
-            logger.debug("Recognized speaker -{}- with score {}".format(word,score))
+            logger.debug("Recognized speaker -{}- with score {}".format(speaker,score))
             self.broker.publish({"timestamp": time.time(),"command_received": {"command": word, "confidence": score}},["command_received"])

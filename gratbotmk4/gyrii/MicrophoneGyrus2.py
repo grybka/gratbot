@@ -19,8 +19,8 @@ class MicrophoneGyrus(ThreadedGyrus):
         logger.debug("Connected to audio input device {}".format(self.devinfo))
         self.sample_size=1 #in seconds
         self.format=pyaudio.paInt16
-        #self.chunk=4096
-        self.chunk=2048
+        self.chunk=4096
+        #self.chunk=2048
         #self.sample_rate=44100
         self.sample_rate=16000
         #self.dev_index=1
