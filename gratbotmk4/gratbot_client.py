@@ -37,7 +37,8 @@ from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
 #monitoring_thread = start_monitoring()
 
 argparser = argparse.ArgumentParser(description='Gratbot client')
-argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
+#argparser.add_argument('--sim', action='store_true',help="Run simulated data instead of real connection")
+argparser.add_argument('--sim', help="Run simulated data instead of real connection")
 args=argparser.parse_args()
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -94,13 +95,14 @@ broker=MessageBroker()
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-if args.sim:
+if args.sim is not None:
     logging.debug("Starting Simulation")
     #gyrii.append(ReplayGyrus(broker,"config/sim_input.txt"))
     #gyrii.append(ReplayGyrus(broker,"config/sim_input_ball_rolls.txt",slomo=1))
     #gyrii.append(ReplayGyrus(broker,"config/track_replay.txt"))
     #gyrii.append(ReplayGyrus(broker,"config/subimage_replay.txt"))
-    gyrii.append(ReplayGyrus(broker,"config/watch.txt"))
+    #gyrii.append(ReplayGyrus(broker,"config/watch.txt"))
+    gyrii.append(ReplayGyrus(broker,args.sim))
 else:
     logging.debug("Starting Server")
     test_port=23033
@@ -120,18 +122,19 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
-#gyrii.append(TrackerGyrus(broker))
+gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7))
+gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 #gyrii.append(ClockGyrus(broker))
-#gyrii.append(ObjectTaggerGyrus(broker))
+gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
 #gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
-gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
-gyrii.append(CommandWordRecognitionGyrus(broker))
-#gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
+gyrii.append(SpeechDetectorGyrus(broker,save_to_file=False))
+gyrii.append(CommandWordRecognitionGyrus(broker,save_to_file=True))
+gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
 
 def main():
     try:

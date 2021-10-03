@@ -9,6 +9,9 @@ import numpy as np
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+
+
 class WeightedList: #a pairing of key, number
     def __init__(self):
         self.data={}
@@ -49,63 +52,71 @@ class ObjectMemory:
             self.known_face_encodings.append(the_encoding)
             self.known_face_encoding_ids.append(id)
 
-
     def instantiate_new_object(self,features):
         #if score is worse than some precondiction, call this
         #to create a new object in memory
         id=uuid.uuid1()
         self.objects[id]=features
-        #face specific
-        if "image_label" in features and features["image_label"]=="face" and "image" in features:
-            subimage=features["image"]
-            bbox=(0,0,subimage.shape[0],subimage.shape[1])
-            face_encoding = face_recognition.face_encodings(subimage,[bbox])[0]
-            self.known_face_encodings.append(face_encoding)
-            self.known_face_encoding_ids.append(id)
         return id
 
     def get_object_features(self,object_id):
         ...
 
-    def identify_object_from_features(self,features):
-        #get scores of various objects based on features in dictionary
-        #current plan:  the 'score' is a number with 0 being unlike, so i should use something like inverse chi-square of a fit
+    ###
+    def get_object_match_scores(self,features):
+        scores=[]
+        ids=[]
+        for id,obj in self.objects.items():
+            the_score=self.score_object_from_feature(features,obj)
+            scores.append(the_score)
+            ids.append(id)
+        return ids,scores
 
-        #return ranked objects
-        scores=WeightedList()
-        if "position" in features:
-            ...
-        if "image_label" in features:
-            ...
-        if "image" in features:
-            if "image_label" in features and features["image_label"]=="face":
-                score_matches=self.get_score_image_face_only(features["image"])
-                for key in score_matches:
-                    scores.add_value(key,1./(0.4+score_matches[key]))
+    def score_object_from_feature(self,features,object):
+        score=0
+        n_elems=0
+        #does this object tend to get this image label?
+        if "image_label_vector" in features and "image_label_vector" in object:
+            overlap=np.dot(features["image_label_vector"],object["image_label_vector"])
+            score+=(2*(1-overlap)+0.1)**2
+            #score+=1/(overlap+0.1)-1
+            #dist=np.linalg.norm(features["image_label_vector"]-object["image_label_vector"])
+            #score=score+1/(0.4+dist) #TODO should I make it more real log like
+            n_elems=n_elems+1
+        #for face specific things
+        if "face_encoding" in features and "face_encoding" in object:
+            dist= np.linalg.norm(features["face_encoding"] - object["face_encoding"])
+            #score=score+1/(0.4+dist)
+            score+=dist*dist/(0.6*0.6)
+            n_elems=n_elems+1
+        if "xywh" in features and "xywh" in object: #bounding box in frame
+            a=features["xywh"]
+            b=object["xywh"]
+            score+=((a[0]-b[0])/(a[2]+b[2]))**2
+            score+=((a[1]-b[1])/(a[3]+b[3]))**2
+            n_elems+=2
+
+        return score/n_elems
+
+    def update_object_from_feature(self,features,object):
+        #update image label
+        if "image_label_vector" in features:
+            image_label_persist=0.9
+            if "image_label_vector" in object:
+                vec=features["image_label_vector"]
+                object["image_label_vector"]=object["image_label_vector"]*image_label_persist+(1-image_label_persist)*vec
             else:
-                ...
-        return scores.to_list()
+                object["image_label_vector"]=vec
+        #special for faces
+        if "face_encoding" in features:
+            face_label_persist=0.99
+            if "face_encoding" in object:
+                object["face_encoding"]=object["face_encoding"]*face_label_persist+(1-face_label_persist)*features["face_encoding"]
+            else:
+                object["face_encoding"]=features["face_encoding"]
+        if "xywh" in features: #bounding box in frame
+            object["xywh"]=features["xywh"]
 
 
-    def get_score_position(self,object,relative_position):
-        #relative position is a vector [frontness,backness,leftness,rightness]
-        ...
-
-    def get_score_image_label(self,object,label):
-        ...
-
-    def get_score_image(self,object,subimage):
-        ...
-
-    def get_score_image_face_only(self,subimage):
-        if len(self.known_face_encodings)==0:
-            return {}
-        bbox=(0,0,subimage.shape[0],subimage.shape[1])
-        face_encodings = face_recognition.face_encodings(subimage,[bbox])
-        #logger.debug("face encoding is {}".format(face_encodings))
-        face_distances = face_recognition.face_distance(np.stack(self.known_face_encodings,axis=0), face_encodings)
-        ret={}
-        for i in range(len(self.known_face_encoding_ids)):
-            ret[self.known_face_encoding_ids[i]]=face_distances[i]
-            #Note, a typical cutoff is 0.6 here
-        return ret
+    def track_lost(self,object_id):
+        obj=self.objects[object_id]

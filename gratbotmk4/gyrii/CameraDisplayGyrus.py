@@ -9,6 +9,17 @@ logger=logging.getLogger(__name__)
 #logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 
+class TrackMerger:
+    def __init__(self):
+        self.tracks={}
+
+    def merge_tracks(self,message):
+        for t in message["tracks"]:
+            if t["info"]=="LOST":
+                self.tracks.pop(t["id"],None)
+            else:
+                self.tracks[t["id"]]=t
+
 class CameraDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
         self.display=display
@@ -20,11 +31,12 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.display_subimages=True
 
-        self.mode="show_detections"
-        #self.mode="show_tracks"
+        #self.mode="show_detections"
+        self.mode="show_tracks"
         super().__init__(broker)
 
-        self.last_tracks_message={"tracks": []}
+        #self.last_tracks_message={"tracks": []}
+        self.tracks=TrackMerger()
         self.last_detections_message={"detections": []}
         self.last_image_message={}
         self.last_depth_message={}
@@ -77,10 +89,12 @@ class CameraDisplayGyrus(ThreadedGyrus):
             color = (255, 0, 0)
             height = frame.shape[0]
             width  = frame.shape[1]
-            for t in self.last_tracks_message["tracks"]:
+            for id,t in self.tracks.tracks.items():
+                if t["info"]=="PROBATION":
+                    continue
                 x1 = int(t["bbox_array"][0]*width )
-                x2 = int(t["bbox_array"][1]*height)
-                y1 = int(t["bbox_array"][2]*width )
+                x2 = int(t["bbox_array"][1]*width)
+                y1 = int(t["bbox_array"][2]*height )
                 y2 = int(t["bbox_array"][3]*height )
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
                 #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
@@ -106,12 +120,13 @@ class CameraDisplayGyrus(ThreadedGyrus):
         if "detections" in message:
             self.last_detections_message=message
             if self.display_subimages and len(message["detections"])>0:
-                if "subimage" in message["detections"][0]:
+                if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message:
-            self.last_tracks_message=message
-            if self.display_subimages and len(message["tracks"])>0:
-                self.display.update_image("subimage",message["tracks"][0]["subimage"])
+            self.tracks.merge_tracks(message)
+            #self.last_tracks_message=message
+            #if self.display_subimages and len(message["tracks"])>0:
+            #    self.display.update_image("subimage",message["tracks"][0]["subimage"])
 
         if "depth_image" in message:
             self.last_depth_message=message

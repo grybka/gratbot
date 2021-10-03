@@ -27,6 +27,7 @@ class MotionCorrection: #to correct image frames from heading changes
         self.accel=np.array([0,0,10]) #for gravity
         self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
         #self.last_used_heading=0
+        self.initialized=False
         self.last_used_heading=np.array([0,0,0])
         self.angle_heading_slope=-1.515
         self.angle_ygyro_slope=-1.6
@@ -53,6 +54,9 @@ class MotionCorrection: #to correct image frames from heading changes
         closest_heading_vec=get_closest_value(image_timestamp,self.headings)
         delta_heading=closest_heading_vec-self.last_used_heading
         self.last_used_heading=closest_heading_vec #this is the update part
+        if self.initialized==False:
+            self.initialized=True
+            return 0,0
         #offset=delta_heading*self.angle_heading_slope
         #return offset
         #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope

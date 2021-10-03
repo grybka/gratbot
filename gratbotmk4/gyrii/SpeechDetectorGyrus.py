@@ -15,6 +15,7 @@ import matplotlib.pylab as plt
 #torchaudio.set_audio_backend("soundfile")
 import pyaudio
 import wave
+from collections import deque
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -48,6 +49,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
         self.records=[]
         self.save_to_file=save_to_file
         self.paudio=pyaudio.PyAudio()
+        self.recent_confidences=deque([],maxlen=20)
 
     def get_keys(self):
         return ["microphone_data"]
@@ -88,6 +90,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
                 if (time.time()>self.recording_start+self.min_sound_time) and confidences[0]<self.trigger_confidence:
                     self.end_and_save()
             else:
+                self.recent_confidences.append(confidences[0])
                 if confidences[0]>self.trigger_confidence:
                     logger.debug("start recording")
                     self.is_recording=True

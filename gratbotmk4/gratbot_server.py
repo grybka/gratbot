@@ -23,6 +23,7 @@ from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_arou
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
+from gyrii.LEDDisplayGyrus import LEDDisplayGyrus
 #from SpeechDetectorGyrus import SpeechDetectorGyrus
 from OakDGyrus2 import OakDGyrus
 from OakDGyrusPeople import OakDGyrusPeople
@@ -66,6 +67,7 @@ gyrii.append(ServoGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
 gyrii.append(ClockGyrus(broker))
+gyrii.append(LEDDisplayGyrus(broker))
 #gyrii.append(TailGyrus(broker))
 gyrii.append(MicrophoneGyrus(broker))
 #gyrii.append(SoundRecordGyrus(broker))
