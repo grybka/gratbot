@@ -157,6 +157,16 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
             logger.debug("data as tensor shape {}".format(data_as_tensor.shape))
             angle_prediction=angle_from_audio(data_as_tensor)
             logger.debug("angle: {}".format(np.degrees(angle_prediction)))
+
+            angpix=int(angle_prediction*12/(2*np.pi)-3)%12
+            myrgb=[]
+            for i in range(12):
+                if i==angpix:
+                    my_rgb.append([75,75,75])
+                else:
+                    my_rgb.append([0,0,0])
+            broker.publish({"led_command":{"rgb_brightness": my_rgb}},"led_command")
+
             #output_word,output_speaker=self.wordrecognizer.classify_wave(data,16000)
             output_word,output_speaker=self.wordrecognizer.classify_wave_tensor(data_as_tensor[:,0])
             topwords,topwordscores=self.wordrecognizer.sorted_label_guess(output_word)
