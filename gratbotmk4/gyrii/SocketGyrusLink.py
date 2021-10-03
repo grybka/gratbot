@@ -6,7 +6,8 @@ import logging
 from MessageToJSON import json_to_message,message_to_json
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 #listen for requests.
 
 #messages must have

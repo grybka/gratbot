@@ -2,7 +2,7 @@ import threading
 import logging
 import time
 import numpy as np
-from underpinnings.apa102 import apa102
+from underpinnings.apa102 import APA102
 from gpiozero import LED
 from Gyrus import ThreadedGyrus
 logger=logging.getLogger(__name__)
@@ -12,7 +12,7 @@ class LEDDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         self.PIXELS_N=12
-        self.dev=apa102.APA102(num_led=self.PIXELS_N)
+        self.dev=APA102(num_led=self.PIXELS_N)
         self.power=LED(5)
         self.power.on()
 
