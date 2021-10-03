@@ -33,9 +33,10 @@ class LEDDisplayGyrus(ThreadedGyrus):
                 return
             self.last_trigger=time.time()
             self.on_pixel=(self.on_pixel+1)%self.PIXELS_N
+            logger.debug("non pixel {}".format(self.on_pixel))
             for i in range(self.PIXELS_N):
                 if i==self.on_pixel:
-                    self.dev.set_pixel(i,100,100,100)
+                    self.dev.set_pixel(i,0,0,50)
                 else:
                     self.dev.set_pixel(i,0,0,0)
             self.dev.show()
