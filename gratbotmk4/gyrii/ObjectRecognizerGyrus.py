@@ -10,7 +10,14 @@ from underpinnings.FeatureEncoder import image_label_to_vector
 
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+
+#for local Maps
+#should local map be a new gyrus?
+#if I recognize an object and I can see it or hear it, I should put it on my map
+#  if I am putting it somewhere that surprises me (as in, it should be somewhere else), generate surprise
+#if I am looking in a place where I should see an object and don't see it, I should remove it
 
 class ObjectRecognizerGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
@@ -47,26 +54,7 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 ...
 
 
-    def new_track(self,track):
-        features={"position": self.track_to_position(track),
-                      "image_label": track["label"],
-                      "image": track["subimage"]}
-        object_id_and_scores=self.memory.identify_object_from_features(features)
-        logger.debug(object_id_and_scores)
-        if len(object_id_and_scores)>0:
-            the_pair=object_id_and_scores[0]
-            if the_pair[0]>1.:
-                track_object_map[track["id"]]=the_pair[0]
-                #logger.debug("match found")
-                track["object_id"]=the_pair[0]
-                return
-
-        #no object found
-        #TODO  figure out if I should instantiate_new_object
-        logger.debug("no match found, making new")
-        id=self.memory.instantiate_new_object(features)
-        self.track_object_map[track["id"]]=id
-
+    
     def encode_tracks_to_features(self,tracks):
         feature_vecs=[]
         for track in tracks:
@@ -103,8 +91,8 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 unassociated_tracks.append(track)
 
         #handle associated tracks
-        for track in associated_tracks:
-            logger.debug("ignoring a {}, already associated".format(track["label"]))
+        #for track in associated_tracks:
+        #    logger.debug("ignoring a {}, already associated".format(track["label"]))
         #encoded_tracks=self.encode_tracks_to_features(associated_tracks)
         #for track in encoded_tracks:
         #    self.memory.update_object_from_feature(track,self.memory.objects[self.track_object_map[track["track_id"]]])
@@ -127,4 +115,4 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 self.memory.update_object_from_feature(track,self.memory.objects[ids[i]])
         #TODO decide if something needs attention
         #publish the annotated tracks
-        #self.broker.publish({"timestamp": time.time(),"annotated_tracks": annotated_tracks},["annotated_tracks"])
+        self.broker.publish({"timestamp": time.time(),"track_object_pairing": self.track_object_map},["track_object_pairing"])

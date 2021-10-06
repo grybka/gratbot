@@ -7,6 +7,18 @@ logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+#brainstorming:
+#   TrackFollowerGyrus:  given a visible track, orient myself to it
+#   LocalMapSomethingGyrus:   given a position in my local map, orient myself to it
+#          -so I need a local map?
+
+#  So a behavior to find someone I might look like
+#        -if the person is in view, engage trackfallower gyrus
+#        -if the person is on my local map, engage localmapsomethingyrus
+#        -failing all that, engage in some sort of search
+
+
+
 class RunMotors(GratbotBehavior):
     def __init__(self,lmotor,rmotor,duration):
         self.lmotor=lmotor

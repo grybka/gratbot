@@ -6,6 +6,7 @@ import torch
 import time
 import numpy as np
 import wave
+import itertools
 
 from speechbrain.pretrained import EncoderClassifier
 import torch.nn as nn
@@ -154,29 +155,38 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
         if "speech_detected" in message:
             data=b''.join(message["speech_detected"])
             data_as_tensor=self.wordrecognizer.bytes_to_tensor(data,16000)
-            logger.debug("data as tensor shape {}".format(data_as_tensor.shape))
             angle_prediction=angle_from_audio(data_as_tensor)
-            logger.debug("angle: {}".format(np.degrees(angle_prediction)))
-
-            angpix=int(angle_prediction*12/(2*np.pi)-3)%12
-            my_rgb=[]
-            for i in range(12):
-                if i==angpix:
-                    my_rgb.append([75,75,75])
-                else:
-                    my_rgb.append([0,0,0])
-            self.broker.publish({"led_command":{"rgb_brightness": my_rgb}},"led_command")
+            #logger.debug("angle: {}".format(np.degrees(angle_prediction)))
+            #angpix=int(angle_prediction*12/(2*np.pi)-3)%12
+            #myrgb=[]
+            #for i in range(12):
+            #    if i==angpix:
+            #        my_rgb.append([75,75,75])
+            #    else:
+            #        my_rgb.append([0,0,0])
+            #broker.publish({"led_command":{"rgb_brightness": my_rgb}},"led_command")
 
             #output_word,output_speaker=self.wordrecognizer.classify_wave(data,16000)
             output_word,output_speaker=self.wordrecognizer.classify_wave_tensor(data_as_tensor[:,0])
             topwords,topwordscores=self.wordrecognizer.sorted_label_guess(output_word)
-            for i in range(3):
-                logger.debug("{}: {} ({})".format(i,topwords[i],topwordscores[i]))
-            word,score=self.wordrecognizer.guess_label(output_word)
-            speaker,score=self.wordrecognizer.guess_speaker(output_speaker)
+            topspeakers,topspeakerscores=self.wordrecognizer.sorted_label_guess(output_speaker)
+            #for i in range(3):
+            #    logger.debug("{}: {} ({})".format(i,topwords[i],topwordscores[i]))
+            #word,score=self.wordrecognizer.guess_label(output_word)
+            #speaker,score=self.wordrecognizer.guess_speaker(output_speaker)
+
+            recog_message={}
+            recog_message["speaker"]=itertools.islice(zip(topspeakers,topspeakerscores),3)
+            recog_message["word"]=itertools.islice(zip(topwords,topwordscores),3)
+            recog_message["heading"]=angle_prediction
+            broker.publish({"word_heard": recog_message,"timestamp": time.time()},"word_heard")
+
+            logger.debug("Heard word: {}".format(recog_message))
+
+
             #word,score=self.encoderclassifier.classify_wave(data)
-            logger.debug("Recognized word -{}- with score {}".format(word,score))
-            logger.debug("Recognized speaker -{}- with score {}".format(speaker,score))
-            self.broker.publish({"timestamp": time.time(),"command_received": {"command": word, "confidence": score}},["command_received"])
+            #logger.debug("Recognized word -{}- with score {}".format(word,score))
+            #logger.debug("Recognized speaker -{}- with score {}".format(speaker,score))
+            #self.broker.publish({"timestamp": time.time(),"command_received": {"command": word, "confidence": score}},["command_received"])
             if self.save_words:
                 self.save_word_sample(message["speech_detected"],word,speaker)
