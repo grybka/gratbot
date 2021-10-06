@@ -62,7 +62,8 @@ def angle_from_taus_better(tau_mat):
     g2=np.arctan2(tau_mat[3,2],tau_mat[0,3])
     g3=np.arctan2(tau_mat[0,2],tau_mat[1,3])-np.pi/4
     #print("guesses {} {} {}".format(np.degrees(g1),np.degrees(g2),np.degrees(g3)))
-    return np.arctan2( np.sin(g1)+np.sin(g2)+np.sin(g3),np.cos(g1)+np.cos(g2)+np.cos(g3))
+    #sowhewhere I have the sign wrong, I'm fixing it here
+    return -np.arctan2( np.sin(g1)+np.sin(g2)+np.sin(g3),np.cos(g1)+np.cos(g2)+np.cos(g3))
     #return (g1+g2+g3)/3
 
 def angle_from_audio(audio_data):

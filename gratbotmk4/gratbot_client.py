@@ -134,7 +134,7 @@ gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
 gyrii.append(SpeechDetectorGyrus(broker,save_to_file=False))
 gyrii.append(CommandWordRecognitionGyrus(broker,save_to_file=True))
-gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
+#gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
 
 def main():
     try:
