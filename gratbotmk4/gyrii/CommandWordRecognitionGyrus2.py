@@ -114,9 +114,13 @@ class WordRecognizer():
         i=np.argmax(x)
         return self.speaker_list[i],float(x[i])
 
-    def sorted_label_guess(self,x):
+    def sorted_label_guess(self,x,words_not_speakers=True):
+        if words_not_speakers:
+            the_list=self.word_list
+        else:
+            the_list=self.speaker_list
         the_is=np.flip(np.argsort(x))
-        words=np.array(self.word_list)[the_is]
+        words=np.array(the_list)[the_is]
         xs=x[the_is]
         return words,xs
 
@@ -168,18 +172,18 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
 
             #output_word,output_speaker=self.wordrecognizer.classify_wave(data,16000)
             output_word,output_speaker=self.wordrecognizer.classify_wave_tensor(data_as_tensor[:,0])
-            topwords,topwordscores=self.wordrecognizer.sorted_label_guess(output_word)
-            topspeakers,topspeakerscores=self.wordrecognizer.sorted_label_guess(output_speaker)
+            topwords,topwordscores=self.wordrecognizer.sorted_label_guess(output_word,True)
+            topspeakers,topspeakerscores=self.wordrecognizer.sorted_label_guess(output_speaker,False)
             #for i in range(3):
             #    logger.debug("{}: {} ({})".format(i,topwords[i],topwordscores[i]))
             #word,score=self.wordrecognizer.guess_label(output_word)
             #speaker,score=self.wordrecognizer.guess_speaker(output_speaker)
 
             recog_message={}
-            recog_message["speaker"]=itertools.islice(zip(topspeakers,topspeakerscores),3)
-            recog_message["word"]=itertools.islice(zip(topwords,topwordscores),3)
+            recog_message["speaker"]=list(itertools.islice(zip(topspeakers,topspeakerscores),3))
+            recog_message["word"]=list(itertools.islice(zip(topwords,topwordscores),3))
             recog_message["heading"]=angle_prediction
-            broker.publish({"word_heard": recog_message,"timestamp": time.time()},"word_heard")
+            self.broker.publish({"word_heard": recog_message,"timestamp": time.time()},"word_heard")
 
             logger.debug("Heard word: {}".format(recog_message))
 
@@ -189,4 +193,4 @@ class CommandWordRecognitionGyrus(ThreadedGyrus):
             #logger.debug("Recognized speaker -{}- with score {}".format(speaker,score))
             #self.broker.publish({"timestamp": time.time(),"command_received": {"command": word, "confidence": score}},["command_received"])
             if self.save_words:
-                self.save_word_sample(message["speech_detected"],word,speaker)
+                self.save_word_sample(message["speech_detected"],topwords[0],topspeakers[0])

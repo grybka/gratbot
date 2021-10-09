@@ -48,24 +48,40 @@ class MotionCorrection: #to correct image frames from heading changes
                 next_heading=np.array(packet["local_rotation"])
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
-    def get_offset_and_update(self,image_timestamp):
+    def get_rotation_since(self,image_timestamp):
         if len(self.headings)==0:
             return 0,0
         closest_heading_vec=get_closest_value(image_timestamp,self.headings)
         delta_heading=closest_heading_vec-self.last_used_heading
         self.last_used_heading=closest_heading_vec #this is the update part
-        if self.initialized==False:
-            self.initialized=True
-            return 0,0
-        #offset=delta_heading*self.angle_heading_slope
-        #return offset
-        #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
-        #TODO figure out how to line this up with gravity
+
         mag_accel=np.linalg.norm(self.accel)
         cos_angle=self.accel[1]/mag_accel
         sin_angle=self.accel[2]/mag_accel
         turn_mag=delta_heading[self.z_gyro_index]*cos_angle-delta_heading[self.y_gyro_index]*sin_angle
+
+        return turn_mag,delta_heading[self.x_gyro_index]
+
+    def get_offset_and_update(self,image_timestamp):
+        #if len(self.headings)==0:
+        #    return 0,0
+        #closest_heading_vec=get_closest_value(image_timestamp,self.headings)
+        #delta_heading=closest_heading_vec-self.last_used_heading
+        #self.last_used_heading=closest_heading_vec #this is the update part
+        ##offset=delta_heading*self.angle_heading_slope
+        ##return offset
+        ##offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
+        ##TODO figure out how to line this up with gravity
+        #mag_accel=np.linalg.norm(self.accel)
+        #cos_angle=self.accel[1]/mag_accel
+        #sin_angle=self.accel[2]/mag_accel
+        #turn_mag=delta_heading[self.z_gyro_index]*cos_angle-delta_heading[self.y_gyro_index]*sin_angle
+        turn_mag,pitch_mag=self.get_rotation_since(image_timestamp)
+
+        if self.initialized==False:
+            self.initialized=True
+            return 0,0
         #offset_x=delta_heading[self.z_gyro_index]*self.angle_heading_slope
         offset_x=turn_mag*self.angle_heading_slope
-        offset_y=delta_heading[self.x_gyro_index]*self.angle_ygyro_slope
+        offset_y=pitch_mag*self.angle_ygyro_slope
         return offset_x,offset_y

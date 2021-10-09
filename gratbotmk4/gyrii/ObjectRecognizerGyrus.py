@@ -4,26 +4,23 @@ import uuid
 import time
 import numpy as np
 from underpinnings.ObjectMemory import ObjectMemory
+from underpinnings.id_to_name import id_to_name
 
 import face_recognition
 from underpinnings.FeatureEncoder import image_label_to_vector
 
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 
-#for local Maps
-#should local map be a new gyrus?
-#if I recognize an object and I can see it or hear it, I should put it on my map
-#  if I am putting it somewhere that surprises me (as in, it should be somewhere else), generate surprise
-#if I am looking in a place where I should see an object and don't see it, I should remove it
 
 class ObjectRecognizerGyrus(ThreadedGyrus):
-    def __init__(self,broker,display=None):
+    def __init__(self,broker,display=None,object_data=[]):
         super().__init__(broker)
         self.memory=ObjectMemory()
-        self.memory.load_face_encodings()
+        self.memory.load_objects(object_data)
+        #self.memory.load_face_encodings()
 
         # store most recent track status, unprocessed
         self.recent_tracks={}
@@ -54,7 +51,7 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 ...
 
 
-    
+
     def encode_tracks_to_features(self,tracks):
         feature_vecs=[]
         for track in tracks:
@@ -109,8 +106,15 @@ class ObjectRecognizerGyrus(ThreadedGyrus):
                 id=self.memory.instantiate_new_object(track)
                 self.track_object_map[track["track_id"]]=id
             else:
-                logger.debug("associating {} with existing object".format(track["label"]))
                 i=np.argmin(scores)
+                ##
+                obj=self.memory.objects[ids[i]]
+                if "proper_name" in obj:
+                    logger.debug("associating {} with existing object {}".format(track["label"],obj["proper_name"]))
+                else:
+                    logger.debug("associating {} with existing object {}".format(track["label"],id_to_name(ids[i])))
+                ##
+
                 self.track_object_map[track["track_id"]]=ids[i]
                 self.memory.update_object_from_feature(track,self.memory.objects[ids[i]])
         #TODO decide if something needs attention

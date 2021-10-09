@@ -5,11 +5,21 @@ import logging
 import face_recognition
 import os,pathlib
 import numpy as np
+import yaml
+from underpinnings.FeatureEncoder import image_label_to_vector
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+def load_object_info_file(fname="config/object_knowledge.yaml"):
+    known_objects=[]
+    with open(fname,'r') as f:
+        data = yaml.load(f, Loader=yaml.FullLoader)
+        for elem in data:
+            #give everything a unique id
+            elem["id"]=uuid.uuid1()
+    return data
 
 
 class WeightedList: #a pairing of key, number
@@ -35,6 +45,21 @@ class ObjectMemory:
         #face recognition only
         self.known_face_encodings=[]
         self.known_face_encoding_ids=[]
+
+    def load_objects(self,data):
+        #load from data structure presumably stored in yaml
+        for elem in data:
+            logger.debug("loading face encoding for {}".format(elem["proper_name"]))
+            object={"id": elem["id"]}
+            face = face_recognition.load_image_file(elem["face_file"])
+            the_encoding = face_recognition.face_encodings(face)[0]
+            object["face_encoding"]=the_encoding
+            object["proper_name"]=elem["proper_name"]
+            object["image_label_vector"]=image_label_to_vector(elem["image_label"])
+            self.objects[elem["id"]]=object
+            self.known_face_encodings.append(the_encoding)
+            self.known_face_encoding_ids.append(id)
+
 
     def load_face_encodings(self):
         facepath=os.path.join(os.getcwd(),"config","faces")
@@ -109,6 +134,7 @@ class ObjectMemory:
                 object["image_label_vector"]=vec
         #special for faces
         if "face_encoding" in features:
+            logger.debug("updating face encoding")
             face_label_persist=0.99
             if "face_encoding" in object:
                 object["face_encoding"]=object["face_encoding"]*face_label_persist+(1-face_label_persist)*features["face_encoding"]

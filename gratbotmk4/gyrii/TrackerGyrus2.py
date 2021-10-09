@@ -31,6 +31,7 @@ class Tracklet:
         #here we keep a list of [timestamp, [x,y,w,h]] measurements
         self.recent_measurements_max_length=4
         self.recent_measurements=[]
+        self.last_spatial_array=None
         self.update(timestamp,detection)
         logger.debug("my xywh {}".format(self.xywh))
 
@@ -46,6 +47,8 @@ class Tracklet:
         self.recent_measurements.sort(key=lambda y: y[0])
         if len(self.recent_measurements)>self.recent_measurements_max_length:
             self.recent_measurements.pop(0)
+        if "spatial_array" in detection:
+            self.last_spatial_array=detection["spatial_array"]
         self.last_timestamp=self.recent_measurements[-1][0]
         self.n_detections+=1
         #take it off probation if enough detection
@@ -155,10 +158,14 @@ class TrackerGyrus(ThreadedGyrus):
             det_item={}
             x,y,w,h=track.get_xywh()
             det_item["bbox_array"]=[ x-w/2, x+w/2,y-h/2,y+h/2]
+            det_item["center"]=[x,y]
             det_item["id"]=track.id
             det_item["info"]=track.status
             det_item["label"]=track.last_label
             det_item["subimage"]=track.last_subimage
+            det_item["seen_frames"]=track.n_detections
+            if track.last_spatial_array is not None:
+                det_item["spatial_array"]=[track.last_spatial_array[0]/1000,track.last_spatial_array[1]/1000,track.last_spatial_array[2]/1000]
             track_message.append(det_item)
         message_out={"tracks": track_message,"timestamp": time.time(),"image_timestamp": timestamp,"offset": [offset_x,offset_y]}
         self.broker.publish(message_out,["tracks"])

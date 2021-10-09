@@ -30,7 +30,9 @@ from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
-from gyrii.ObjectMapGyrus import ObjectMapGyrus
+#from gyrii.ObjectMapGyrus import ObjectMapGyrus
+from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
+from underpinnings.ObjectMemory import load_object_info_file
 from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
 
 #from hanging_threads import start_monitoring
@@ -92,6 +94,9 @@ display_loop=DisplayLoop()
 #This stores the message passing
 broker=MessageBroker()
 
+#load objects that will go into memory
+object_info=load_object_info_file()
+
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
@@ -120,21 +125,22 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
-#gyrii.append(HeadTrackerGyrus(broker))
+gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7))
 gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
-#gyrii.append(ClockGyrus(broker))
+gyrii.append(ClockGyrus(broker))
 gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
 #gyrii.append(SoundRecordGyrus(broker))
-#gyrii.append(SpeechDetectorGyrus(broker,save_to_file=True))
 gyrii.append(SpeechDetectorGyrus(broker,save_to_file=False))
 gyrii.append(CommandWordRecognitionGyrus(broker,save_to_file=True))
-#gyrii.append(ObjectRecognizerGyrus(broker,display_loop))
+#gyrii.append(ObjectRecognizerGyrus(broker,display_loop,object_data=object_info))
+#gyrii.append(ObjectMapGyrus(broker,display_loop,object_data=object_info))
+gyrii.append(PeripersonalSpaceGyrus(broker,display_loop))
 
 def main():
     try:

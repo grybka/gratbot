@@ -42,7 +42,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
          single_audio_stream,
          collect_chunks) = self.utils
         #self.trigger_confidence=0.4  #0.25 looks too low.
-        self.trigger_confidence=0.2  #0.25 looks too low.
+        self.trigger_confidence=0.25  #0.25 looks too low.
         self.last_data=None
         self.is_recording=False
         self.min_sound_time=0.5
