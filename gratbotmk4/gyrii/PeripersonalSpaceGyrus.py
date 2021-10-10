@@ -9,6 +9,9 @@ import cv2 as cv
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 from scipy.signal import resample
+from scipy.fftpack import shift
+
+from underpinnings.MotionCorrection import MotionCorrectionRecord
 #combine information from audio and trackers to
 #generate important directions nearby
 
@@ -26,12 +29,16 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         self.next_decay_update=0
         self.decay_amount=np.exp(-self.decay_update_period/self.decay_timescale   )
 
+        #for handling turning
+        self.motion_corrector=MotionCorrectionRecord()
+        self.latest_timestamp=0
+
         #for drawing
         self.next_draw_update=0
         self.draw_update_period=0.5
 
     def get_keys(self):
-        return ["tracks","packets","clock_pulse","track_object_pairing","word_heard"]
+        return ["tracks","rotation_vector","clock_pulse","track_object_pairing","word_heard"]
 
     def get_name(self):
         return "PeripersonalSpaceGyrus"
@@ -47,12 +54,21 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
     def decay_weights(self):
         self.direction_neurons=self.direction_neurons*0.95
 
+    def do_rotation_correction(self):
+        new_time=self.motion_corrector.get_latest_timestamp()
+        turn,pitch=self.motion_corrector.get_rotation_between(self.latest_timestamp,new_time)
+        #cycle the neurons
+        if self.latest_timestamp!=0:
+            self.direction_neurons=shift(self.direction_neurons,turn)
+        self.latest_timestamp=new_time
+
+
     def read_message(self,message):
         if 'packets' in message:
-            #TODO handle turning
-            ...
+            self.motion_corrector.read_message(message)
+            self.do_rotation_correction()
         if 'tracks' in message:
-            self.handle_tracks(message["tracks"])
+            self.handle_tracks(message["tracks"],message["image_timestamp"])
         if 'word_heard' in message:
             self.handle_word(message["word_heard"])
         if 'clock_pulse' in message:
@@ -64,22 +80,25 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
                 self.next_decay_update=time.time()+self.decay_update_period
 
 
-    def track_center_to_angle(self,track_center):
+    def track_center_to_angle(self,track_center,image_timestamp):
         x=track_center[0]-0.5
         focal_length=1.0/(2*np.tan(np.pi*51.5/360)) #in fraction of image
-        return x/focal_length
+        angle=x/focal_length
+        turn_mag,pitch_mag=self.motion_corrector.get_rotation_between(image_timestamp,self.latest_timestamp)
+        return angle+turn_mag
 
     def handle_word(self,word_heard):
         heading=word_heard["heading"]
         sigma=(20.0/360)*(2*np.pi) #uncertainty in sigma 2 degrees
         weight=2.0
-        if wordheard["speaker"][0][0]=="gray":
+        if word_heard["speaker"][0][0]=="gray":
             weight=3.0
-        elif wordheard["word"][0][0]=="unknown":
-            weight=1.0
+        elif word_heard["word"][0][0]=="unknown":
+            weight=0.2
+        weight=0.05
         self.excite_direction(heading,sigma,weight)
 
-    def handle_tracks(self,tracks):
+    def handle_tracks(self,tracks,image_timestamp):
         for track in tracks:
             if track["info"]=="LOST" or track["info"]=="EXITED":
                 continue
@@ -89,7 +108,7 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
                 logger.debug("track type {}".format(track["label"]))
                 logger.debug("track center {}".format(track["center"]))
                 continue
-            angle=self.track_center_to_angle(track["center"])
+            angle=self.track_center_to_angle(track["center"],image_timestamp)
             weight=1 #TODO attention and filtering here
             if track["label"]=="face":
                 weight=1.0
@@ -105,6 +124,7 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
     def draw_object_map(self):
 
         downsampled=np.clip(resample(self.direction_neurons,12),-1,1)
+        downsampled=np.roll(downsampled,-3) #because the zero is different
 
         my_rgb=[]
         for i in range(12):

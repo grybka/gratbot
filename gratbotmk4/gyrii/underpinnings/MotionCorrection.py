@@ -1,6 +1,9 @@
 from collections import deque
 import numpy as np
 
+import logging
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def get_closest_value(timestamp,mylist):
         #for mylist ordered by [time,value], return the value that is closest to the input timestamp
@@ -20,6 +23,45 @@ def get_closest_value(timestamp,mylist):
             return first_val[1]
         else:
             return second_val[1]
+
+class MotionCorrectionRecord:
+    def __init__(self,max_recent_history=20):
+        self.max_recent_history=max_recent_history
+        self.accel=np.array([0,0,10]) #for gravity
+        self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
+        self.z_gyro_index=0
+        self.y_gyro_index=2
+        self.x_gyro_index=1
+
+    def get_latest_timestamp(self):
+        if len(self.headings)!=0:
+            return self.headings[-1][0]
+        return 0
+
+    def read_message(self,message):
+        if 'packets' in message: #rotation, etc
+            if len(self.headings)==0: #for the first packet received
+                self.headings.append([message['packets'][0]["gyroscope_timestamp"],np.array([0,0,0]) ])
+            for packet in message["packets"]:
+                self.accel=0.8*self.accel+0.2*np.array(packet["acceleration"])
+                    #TODO I could do a fancier integration
+                next_heading=np.array(packet["local_rotation"])
+                self.headings.append( [packet["gyroscope_timestamp"],next_heading])
+
+    def get_rotation_between(self,time_a,time_b):
+        #gives the left right and pitch rotations
+        if len(self.headings)<2:
+            return 0,0
+        #logger.debug("time a {} time b {} history {}".format(time_a,time_b,self.headings))
+        heading_a=get_closest_value(time_a,self.headings)
+        heading_b=get_closest_value(time_b,self.headings)
+        delta_heading=heading_b-heading_a
+        mag_accel=np.linalg.norm(self.accel)
+        cos_angle=self.accel[1]/mag_accel
+        sin_angle=self.accel[2]/mag_accel
+        turn_mag=delta_heading[self.z_gyro_index]*cos_angle-delta_heading[self.y_gyro_index]*sin_angle
+        return turn_mag,delta_heading[self.x_gyro_index]
+
 class MotionCorrection: #to correct image frames from heading changes
     def __init__(self,max_recent_history=20):
         self.max_recent_history=max_recent_history
@@ -34,6 +76,7 @@ class MotionCorrection: #to correct image frames from heading changes
         self.z_gyro_index=0
         self.y_gyro_index=2
         self.x_gyro_index=1
+
 
     def read_message(self,message):
         if 'packets' in message: #rotation, etc

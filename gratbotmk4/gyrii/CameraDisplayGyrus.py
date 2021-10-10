@@ -19,6 +19,13 @@ class TrackMerger:
                 self.tracks.pop(t["id"],None)
             else:
                 self.tracks[t["id"]]=t
+                self.tracks[t["id"]]["last_update"]=time.time()
+        to_drop=[]
+        for id in self.tracks:
+            if time.time()-self.tracks[id]["last_update"]>10:
+                to_drop.append(id)
+        for id in to_drop:
+            self.tracks.pop(t["id"],None)
 
 class CameraDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
@@ -31,8 +38,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.display_subimages=True
 
-        #self.mode="show_detections"
-        self.mode="show_tracks"
+        self.mode="show_detections"
+        #self.mode="show_tracks"
         super().__init__(broker)
 
         #self.last_tracks_message={"tracks": []}

@@ -6,7 +6,8 @@ from collections import deque
 
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 #if I'm paying attention to a tracked object, follow it with my head
 #alternately, hold head level if I'm tilted
@@ -58,18 +59,20 @@ class HeadTrackerGyrus(ThreadedGyrus):
         self.servo_angle=deque([ [0,90] ],maxlen=self.max_recent_history)
         self.time_ref=None
         #self.resting_angle=140
-        self.resting_angle=90
+        #self.resting_angle=90
+        self.resting_angle=110
         self.time_to_resting=2
         self.last_move=0
-        self.last_angle=90
+        self.last_angle=None
         #self.position_target=0.25 #0.25 puts it at top
         self.position_target=0.70 #0.70 puts it at bottom, good for people
         self.position_target=0.5
         #not used below
         self.rot_vector_history=deque([],maxlen=self.max_recent_history)
+        self.last_track_message=0
 
     def get_keys(self):
-        return ["rotation_vector","tracks","servo_response","gyrus_config"]
+        return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
 
     def get_name(self):
         return "HeadTrackerGyrus"
@@ -105,13 +108,32 @@ class HeadTrackerGyrus(ThreadedGyrus):
             self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
             for packet in message["packets"]:
                 self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
-        if self.time_ref==None:
-            return #no reference time
+
+        if "clock_pulse" in message:
+            #if self.tracked_object is None and time.time()-self.last_move>self.time_to_resting:
+            #    servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": self.resting_angle}}
+            #    self.broker.publish(servo_command,"servo_command")
+            #logger.debug("time since last track {} vs {}".format(time.time()-self.last_track_message,self.time_to_resting))
+            if self.last_angle==None:
+                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"report": True}}
+                self.broker.publish(servo_command,"servo_command")
+            elif time.time()-self.last_track_message>self.time_to_resting and time.time()-self.last_move>self.time_to_resting:
+                logger.debug("resetting to {}".format(self.resting_angle))
+                self.last_move=time.time()
+                servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": self.resting_angle}}
+                logger.debug("clock pulse servo command")
+                self.broker.publish(servo_command,"servo_command")
         if "servo_response" in message:
         #    logger.debug("head angle now {}".format(message["servo_response"]["angle"]))
             if message["servo_response"]["servo_number"]==0:
                 self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
+                self.last_angle=message["servo_response"]["angle"]
+
+        if self.time_ref==None or self.last_angle==None:
+            return #no reference time or angle, cannot track
+
         if "tracks" in message:
+            self.last_track_message=time.time()
 
             if self.mode=="off":
                 return
@@ -124,9 +146,6 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if track is None:
                 if self.mode=="track_first": #if I'm in track first mode, then forget what I'm tracking
                     self.tracked_object=None
-                    if time.time()-self.last_move>self.time_to_resting:
-                        servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": self.resting_angle}}
-                        self.broker.publish(servo_command,"servo_command")
                 return
             image_time=message['image_timestamp']-self.time_ref
             position_at_image_time=track["center"][1]
@@ -151,6 +170,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
                     #logger.info("new angle {}".format(new_angle))
                     self.last_angle=new_angle
                     servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"angle": new_angle}}
+                    logger.debug("tracks servo command {}".format(new_angle))
                     self.broker.publish(servo_command,"servo_command")
                     self.last_move=time.time()
 

@@ -10,9 +10,9 @@ from Gyrus import ThreadedGyrus
 from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.WARNING)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
 
 def bbox_to_xywh(bbox):
     return [0.5*(bbox[0]+bbox[1]),0.5*(bbox[2]+bbox[3]),bbox[1]-bbox[0],bbox[3]-bbox[2]]
@@ -109,6 +109,10 @@ class TrackerGyrus(ThreadedGyrus):
         self.tracklet_probation_detections=3 #how many detections before a tracklet is not on probation
         self.tracklets=[]
 
+        #reporting
+        self.report_time=2.0
+        self.last_report=0
+
     def get_keys(self):
         return [self.detection_name,"rotation_vector"]
 
@@ -120,6 +124,11 @@ class TrackerGyrus(ThreadedGyrus):
         if "detections" in message and len(message["detections"])!=0:
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
             self.update_tracklets(message["image_timestamp"],message["detections"],offset_x,offset_y)
+            if time.time()-self.last_report>self.report_time:
+                self.last_report=time.time()
+                logger.info("Track Report")
+                for tracklet in self.tracklets:
+                    logger.debug("{} {}".format(tracklet.last_label,id_to_name(tracklet.id)))
 
 
     def update_tracklets(self,timestamp,detections,offset_x,offset_y):
@@ -138,12 +147,12 @@ class TrackerGyrus(ThreadedGyrus):
         leftover_js=np.setdiff1d(np.arange(len(self.tracklets)),col_ind)
         for i in range(len(row_ind)):
             if cost_matrix[row_ind[i],col_ind[i]]>self.max_assignment_cost:
-                logger.debug("assignment cost too high {}".format(cost_matrix[row_ind[i],col_ind[i]]))
-                logger.debug("trying to hit {},{} - {}".format(self.tracklets[row_ind[i]].xywh[0],self.tracklets[row_ind[i]].xywh[1],id_to_name(self.tracklets[row_ind[i]].id)))
+                #logger.debug("assignment cost too high {}".format(cost_matrix[row_ind[i],col_ind[i]]))
+                #logger.debug("trying to hit {},{} - {}".format(self.tracklets[row_ind[i]].xywh[0],self.tracklets[row_ind[i]].xywh[1],id_to_name(self.tracklets[row_ind[i]].id)))
                 leftover_is=np.append(leftover_is,row_ind[i])
                 leftover_js=np.append(leftover_js,col_ind[i])
             else:
-                logger.debug("assigned with score {}".format(cost_matrix[row_ind[i],col_ind[i]]))
+                #logger.debug("assigned with score {}".format(cost_matrix[row_ind[i],col_ind[i]]))
                 self.tracklets[col_ind[i]].update(timestamp,detections[row_ind[i]])
 
         leftover_detections=[ detections[i] for i in leftover_is]

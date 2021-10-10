@@ -71,7 +71,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
             wf.close()
         #broadcast to broker
         self.broker.publish({"timestamp": time.time(),"speech_detected": self.records},["speech_detected"])
-        self.last_record=None
+        self.last_record=[]
         self.records=[]
 
     def read_message(self,message):
