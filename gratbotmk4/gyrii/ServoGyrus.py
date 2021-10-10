@@ -45,6 +45,6 @@ class ServoGyrus(ThreadedGyrus):
                 delta_angle=m["delta_angle"]
                 angle=self.kit.servo[0].angle+m["delta_angle"]
                 self.set_servo_angle(servo_num,angle)
-            elif: "report" in m:
+            elif "report" in m:
                 m={"servo_number": servo_num,"angle": self.kit.servo[servo_num].angle}
                 self.broker.publish({"timestamp": time.time(),"servo_response": m},["servo_response"])
