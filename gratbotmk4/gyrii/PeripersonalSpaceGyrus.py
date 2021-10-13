@@ -24,14 +24,19 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         self.neuron_thetas=np.arange(self.n_direction_neurons)*2*np.pi/self.n_direction_neurons
 
         #for decay
-        self.decay_timescale=5.0
-        self.decay_update_period=0.5
+        ## TODO: if I recieve new information, decay should be stronger
+        ##if i I have no new information, decay should be weaker
+        self.decay_timescale=1.0
+        self.decay_update_period=0.10
         self.next_decay_update=0
         self.decay_amount=np.exp(-self.decay_update_period/self.decay_timescale   )
+        self.last_message_emission=0
 
         #for handling turning
         self.motion_corrector=MotionCorrectionRecord()
         self.latest_timestamp=0
+        self.rotation_update_period=0.05
+        self.last_rotation_update=0
 
         #for drawing
         self.next_draw_update=0
@@ -43,12 +48,17 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
     def get_name(self):
         return "PeripersonalSpaceGyrus"
 
+    def emit_heading_message(self):
+        self.broker.publish({"timestamp": time.time(),"peripersonal_direction": self.direction_neurons},["peripersonalspace"])
+        self.last_message_emission=time.time()
+
     def excite_direction(self,mean,sigma,weight):
         deltas=(self.neuron_thetas-mean+ np.pi) % (2 * np.pi) - np.pi
         excites=weight*np.exp( -deltas*deltas/(2*sigma*sigma) )
         excites=excites-np.sum(excites)/len(excites)
         self.direction_neurons+=excites
         self.direction_neurons=np.clip(self.direction_neurons,-1,1)
+        self.emit_heading_message()
         return excites
 
     def decay_weights(self):
@@ -59,14 +69,18 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         turn,pitch=self.motion_corrector.get_rotation_between(self.latest_timestamp,new_time)
         #cycle the neurons
         if self.latest_timestamp!=0:
-            self.direction_neurons=shift(self.direction_neurons,turn)
+            if np.abs(turn)>0.05:
+                self.direction_neurons=np.clip(shift(self.direction_neurons,turn),-1,1)
+                self.emit_heading_message()
         self.latest_timestamp=new_time
 
 
     def read_message(self,message):
         if 'packets' in message:
             self.motion_corrector.read_message(message)
-            self.do_rotation_correction()
+            if time.time()-self.last_rotation_update>self.rotation_update_period:
+                self.do_rotation_correction()
+                self.last_rotation_update=time.time()
         if 'tracks' in message:
             self.handle_tracks(message["tracks"],message["image_timestamp"])
         if 'word_heard' in message:
@@ -78,6 +92,8 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
             if time.time()>self.next_decay_update:
                 self.direction_neurons=self.decay_amount*self.direction_neurons
                 self.next_decay_update=time.time()+self.decay_update_period
+            if time.time()-self.last_message_emission>0.5:
+                self.emit_heading_message()
 
 
     def track_center_to_angle(self,track_center,image_timestamp):
@@ -86,6 +102,7 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         angle=x/focal_length
         turn_mag,pitch_mag=self.motion_corrector.get_rotation_between(image_timestamp,self.latest_timestamp)
         return angle+turn_mag
+        #return angle-turn_mag
 
     def handle_word(self,word_heard):
         heading=word_heard["heading"]
@@ -95,7 +112,6 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
             weight=3.0
         elif word_heard["word"][0][0]=="unknown":
             weight=0.2
-        weight=0.05
         self.excite_direction(heading,sigma,weight)
 
     def handle_tracks(self,tracks,image_timestamp):

@@ -47,6 +47,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
         self.is_recording=False
         self.min_sound_time=0.5
         self.records=[]
+        self.last_record=[]
         self.save_to_file=save_to_file
         self.paudio=pyaudio.PyAudio()
         self.recent_confidences=deque([],maxlen=20)
@@ -92,7 +93,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
             else:
                 self.recent_confidences.append(confidences[0])
                 if confidences[0]>self.trigger_confidence:
-                    logger.debug("start recording")
+                    #logger.debug("start recording")
                     self.is_recording=True
                     self.recording_start=time.time()
                     self.records.append(self.last_record)

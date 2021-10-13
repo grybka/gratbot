@@ -57,17 +57,21 @@ class MotorGyrus(ThreadedGyrus):
             with self.motor_lock:
                 if now>=self.left_run_until and self.left_on:
                     self.left_motor.throttle=0
-                    m['left_throttle']=0
-                    m['left_duration']=0
+                    #m['left_throttle']=0
+                    #m['left_duration']=0
                     self.left_on=False
                     send_message=True
                 if now>=self.right_run_until and self.right_on:
                     self.right_motor.throttle=0
-                    m['right_throttle']=0
-                    m['right_duration']=0
+                    #m['right_throttle']=0
+                    #m['right_duration']=0
                     self.right_on=False
                     send_message=True
             if send_message:
+                m['left_throttle']=self.left_motor_throttle
+                m['right_throttle']=self.left_motor_throttle
+                m['left_duration']=max(self.left_run_until-now,0)
+                m['right_duration']=max(self.right_run_until-now,0)
                 self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
         with self.motor_lock:
             self.left_motor.throttle=0

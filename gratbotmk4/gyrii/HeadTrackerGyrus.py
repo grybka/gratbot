@@ -6,8 +6,8 @@ from collections import deque
 
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 #if I'm paying attention to a tracked object, follow it with my head
 #alternately, hold head level if I'm tilted
@@ -49,7 +49,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #self.ratio=-0.01473
-        self.pid_controller=MyPID(6,4,6,output_clip=[-10,10]) #worked for faces
+        self.pid_controller=MyPID(5,3,5,output_clip=[-10,10]) #worked for faces
         #self.pid_controller=MyPID(8,3,9,output_clip=[-10,10])
         self.ratio=20
         self.min_angle_correction=1 #in degrees!
@@ -128,6 +128,7 @@ class HeadTrackerGyrus(ThreadedGyrus):
             if message["servo_response"]["servo_number"]==0:
                 self.servo_angle.append([message["timestamp"],message["servo_response"]["angle"]])
                 self.last_angle=message["servo_response"]["angle"]
+                logger.debug("head angle now {}".format(self.last_angle))
 
         if self.time_ref==None or self.last_angle==None:
             return #no reference time or angle, cannot track

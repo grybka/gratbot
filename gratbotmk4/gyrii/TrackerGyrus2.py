@@ -10,9 +10,9 @@ from Gyrus import ThreadedGyrus
 from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 
 def bbox_to_xywh(bbox):
     return [0.5*(bbox[0]+bbox[1]),0.5*(bbox[2]+bbox[3]),bbox[1]-bbox[0],bbox[3]-bbox[2]]
@@ -126,7 +126,7 @@ class TrackerGyrus(ThreadedGyrus):
             self.update_tracklets(message["image_timestamp"],message["detections"],offset_x,offset_y)
             if time.time()-self.last_report>self.report_time:
                 self.last_report=time.time()
-                logger.info("Track Report")
+                logger.debug("Track Report")
                 for tracklet in self.tracklets:
                     logger.debug("{} {}".format(tracklet.last_label,id_to_name(tracklet.id)))
 
