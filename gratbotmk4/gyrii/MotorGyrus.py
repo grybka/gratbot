@@ -16,7 +16,7 @@ class MotorGyrus(ThreadedGyrus):
         self.motor_lock=threading.Lock()
         self.kit._pca.frequency=1000
         self.thread_sleep_time=0.005
-        self.min_throttle=0.3
+        self.min_throttle=0.25
 
         self.left_run_until=0
         self.right_run_until=0
@@ -96,13 +96,13 @@ class MotorGyrus(ThreadedGyrus):
             left_throttle,left_duration=self.scale_throttle(m["left_throttle"],m["left_duration"])
             right_throttle,right_duration=self.scale_throttle(m["right_throttle"],m["right_duration"])
             #handle low throttles with reduced duration
-            self.left_run_until=now+left_duration
-            self.right_run_until=now+right_duration
             with self.motor_lock:
+                self.left_run_until=now+left_duration
+                self.right_run_until=now+right_duration
                 self.left_motor.throttle=np.clip(left_throttle,-1,1)
-                if abs(left_throttle)>0:
-                    self.left_on=True
+                #if abs(left_throttle)>0:
+                self.left_on=True
                 self.right_motor.throttle=np.clip(right_throttle,-1,1)
-                if abs(right_throttle)>0:
-                    self.right_on=True
-            self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
+                #if abs(right_throttle)>0:
+                self.right_on=True
+                self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
