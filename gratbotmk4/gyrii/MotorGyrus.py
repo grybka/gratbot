@@ -15,6 +15,8 @@ class MotorGyrus(ThreadedGyrus):
         self.kit=MotorKit(i2c=board.I2C())
         self.motor_lock=threading.Lock()
         self.kit._pca.frequency=1000
+        self.thread_sleep_time=0.005
+        self.min_throttle=0.3
 
         self.left_run_until=0
         self.right_run_until=0
@@ -50,7 +52,7 @@ class MotorGyrus(ThreadedGyrus):
     def _motor_thread_loop(self):
         #this thread stops motors when they are supposed to stop
         while not self.should_quit:
-            time.sleep(0.005)
+            time.sleep(self.thread_sleep_time)
             now=time.time()
             send_message=False
             m={}
@@ -79,12 +81,13 @@ class MotorGyrus(ThreadedGyrus):
 
 
     def scale_throttle(self,throttle,duration):
-        if abs(throttle)<0.05:
-            return 0,0
-        if abs(throttle)>=0.4:
+        if abs(throttle)>=self.min_throttle:
             return throttle,duration
-        scale=abs(throttle)/0.4
-        return np.sign(throttle)*0.4,duration*scale
+        scale=abs(throttle)/self.min_throttle
+        new_duration=duration*scale
+        if new_duration<self.thread_sleep_time:
+            return 0,0
+        return np.sign(throttle)*self.min_throttle,duration*scale
 
     def read_message(self,message):
         if "motor_command" in message:
