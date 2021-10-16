@@ -16,7 +16,7 @@ class MotorGyrus(ThreadedGyrus):
         self.motor_lock=threading.Lock()
         self.kit._pca.frequency=1000
         self.thread_sleep_time=0.005
-        self.min_throttle=0.25
+        self.min_throttle=0.35
 
         self.left_run_until=0
         self.right_run_until=0

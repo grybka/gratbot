@@ -38,12 +38,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.display_subimages=False
 
-        self.mode="show_detections"
-        #self.mode="show_tracks"
+        #self.mode="show_detections"
+        self.mode="show_tracks"
         super().__init__(broker)
 
-        #self.last_tracks_message={"tracks": []}
-        #self.tracks=TrackMerger()
         self.tracks={}
         self.detections={}
 
@@ -91,6 +89,22 @@ class CameraDisplayGyrus(ThreadedGyrus):
             cv2.putText(frame, f"Y: {int(d['spatial_array'][1])} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
+    def draw_track_bbox(self,frame,t):
+        color = (255, 0, 0)
+        height = frame.shape[0]
+        width  = frame.shape[1]
+        if t["info"]=="PROBATION":
+            return
+        x1 = int(t["bbox_array"][0]*width )
+        x2 = int(t["bbox_array"][1]*width)
+        y1 = int(t["bbox_array"][2]*height )
+        y2 = int(t["bbox_array"][3]*height )
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+        #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+        cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+        #cv2.putText(frame, "{:.2f} {:.2f} Dist: {:.2f}m".format(t["center"][0],t["center"][1],t["center"][2]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+        cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+
     def update_display(self):
         if "image" not in self.last_image_message:
             return
@@ -100,25 +114,21 @@ class CameraDisplayGyrus(ThreadedGyrus):
         if self.mode=="show_detections":
             self.max_detection_lag=0.5
             for detection_type in self.detections:
-                if abs(self.detections[detection_type]["image_timestamp"]-self.last_image_message["image_timestamp"])<self.max_detection_lag:
-                    for d in self.detections[detection_type]:
+                lag=-self.detections[detection_type]["image_timestamp"]+self.last_image_message["image_timestamp"]
+                if lag<self.max_detection_lag:
+                    for d in self.detections[detection_type]["detections"]:
                         self.draw_detection_bbox(frame,d)
+                #else:
+                #    logger.debug("{} lag too great {} ms".format(detection_type,1000*lag))
         elif self.mode=="show_tracks":
-            color = (255, 0, 0)
-            height = frame.shape[0]
-            width  = frame.shape[1]
-            for id,t in self.tracks.tracks.items():
-                if t["info"]=="PROBATION":
-                    continue
-                x1 = int(t["bbox_array"][0]*width )
-                x2 = int(t["bbox_array"][1]*width)
-                y1 = int(t["bbox_array"][2]*height )
-                y2 = int(t["bbox_array"][3]*height )
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-                #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                #cv2.putText(frame, "{:.2f} {:.2f} Dist: {:.2f}m".format(t["center"][0],t["center"][1],t["center"][2]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
-                cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+            self.max_track_lag=0.5
+            for track_type in self.tracks:
+                lag=-self.tracks[track_type]["image_timestamp"]+self.last_image_message["image_timestamp"]
+                if lag<self.max_track_lag:
+                    for t in self.tracks[track_type]["tracks"]:
+                        self.draw_track_bbox(frame,t)
+                #else:
+                #    logger.debug("{} lag too great {} ms".format(track_type,1000*lag))
         if self.show_fps==True:
             self.update_fps_and_put_text(frame)
         self.display.update_image("camera",frame)
@@ -142,7 +152,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message:
-            self.tracks.merge_tracks(message)
+            self.tracks[message["detection_name"]]=message
             #self.last_tracks_message=message
             #if self.display_subimages and len(message["tracks"])>0:
             #    self.display.update_image("subimage",message["tracks"][0]["subimage"])

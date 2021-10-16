@@ -16,6 +16,7 @@ class ObjectTaggerGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tagger_model= torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
         self.tagger_classes=self.tagger_model.module.names if hasattr(self.tagger_model,'module') else self.tagger_model.names
+        self.detection_name=detection_name
 
         self.last_image_timestamp=0
         self.check_every=0.2 #5 fps

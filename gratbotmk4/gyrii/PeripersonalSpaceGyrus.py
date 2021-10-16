@@ -112,6 +112,7 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
     def fov_is_boring(self):
         self.boring_seconds=4
         self.direction_neurons[abs(self.neuron_thetas)<(2*np.pi*25/360)]-=self.decay_update_period/self.boring_seconds
+        self.direction_neurons=np.clip(self.direction_neurons,-1,1)
 
     def track_center_to_angle(self,track_center,image_timestamp):
         x=track_center[0]-0.5
@@ -157,7 +158,8 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
             self.attention_in_fov=True
             excitation_sum=excitation_sum/weight_sum
             weight_sum=1
-        self.direction_neurons=self.direction_neurons*(1-weight_sum)+excitation_sum
+        #self.direction_neurons=self.direction_neurons*(1-weight_sum)+excitation_sum
+        self.direction_neurons=np.clip(self.direction_neurons+excitation_sum,-1,1)
 
 
     def draw_object_map(self):
