@@ -176,7 +176,11 @@ class TrackerGyrus(ThreadedGyrus):
             if track.last_spatial_array is not None:
                 det_item["spatial_array"]=[track.last_spatial_array[0]/1000,track.last_spatial_array[1]/1000,track.last_spatial_array[2]/1000]
             track_message.append(det_item)
-        message_out={"tracks": track_message,"timestamp": time.time(),"image_timestamp": timestamp,"offset": [offset_x,offset_y]}
+        message_out={"tracks": track_message,
+                     "timestamp": time.time(),
+                     "image_timestamp": timestamp,
+                     "offset": [offset_x,offset_y],
+                     "detection_name": self.detection_name}
         self.broker.publish(message_out,["tracks"])
 
     def get_score(self,timestamp,detection,track):

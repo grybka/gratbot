@@ -12,7 +12,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class ObjectTaggerGyrus(ThreadedGyrus):
-    def __init__(self,broker):
+    def __init__(self,broker,detection_name="detections_software"):
         super().__init__(broker)
         self.tagger_model= torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
         self.tagger_classes=self.tagger_model.module.names if hasattr(self.tagger_model,'module') else self.tagger_model.names
@@ -56,6 +56,7 @@ class ObjectTaggerGyrus(ThreadedGyrus):
             delta_time=time.time()-start
             frame_message={"timestamp": time.time()}
             frame_message["detections"]=video_objects
+            frame_message["detection_name"]=self.detection_name
             frame_message["image_timestamp"]=message["image_timestamp"]
             self.last_image_timestamp=frame_message["image_timestamp"]+delta_time
-            self.broker.publish(frame_message,["detections_software"])
+            self.broker.publish(frame_message,[self.detection_name])

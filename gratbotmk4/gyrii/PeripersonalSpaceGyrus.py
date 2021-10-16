@@ -15,6 +15,11 @@ from underpinnings.MotionCorrection import MotionCorrectionRecord
 #combine information from audio and trackers to
 #generate important directions nearby
 
+#if I can see something, and it has my attention, then it should
+#dominate my direction
+
+#if I can hear something and it has my attention, then it should dominate my direction
+
 class PeripersonalSpaceGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None):
         super().__init__(broker)
@@ -23,10 +28,13 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         self.direction_neurons=np.zeros(self.n_direction_neurons)
         self.neuron_thetas=np.arange(self.n_direction_neurons)*2*np.pi/self.n_direction_neurons
 
+        #for weights
+        self.attention_in_fov=False
+
         #for decay
         ## TODO: if I recieve new information, decay should be stronger
         ##if i I have no new information, decay should be weaker
-        self.decay_timescale=1.0
+        self.decay_timescale=10.0
         self.decay_update_period=0.10
         self.next_decay_update=0
         self.decay_amount=np.exp(-self.decay_update_period/self.decay_timescale   )
@@ -52,6 +60,13 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         self.broker.publish({"timestamp": time.time(),"peripersonal_direction": self.direction_neurons},["peripersonalspace"])
         self.last_message_emission=time.time()
 
+    def get_excited_direction(self,mean,sigma):
+        deltas=(self.neuron_thetas-mean+ np.pi) % (2 * np.pi) - np.pi
+        excites=np.exp( -deltas*deltas/(2*sigma*sigma) )
+        excites=excites-np.sum(excites)/len(excites)
+        excites=excites/np.max(excites)
+        return excites
+
     def excite_direction(self,mean,sigma,weight):
         deltas=(self.neuron_thetas-mean+ np.pi) % (2 * np.pi) - np.pi
         excites=weight*np.exp( -deltas*deltas/(2*sigma*sigma) )
@@ -60,9 +75,6 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
         self.direction_neurons=np.clip(self.direction_neurons,-1,1)
         self.emit_heading_message()
         return excites
-
-    def decay_weights(self):
-        self.direction_neurons=self.direction_neurons*0.95
 
     def do_rotation_correction(self):
         new_time=self.motion_corrector.get_latest_timestamp()
@@ -92,9 +104,14 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
             if time.time()>self.next_decay_update:
                 self.direction_neurons=self.decay_amount*self.direction_neurons
                 self.next_decay_update=time.time()+self.decay_update_period
+                if not self.attention_in_fov:
+                    self.fov_is_boring()
             if time.time()-self.last_message_emission>0.5:
                 self.emit_heading_message()
 
+    def fov_is_boring(self):
+        self.boring_seconds=4
+        self.direction_neurons[abs(self.neuron_thetas)<(2*np.pi*25/360)]-=self.decay_update_period/self.boring_seconds
 
     def track_center_to_angle(self,track_center,image_timestamp):
         x=track_center[0]-0.5
@@ -114,27 +131,33 @@ class PeripersonalSpaceGyrus(ThreadedGyrus):
             weight=0.2
         self.excite_direction(heading,sigma,weight)
 
+    def get_track_attention(self,track,image_timestamp):
+        if track["info"]=="LOST" or track["info"]=="EXITED":
+            return 0
+        elif track["center"][0]<0 or track["center"][0]>1:
+            return 0
+        elif track["label"]=="face":
+            return 0.9
+        return 0
+
     def handle_tracks(self,tracks,image_timestamp):
+        excitation_sum=np.zeros(len(self.neuron_thetas))
+        weight_sum=0
         for track in tracks:
-            if track["info"]=="LOST" or track["info"]=="EXITED":
-                continue
-            if track["center"][0]<0 or track["center"][0]>1:
-                logger.debug("track center out of bounds, rejecting")
-                logger.debug("status {}".format(track["info"]))
-                logger.debug("track type {}".format(track["label"]))
-                logger.debug("track center {}".format(track["center"]))
+            weight=self.get_track_attention(track,image_timestamp)
+            if weight==0:
                 continue
             angle=self.track_center_to_angle(track["center"],image_timestamp)
-            weight=1 #TODO attention and filtering here
-            if track["label"]=="face":
-                weight=1.0
-            elif track["label"]=="person":
-                weight=0.5
-            else:
-                weight=0.1
             sigma=(2.0/360)*(2*np.pi) #uncertainty in sigma 2 degrees
-            self.excite_direction(angle,sigma,weight)
-            #self.decay_weights()
+            excitation_sum+=weight*self.get_excited_direction(angle,sigma)
+            weight_sum+=weight
+        if weight_sum==0:
+            return
+        if weight_sum>1:
+            self.attention_in_fov=True
+            excitation_sum=excitation_sum/weight_sum
+            weight_sum=1
+        self.direction_neurons=self.direction_neurons*(1-weight_sum)+excitation_sum
 
 
     def draw_object_map(self):

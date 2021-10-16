@@ -36,14 +36,19 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count_reset=10
         self.fps_start_time=0
 
-        self.display_subimages=True
+        self.display_subimages=False
 
         self.mode="show_detections"
         #self.mode="show_tracks"
         super().__init__(broker)
 
         #self.last_tracks_message={"tracks": []}
-        self.tracks=TrackMerger()
+        #self.tracks=TrackMerger()
+        self.tracks={}
+        self.detections={}
+
+
+
         self.last_detections_message={"detections": []}
         self.last_image_message={}
         self.last_depth_message={}
@@ -66,6 +71,26 @@ class CameraDisplayGyrus(ThreadedGyrus):
         color = (255, 0, 0)
         cv2.putText(frame, "NN fps: {:.2f}".format(self.fps), (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX, 0.4, color)
 
+    def draw_detection_bbox(self,frame,d):
+        color = (255, 0, 0)
+        height = frame.shape[0]
+        width  = frame.shape[1]
+        try:
+            x1 = int(d["bbox_array"][0] * width)
+            x2 = int(d["bbox_array"][1] * width)
+            y1 = int(d["bbox_array"][2] * height)
+            y2 = int(d["bbox_array"][3] * height)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+            cv2.putText(frame, str(d["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+        except:
+            logger.warning("failed to display deteciton {}".format(d))
+        if "confidence" in d:
+            cv2.putText(frame, "{:.2f}".format(d["confidence"]*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+        if "spatial_array" in d:
+            cv2.putText(frame, f"X: {int(d['spatial_array'][0])} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"Y: {int(d['spatial_array'][1])} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+
     def update_display(self):
         if "image" not in self.last_image_message:
             return
@@ -73,25 +98,11 @@ class CameraDisplayGyrus(ThreadedGyrus):
         frame=np.copy(self.last_image_message["image"])
         #logger.debug("frame size {}".format(frame.shape))
         if self.mode=="show_detections":
-            color = (255, 0, 0)
-            height = frame.shape[0]
-            width  = frame.shape[1]
-            for d in self.last_detections_message["detections"]:
-                try:
-                    x1 = int(d["bbox_array"][0] * width)
-                    x2 = int(d["bbox_array"][1] * width)
-                    y1 = int(d["bbox_array"][2] * height)
-                    y2 = int(d["bbox_array"][3] * height)
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-                    cv2.putText(frame, str(d["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                except:
-                    logger.warning("failed to display deteciton {}".format(d))
-                if "confidence" in d:
-                    cv2.putText(frame, "{:.2f}".format(d["confidence"]*100), (x1 + 10, y1 + 35), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                if "spatial_array" in d:
-                    cv2.putText(frame, f"X: {int(d['spatial_array'][0])} mm", (x1 + 10, y1 + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                    cv2.putText(frame, f"Y: {int(d['spatial_array'][1])} mm", (x1 + 10, y1 + 65), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                    cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            self.max_detection_lag=0.5
+            for detection_type in self.detections:
+                if abs(self.detections[detection_type]["image_timestamp"]-self.last_image_message["image_timestamp"])<self.max_detection_lag:
+                    for d in self.detections[detection_type]:
+                        self.draw_detection_bbox(frame,d)
         elif self.mode=="show_tracks":
             color = (255, 0, 0)
             height = frame.shape[0]
@@ -125,7 +136,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
             self.last_image_message=message
             self.update_display()
         if "detections" in message:
-            self.last_detections_message=message
+            self.detections[message["detection_name"]]=message
+
             if self.display_subimages and len(message["detections"])>0:
                 if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
