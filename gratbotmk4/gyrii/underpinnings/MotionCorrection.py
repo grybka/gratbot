@@ -48,6 +48,9 @@ class MotionCorrectionRecord:
                 next_heading=np.array(packet["local_rotation"])
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
+    def get_pitch(self):
+        return np.arctan2(self.accel[2],self.accel[1])
+
     def get_rotation_between(self,time_a,time_b):
         #gives the left right and pitch rotations
         if len(self.headings)<2:

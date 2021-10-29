@@ -33,8 +33,10 @@ from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
 from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
 from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
+from gyrii.PitchManagementGyrus import PitchManagementGyrus
 from underpinnings.ObjectMemory import load_object_info_file
 from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
+from gyrii.PeripersonalSpaceDisplayGyrus import PeripersonalSpaceDisplayGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -126,7 +128,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
-gyrii.append(HeadTrackerGyrus(broker))
+#gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7))
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
@@ -146,6 +148,8 @@ gyrii.append(CommandWordRecognitionGyrus(broker,save_to_file=True))
 
 gyrii.append(PeripersonalSpaceGyrus(broker,display_loop))
 gyrii.append(HeadingManagementGyrus(broker))
+gyrii.append(PitchManagementGyrus(broker))
+gyrii.append(PeripersonalSpaceDisplayGyrus(broker,display_loop))
 
 def main():
     try:

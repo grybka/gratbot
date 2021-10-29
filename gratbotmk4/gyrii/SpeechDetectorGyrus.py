@@ -47,7 +47,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
         self.is_recording=False
         self.min_sound_time=0.5
         self.records=[]
-        self.last_record=[]
+        self.last_record=b''
         self.save_to_file=save_to_file
         self.paudio=pyaudio.PyAudio()
         self.recent_confidences=deque([],maxlen=20)
@@ -72,7 +72,7 @@ class SpeechDetectorGyrus(ThreadedGyrus):
             wf.close()
         #broadcast to broker
         self.broker.publish({"timestamp": time.time(),"speech_detected": self.records},["speech_detected"])
-        self.last_record=[]
+        self.last_record=b''
         self.records=[]
 
     def read_message(self,message):

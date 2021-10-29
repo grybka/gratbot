@@ -62,8 +62,8 @@ class Tracklet:
             return
         points=np.array([ x[1] for x in self.recent_measurements])
         mean_xywh=np.mean(points,axis=0)
-        if False:
-        #if len(self.recent_measurements)>2:
+        #if False:
+        if len(self.recent_measurements)>2:
             #TODO try linear fit
             times=np.array([ x[0] for x in self.recent_measurements])
 
@@ -77,8 +77,8 @@ class Tracklet:
             #never let tracks travel more than mostly off screen
             w=mean_xywh[2]
             h=mean_xywh[3]
-            xpred=np.clip(xpred,-w/2,1+w/2)
-            ypred=np.clip(ypred,-h/2,1+h/2)
+            #xpred=np.clip(xpred,-w/2,1+w/2)
+            #ypred=np.clip(ypred,-h/2,1+h/2)
             self.xywh=np.array([xpred,ypred,w,h,])
         else:
             self.xywh=mean_xywh
@@ -102,7 +102,7 @@ class TrackerGyrus(ThreadedGyrus):
         self.motion_corrector=MotionCorrection()
 
         self.min_confidence_for_new_track=confidence_trigger
-        self.max_assignment_cost=1.5
+        self.max_assignment_cost=2.0
         self.tracklet_persist_time=1.0 #how many seconds can a a tracklet persist without being seen
         self.tracklet_persist_time_on_probation=0.5
         self.tracklet_lost_time=0.75 #mark a track as lost if its gone longer than this
