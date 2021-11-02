@@ -30,9 +30,9 @@ class LEDDisplayGyrus(ThreadedGyrus):
         if "led_command" in message:
             m=message["led_command"]
             if len(m["rgb_brightness"])!=self.PIXELS_N:
-                logger.warning("wrang length rgb_brigntess")
+                logger.warning("wrang length brightness")
             for i in range(len(m["rgb_brightness"])):
-                rgb=m["rgb_brigntess"][i]
+                rgb=m["rgb_brightness"][i]
                 self.dev.set_pixel(i,rgb[0],rgb[1],rgb[2])
                 self.dev.show()
         #if "clock_pulse" in message:

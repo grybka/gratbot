@@ -1,14 +1,16 @@
 
 from adafruit_servokit import ServoKit
-import logger
+import logging
 
 root = logging.getLogger()
 root.setLevel(logging.INFO)
 
 
 if __name__ == "__main__":
+    kit = ServoKit(channels=16)
     logging.info("Initiating Script")
     while True:
         snum=int(input("Servo Number: "))
-        steppos=int(input("position: "))
-        self.kit.servo[servo_num].angle=angle
+        angle=int(input("position: "))
+        kit.servo[snum].angle=angle
+
