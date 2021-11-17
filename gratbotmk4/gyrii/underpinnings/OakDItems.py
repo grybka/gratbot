@@ -17,7 +17,8 @@ nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
 #### Initializing Things
 def create_imu(pipeline,name="imu"):
     imu = pipeline.createIMU()
-    imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
+    #imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
+    imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
     imu.setBatchReportThreshold(5)
     imu.setMaxBatchReports(20)
     imu_xlinkOut = pipeline.createXLinkOut()
