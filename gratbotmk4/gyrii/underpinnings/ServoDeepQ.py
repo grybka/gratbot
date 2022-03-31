@@ -31,6 +31,15 @@ def euler_from_quaternion(x, y, z, w):
 
         return roll_x, pitch_y, yaw_z # in radians
 
+#pitch from acceleration vector
+#pitch 0 should be z forward, Y down
+def calc_pitch(vec):
+    x=vec[0]
+    y=vec[1]
+    z=vec[2]
+    xymag=np.sqrt(x*x+y*y)
+    return np.arctan2(z,xymag)
+
 class MessagesToNNState:
     def __init__(self):
         self.last_state_emission=0
@@ -76,12 +85,25 @@ class MessagesToNNState:
             self.x_pixels.append(x_pixels)
             self.y_pixels.append(y_pixels)
         elif "packets" in m:
+            #calculate pitch directly from acceleration
+            accels=[]
+            for i in range(len(m["packets"])):
+                accels.append(m["packets"][i]["acceleration"])
+            accels=np.stack(accels)
+            pitch=calc_pitch(np.mean(accels,axis=0))
+            self.rolls.append(0)
+            self.yaws.append(0)
+            self.pitches.append(pitch)
+
             timestamp=m["packets"][-1]["rotation_vector_timestamp"]
-            x,y,z,w,acc=m["packets"][-1]["rotation_vector"]
-            yaw,roll,pitch=euler_from_quaternion(x,y,w,z)
-            self.yaws.append(pitch)
-            self.rolls.append(roll)
-            self.pitches.append(yaw)
+
+            #this was for the rotation vector which seems to shift
+            #x,y,z,w,acc=m["packets"][-1]["rotation_vector"]
+            #roll,pitch,yaw=euler_from_quaternion(x,y,w,z)
+            #this is where I correct that the thing is on sideways
+            #self.rolls.append(roll)
+            #self.pitches.append(yaw) #pi/2 is about level with ground
+            #self.yaws.append(pitch)
             if timestamp-self.last_state_emission>self.state_emission_interval:
                 #this is when I emit a state
                 self.last_state_emission=timestamp
@@ -120,7 +142,7 @@ class MessagesToNNState:
         ret={}
         ret["yaw"]=[av_yaw/np.pi]
         ret["roll"]=[av_roll/np.pi]
-        ret["pitch"]=[av_roll/np.pi]
+        ret["pitch"]=[av_pitch/np.pi]
         ret["ypixels"]=av_ypixels.copy()
         ret["servo_response"]=self.servo_vals.copy()/180
         ret["servo_deltas"]=delta_servos.copy()
@@ -150,7 +172,16 @@ def calc_reward(mydict):
     #print("length of ypixels {}".format(len(mydict["ypixels"])))
     middle=len(mydict["ypixels"])//2
     #print("middle is {}".format(middle))
-    return 0.9*mydict["ypixels"][middle]+0.05*mydict["ypixels"][middle-1]+0.05*mydict["ypixels"][middle+1]
+    looking_reward=0.9*mydict["ypixels"][middle]+0.05*mydict["ypixels"][middle-1]+0.05*mydict["ypixels"][middle+1]
+    servo_neck_strain_max=135/180
+    servo_neck_strain_min=85/180
+    neck_strain_reward=0
+    x=mydict["servo_response"]
+    if x<servo_neck_strain_min:
+        neck_strain_reward=float(-10*(x-servo_neck_strain_min)**2)
+    if x>servo_neck_strain_max:
+        neck_strain_reward=float(-10*(x-servo_neck_strain_max)**2)
+    return looking_reward+neck_strain_reward
 
 
 class DeepQPredictor(nn.Module):
@@ -174,15 +205,16 @@ class DeepQPredictor(nn.Module):
 
 class ServoTrackerAgent:
     def __init__(self,episode_length=20):
-        self.n_actions=5
+        self.n_actions=3
         predictor=DeepQPredictor(9,self.n_actions,3)
         self.message_to_nn_state=MessagesToNNState()
         self.agent=DQN.DQN_Manager(predictor,episode_length=episode_length,memory_episodes=-1,n_actions=self.n_actions)
-        self.state_labels=["yaw","servo_response","servo_deltas","ypixels","commands"]
+        self.state_labels=["pitch","servo_response","servo_deltas","ypixels","commands"]
         self.last_action_choice=0
-        #self.random_motion_chance=0.1
-        self.random_motion_chance=1.0
-        self.action_servo_map=[0,-1,1,-2,2]
+        self.random_motion_chance=0.2
+        #self.random_motion_chance=1.0
+        #self.random_motion_chance=0
+        self.action_servo_map=[0,-2,2]
         self.servo_num=0
 
     def read_message(self,message,broker):
@@ -196,30 +228,59 @@ class ServoTrackerAgent:
             state_vector=assemble_vector(state,self.state_labels)
             #logger.debug("state vector shape {}".format(state_vector.shape))
             reward=calc_reward(state)
+            #logger.debug("reward {}".format(reward))
 
             self.agent.observe_state(torch.tensor(state_vector).float(),torch.tensor(reward))
             if np.random.rand()<self.random_motion_chance:
                 next_action=self.reflex_action(state)
             else:
                 next_action=self.agent.choose_action(self.random_motion_chance)
-            #logger.debug("action chosen {}".format(next_action))
+
+            #logger.debug("action chosen {} ({})".format(next_action,type(next_action)))
             self.agent.observe_action(torch.tensor(next_action))
             servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"delta_angle": self.action_servo_map[next_action]}}
-            if next_action is not 0:
+            if next_action != 0:
                 broker.publish(servo_command,"servo_command")
             broker.publish({"timestamp": time.time(),"ServoTrackerState": [state_vector,reward,next_action]},["ServoTrackerState"])
 
     def reflex_action(self,state): #when I need a 'random' action
-        logger.debug("Yaw, Roll, Pitch: {} , {}, {}".format(state["yaw"],state["pitch"],state["roll"]))
-        return 0
+        #logger.debug("pitch, yaw, roll is {:.2f} {:.2f} {:.2f}".format(state["pitch"][0],state["yaw"][0],state["roll"][0]))
+        #return 0
+        #reflex action is to move in the direction of detection if detection available
+        det_neurons=state["ypixels"]
+        det_sum=np.sum(det_neurons)
+        if det_sum==0: #no detection
+            if state["pitch"][0]<0.1:
+                #looking kinda down
+                #logger.debug("looking kind of down {:.2f}".format(state["pitch"][0]))
+                logger.debug("reflex empty pitch {}, servo {}, move up".format(state["pitch"][0],state["servo_response"]))
+                return np.random.choice(np.arange(3,dtype=np.int64),p=[0.2,0.6,0.2])
+            elif state["pitch"][0]>0.20:
+                #logger.debug("looking kind of up {:.2f}".format(state["pitch"][0]))
+                #looking kinda up
+                logger.debug("reflex empty pitch {}, servo {}, move down".format(state["pitch"][0],state["servo_response"]))
+                return np.random.choice(np.arange(3,dtype=np.int64),p=[0.2,0.2,0.6])
+            else:
+                return np.random.choice(np.arange(3,dtype=np.int64),p=[0.2,0.4,0.4])
+        det_wsum=np.sum(np.arange(0,5)*det_neurons)
+        av_n=det_wsum/det_sum
+        return np.random.choice(np.arange(3,dtype=np.int64),p=[0.4,0.3,0.3])
+        #if av_n<2:
+        #    return np.random.choice(np.arange(3,dtype=np.int64),p=[0.2,0.6,0.2])
+        #else:
+        #    return np.random.choice(np.arange(3,dtype=np.int64),p=[0.2,0.2,0.6])
+
 
 class ServoTrackerLearner:
-    def __init__(self,episode_length=20,memory_episodes=50):
-        self.n_actions=5
+    def __init__(self,episode_length=20,memory_episodes=30,n_training_epochs=10):
+        self.n_training_epochs=n_training_epochs
+        self.n_actions=3
         predictor=DeepQPredictor(9,self.n_actions,3)
         self.agent=DQN.DQN_Manager(predictor,episode_length=episode_length,memory_episodes=memory_episodes,n_actions=self.n_actions)
+        self.save_counter=0
 
     def read_message(self,message,broker):
+        #returns state,reward, action if new state message, otherwise nothing
         if "ServoTrackerState":
             state=message["ServoTrackerState"][0]
             reward=message["ServoTrackerState"][1]
@@ -228,9 +289,31 @@ class ServoTrackerLearner:
             self.agent.observe_action(torch.tensor(action).long())
             if self.agent.ready_to_train:
                 start_time=time.time()
-                loss_log=self.agent.train_predictor(10)
-                logger.debug("train time {} loss {}".format(time.time()-start_time,loss_log[-1]))
+                loss_log=self.agent.train_predictor(self.n_training_epochs)
+                #logger.debug("train time {} loss {}".format(time.time()-start_time,loss_log[-1]))
+                print("train time {} loss {}".format(time.time()-start_time,loss_log[-1]))
                 self.broadcast_trained_state(broker)
+                #self.save_counter+=1
+                #if self.save_counter>4:
+                #    self.dump_memory()
+                #    self.save_counter=0
+            return torch.tensor(state).float(),torch.tensor(reward).float(),torch.tensor(action).long()
+        return None,None,None
+
     def broadcast_trained_state(self,broker):
         message={"timestamp": time.time(),"ServoTrackerAgentNewWeights": self.agent.predictor.state_dict() }
         broker.publish(message,"ServoTrackerAgentNewWeights")
+
+    def dump_memory(self):
+        to_save={}
+        epidose=[]
+        for episode,loss in self.agent.memory.episodes:
+            epidose.append([episode.states,episode.actions,episode.rewards])
+        to_save["episodes"]=epidose
+        to_save["predictor"]=self.agent.predictor.state_dict()
+        torch.save(to_save,'servo_memory_dump.pt')
+
+    def load_from_file(self,fname):
+        state_dict=torch.load(fname)
+        self.agent.predictor.load_state_dict(state_dict)
+        logger.debug("Loaded from file {}".format(fname))

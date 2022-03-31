@@ -4,9 +4,10 @@ import cv2
 import logging
 import base64
 import uuid
+import collections
 
 def message_to_json(object):
-    if type(object)==dict: #walk through dicts
+    if type(object)==dict or type(object)==collections.OrderedDict: #walk through dicts
         ret={}
         for key in object:
             ret[key]=message_to_json(object[key])
@@ -29,6 +30,8 @@ def message_to_json(object):
         return object.hex
     if type(object) == np.float64:
         return float(object)
+    if type(object) == np.int64:
+        return int(object)
     if type(object) == np.int32:
         return int(object)
     if type(object) == bytes:

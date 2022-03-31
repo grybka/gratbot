@@ -3,6 +3,10 @@ from torch.utils.data import Dataset,DataLoader,TensorDataset,random_split
 from collections import deque
 import numpy as np
 import torch.optim as optim
+import logging
+
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class DQN_Episode(Dataset):
@@ -50,7 +54,8 @@ class DQN_Replay_Memory:
         while len(self.episodes)>self.max_size:
             losses=[ x[1] for x in self.episodes ]
             #self.episodes.pop(np.random.choice(np.arange(len(self.episodes))))
-            if np.random.rand()<0.99:
+            high_pop_chance=1-1/self.max_size
+            if np.random.rand()<high_pop_chance:
                 smallest=np.argmin(losses)
                 self.episodes.pop(smallest)
             else:
@@ -62,10 +67,11 @@ class DQN_Replay_Memory:
 
 
 class DQN_Manager:
-    def __init__(self,predictor,n_actions=2,episode_length=60,memory_episodes=40):
+    def __init__(self,predictor,n_actions=2,episode_length=60,memory_episodes=40,reward_decay_factor=0.5):
         self.predictor=predictor
         self.predictor_n_steps_behind=3
         self.n_actions=n_actions
+        self.reward_decay_factor=reward_decay_factor
         if memory_episodes>0:
             self.memory=DQN_Replay_Memory(max_size=memory_episodes)
         else:
@@ -91,7 +97,7 @@ class DQN_Manager:
         self.actions.append(action)
         #TODO package and send to memory
         if len(self.states)>self.episode_length:
-            new_episode=DQN_Episode(self.states,self.actions,self.rewards,input_state_length=self.predictor_n_steps_behind)
+            new_episode=DQN_Episode(self.states,self.actions,self.rewards,input_state_length=self.predictor_n_steps_behind,reward_decay_factor=self.reward_decay_factor)
             loss=self.get_episode_loss(new_episode,torch.nn.MSELoss(),bellman_fraction=0.5)
             if self.memory is not None:
                 self.memory.add_episode(new_episode,loss)

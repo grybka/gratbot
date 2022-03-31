@@ -38,8 +38,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.display_subimages=False
 
-        #self.mode="show_detections"
-        self.mode="show_tracks"
+        self.mode="show_detections"
+        #self.mode="show_tracks"
         super().__init__(broker)
 
         self.tracks={}
