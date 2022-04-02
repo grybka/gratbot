@@ -96,7 +96,7 @@ class OakDGyrus(ThreadedGyrus):
                 if frame is not None:
                     last_frame=frame
                 #MOODEL THNIGLABL
-                tryget_modelagnostic(q_nn)
+                tryget_modelagnostic(q_nn,self.broker)
                 #for model in self.models:
                 #    tryget_nndetections(model["queue"],model["queue_passthru"],self.broker,last_frame,model["labels"])
         logging.debug("Exiting OakD thread")
@@ -147,7 +147,7 @@ class OakDGyrus(ThreadedGyrus):
         #stereo.depth.link(spatialDetectionNetwork.inputDepth)
         #manip.out.link(spatialDetectionNetwork.input)
 
-        init_class_agnostic(self.pipline,camRGB)
+        init_class_agnostic(self.pipeline,camRgb)
         #other models
         #for model in self.models:
         #    init_model(self.pipeline,model["modelname"],camRgb.preview,stereo,streamname=model["streamname"],shaves=6)

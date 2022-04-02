@@ -88,7 +88,7 @@ def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=
     spatialDetectionNetwork.passthrough.link(xoutNNpassthru.input)
 
 #class agnostic
-def init_class_agnostic(pipline,camera):
+def init_class_agnostic(pipeline,camera):
     NN_PATH = blobconverter.from_zoo(name="mobile_object_localizer_192x192", zoo_type="depthai")
     NN_WIDTH = 192
     NN_HEIGHT = 192
@@ -112,7 +112,6 @@ def init_class_agnostic(pipline,camera):
     xout_nn.setStreamName("nn")
     xout_nn.input.setBlocking(False)
 
-    detection_nn.out.link(xout_nn.input)
     camera.preview.link(manip.inputImage)
     manip.out.link(detection_nn.input)
     detection_nn.out.link(xout_nn.input)
@@ -142,7 +141,8 @@ def tryget_imudata(imuQueue,broker):
             magneticTs = magneticField.timestamp.get()
             local_rotation+=np.array([gyroscope.x,gyroscope.y,gyroscope.z])*(gyroscopeTs.total_seconds()-last_gyro_Ts)
             last_gyro_Ts=gyroscopeTs.total_seconds()
-            dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,rVvalues.accuracy],
+            #rValues.accuracy didn't work
+            dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,3],
                         "rotation_vector_timestamp": rvTs.total_seconds(),
                         "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
                         "acceleration_timestamp": acceleroTs.total_seconds(),
@@ -247,14 +247,16 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
         return None
 
 
-def tryget_modelagnostic(q_nn):
+def tryget_modelagnostic(q_nn,broker):
     in_nn = q_nn.get()
     THRESHOLD=0.2
     if in_nn is not None:
         # get outputs
         device_timestamp=in_nn.getTimestamp().total_seconds()
         detection_boxes = np.array(in_nn.getLayerFp16("ExpandDims")).reshape((100, 4))
-        detection_scores = np.array(in_nn.getLayerFp16("ExpandDims_2")
+        detection_scores = np.array(in_nn.getLayerFp16("ExpandDims_2"))
+        xshape=192
+        yshape=192
         # keep boxes bigger than threshold
         mask = detection_scores >= THRESHOLD
         boxes = detection_boxes[mask]
@@ -263,14 +265,16 @@ def tryget_modelagnostic(q_nn):
         detection_message=[]
         for i in range(boxes.shape[0]):
             box = boxes[i]
-            y1 = (frame.shape[0] * box[0]).astype(int)
-            y2 = (frame.shape[0] * box[2]).astype(int)
-            x1 = (frame.shape[1] * box[1]).astype(int)
-            x2 = (frame.shape[1] * box[3]).astype(int)
+            y1 = (yshape * box[0]).astype(int)
+            y2 = (yshape * box[2]).astype(int)
+            x1 = (xshape * box[1]).astype(int)
+            x2 = (xshape * box[3]).astype(int)
             bbox_array=[x1,x2,y1,y2]
+            det_item={}
             det_item["bbox_array"]=bbox_array
             #det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
-            det_item["label"] = model_labels[detection.label]
+            #det_item["label"] = model_labels[detection.label]
+            det_item["label"] = "unknown"
             det_item["confidence"] = detection_scores[i]
             detection_message.append(det_item)
         if len(detection_message)!=0:
