@@ -45,10 +45,19 @@ network_server.start_server(test_port)
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
+#### Hardware interface #####
+
+gyrii.append(ClockGyrus(broker))
 gyrii.append(OakDGyrus(broker))
 #gyrii.append(OakDGyrusPeople(broker))
-gyrii.append(MotorGyrus(broker))
+#gyrii.append(MotorGyrus(broker))
 gyrii.append(ServoGyrus(broker))
+#gyrii.append(LEDDisplayGyrus(broker))
+#gyrii.append(MicrophoneGyrus(broker))
+
+
+##### Logging #####
+
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections","image"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections"]))
 #gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
@@ -67,10 +76,7 @@ gyrii.append(ServoGyrus(broker))
 #gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
-gyrii.append(ClockGyrus(broker))
-gyrii.append(LEDDisplayGyrus(broker))
 #gyrii.append(TailGyrus(broker))
-gyrii.append(MicrophoneGyrus(broker))
 #gyrii.append(SoundRecordGyrus(broker))
 #gyrii.append(SpeechDetectorGyrus(broker))
 
