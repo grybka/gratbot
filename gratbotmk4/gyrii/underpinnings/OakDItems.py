@@ -247,7 +247,7 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
         return None
 
 
-def tryget_modelagnostic(q_nn,broker):
+def tryget_classagnostic(q_nn,broker):
     in_nn = q_nn.get()
     THRESHOLD=0.2
     if in_nn is not None:
@@ -255,8 +255,11 @@ def tryget_modelagnostic(q_nn,broker):
         device_timestamp=in_nn.getTimestamp().total_seconds()
         detection_boxes = np.array(in_nn.getLayerFp16("ExpandDims")).reshape((100, 4))
         detection_scores = np.array(in_nn.getLayerFp16("ExpandDims_2"))
-        xshape=192
-        yshape=192
+        #xshape=192
+        #yshape=192
+        xshape=640
+        yshape=360
+
         # keep boxes bigger than threshold
         mask = detection_scores >= THRESHOLD
         boxes = detection_boxes[mask]
@@ -269,6 +272,7 @@ def tryget_modelagnostic(q_nn,broker):
             y2 = (yshape * box[2]).astype(int)
             x1 = (xshape * box[1]).astype(int)
             x2 = (xshape * box[3]).astype(int)
+
             bbox_array=[x1,x2,y1,y2]
             det_item={}
             det_item["bbox_array"]=bbox_array
