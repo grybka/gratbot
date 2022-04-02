@@ -153,8 +153,8 @@ gyrii.append(ClockGyrus(broker))
 #gyrii.append(HeadingManagementGyrus(broker))
 #gyrii.append(PitchManagementGyrus(broker))
 #gyrii.append(PeripersonalSpaceDisplayGyrus(broker,display_loop))
-gyrii.append(ServoTrackerAgentGyrus(broker))
-gyrii.append(ServoTrackerLearnerGyrus(broker))
+#gyrii.append(ServoTrackerAgentGyrus(broker))
+#gyrii.append(ServoTrackerLearnerGyrus(broker))
 
 def main():
     try:
