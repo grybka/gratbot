@@ -272,6 +272,8 @@ def tryget_classagnostic(q_nn,broker,image):
             y2 = (yshape * box[2]).astype(int)
             x1 = (xshape * box[1]).astype(int)
             x2 = (xshape * box[3]).astype(int)
+            if x2-x1 > 640*0.75 or y2-y1>360*0.75:
+                continue #objects that use up 75$ of the area are too close
             preview_y1 = (preview_yshape * box[0]).astype(int)
             preview_y2 = (preview_yshape * box[2]).astype(int)
             preview_x1 = (preview_xshape * box[1]).astype(int)

@@ -1,6 +1,7 @@
 
 from Gyrus import ThreadedGyrus
-from underpinnings import id_to_name
+from underpinnings.id_to_name import id_to_name
+from collections import deque
 import numpy as np
 import logging
 import time
@@ -44,7 +45,7 @@ class NeckGazeGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #Units are degrees per second per pixel
-        self.pid_controller=MyPID(1,0,0,output_clip=[-10,10])
+        self.pid_controller=MyPID(-0.25,0,0,output_clip=[-100,100])
         self.servo_num=0
 
     def get_keys(self):
@@ -54,12 +55,12 @@ class NeckGazeGyrus(ThreadedGyrus):
         return "NeckGazeGyrus"
 
     def read_message(self,message):
-        if "packets" in message: #this tracks the rotation vector
-            if self.time_ref==None:
-                self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
-            self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
-            for packet in message["packets"]:
-                self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
+#        if "packets" in message: #this tracks the rotation vector
+#            if self.time_ref==None:
+#                self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
+#            self.time_ref=max(self.time_ref,-message['timestamp']+message['packets'][-1]['gyroscope_timestamp'])
+#            for packet in message["packets"]:
+#                self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
 
         if "tracks" in message:
             #If I've lost my last track, find something new
@@ -72,9 +73,10 @@ class NeckGazeGyrus(ThreadedGyrus):
                 else:
                     logger.debug("Nothing to look at")
                     return #TODO I should switch to level here
-            position_at_image_time=track["center"][1]
+            position_at_image=track["center"][1]
             error_signal=180-position_at_image
-            self.pid_controller.observe(error)
+            self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
+            logger.debug("Error: {}, vel {}".format(error_signal,vel))
             servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
-            broker.publish(motor_command,"servo_command")
+            self.broker.publish(servo_command,"servo_command")
