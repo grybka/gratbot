@@ -10,8 +10,9 @@ from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
 from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
-from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
-from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
+#from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
+#from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
+from gyrii.NeckGazeGyrus import NeckGazeGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
@@ -64,7 +65,8 @@ gyrii.append(ServoGyrusVelocity(broker))
 #### Processing ####
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
-gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
+#gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
+gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####
 
