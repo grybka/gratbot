@@ -18,11 +18,19 @@ class JSONBackAndForth2:
         self.should_quit = False
         self.input_queue=queue.Queue(maxsize=maxsize)
         self.output_queue=queue.Queue(maxsize=maxsize)
+        self.sender_thread=None
+        self.recver_thread=None
 
     def join(self):
         self.should_quit=True
-        self.sender_thread.join()
-        self.recver_thread.join()
+        if self.sender_thread is not None:
+            self.sender_thread.join()
+        if self.recver_thread is not None:
+            self.recver_thread.join()
+        if self.sock is not None:
+            self.sock.close()
+        if self.server_sock is not None:
+            self.server_sock.close()
 
     def start_client(self,host,port):
         self.host=host
@@ -65,23 +73,22 @@ class JSONBackAndForth2:
         self.thread.start()
 
     def _sender_thread_loop(self):
-        with self.sock:
-            #Should I do this?  Clear the output queue at the beginning
-            #of connection in case stuff built up in the interim
-            while not self.output_queue.empty():
-                self.output_queue.get(block=False)
-            while not self.should_quit:
-                to_send=[]
-                try:
-                    to_send.append(self.output_queue.get(timeout=1))
-                    while not self.output_queue.empty():
-                        to_send.append(self.output_queue.get_nowait())
-                    tosend=(json.dumps(to_send)).encode()
-                    length=len(tosend).to_bytes(4,byteorder='big')
-                    self.sock.sendall(length)
-                    self.sock.sendall(tosend)
-                except queue.Empty:
-                    ...
+        #Should I do this?  Clear the output queue at the beginning
+        #of connection in case stuff built up in the interim
+        while not self.output_queue.empty():
+            self.output_queue.get(block=False)
+        while not self.should_quit:
+            to_send=[]
+            try:
+                to_send.append(self.output_queue.get(timeout=1))
+                while not self.output_queue.empty():
+                    to_send.append(self.output_queue.get_nowait())
+                tosend=(json.dumps(to_send)).encode()
+                length=len(tosend).to_bytes(4,byteorder='big')
+                self.sock.sendall(length)
+                self.sock.sendall(tosend)
+            except queue.Empty:
+                ...
 
 
     def _thread_loop_server(self):
@@ -100,6 +107,8 @@ class JSONBackAndForth2:
 
                 self.sender_thread.join()
                 self.recver_thread.join()
+                self.sock.close()
+                self.sock=None
             except socket.timeout:
                 ... #this is fine, just retry
             except Exception as e:
@@ -110,41 +119,40 @@ class JSONBackAndForth2:
         self.server_sock.close()
 
     def _recver_thread_loop(self):
-        with self.sock:
-            while not self.should_quit:
-                inputs=[self.sock]
-                readable, writable, exceptional = select.select(inputs, [], inputs,5) #timeout 5 seconds
-                if self.sock in exceptional:
-                    logger.error("Exception in socket")
-                if self.sock in readable:
-                    length=self.sock.recv(4)
-                    if length==b'':
+        while not self.should_quit:
+            inputs=[self.sock]
+            readable, writable, exceptional = select.select(inputs, [], inputs,5) #timeout 5 seconds
+            if self.sock in exceptional:
+                logger.error("Exception in socket")
+            if self.sock in readable:
+                length=self.sock.recv(4)
+                if length==b'':
+                    logger.info("Closing connection to ".format(self.host))
+                    break
+                read_size=int.from_bytes(length,byteorder='big')
+                logger.debug("readed length {}".format(read_size))
+                data=b''
+                while(read_size>0):
+                    newdata=self.sock.recv(read_size)
+                    if newdata==b'':
                         logger.info("Closing connection to ".format(self.host))
                         break
-                    read_size=int.from_bytes(length,byteorder='big')
-                    logger.debug("readed length {}".format(read_size))
-                    data=b''
-                    while(read_size>0):
-                        newdata=self.sock.recv(read_size)
-                        if newdata==b'':
-                            logger.info("Closing connection to ".format(self.host))
-                            break
-                        data+=newdata
-                        read_size=read_size-len(newdata)
-                        try:
-                            #json_strings=data.decode().split('\n') #andle multiple messages all in one go
-                            json_string=data.decode() #andle multiple messages all in one go
-                            #json_strings.pop(-1)
-                            #for s in json_strings:
-                                #logger.debug("message is {}".format(s))
-                            datastructure=json.loads(json_string+'\n')
-                            #if "tracks" not in datastructure:
-                            self.input_queue.put(datastructure)
-                            #else:
-                            #    logger.info("tracks discarded")
-                        except Exception as error:
-                            logger.error("Error parsing json")
-                            logger.exception(error)
+                    data+=newdata
+                    read_size=read_size-len(newdata)
+                    try:
+                        #json_strings=data.decode().split('\n') #andle multiple messages all in one go
+                        json_string=data.decode() #andle multiple messages all in one go
+                        #json_strings.pop(-1)
+                        #for s in json_strings:
+                            #logger.debug("message is {}".format(s))
+                        datastructure=json.loads(json_string+'\n')
+                        #if "tracks" not in datastructure:
+                        self.input_queue.put(datastructure)
+                        #else:
+                        #    logger.info("tracks discarded")
+                    except Exception as error:
+                        logger.error("Error parsing json")
+                        logger.exception(error)
 
 
 if __name__ == '__main__':
