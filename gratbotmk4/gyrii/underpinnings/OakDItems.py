@@ -87,6 +87,23 @@ def init_model(pipeline,model_name,camera,stereo,streamname='detections',shaves=
     xoutNNpassthru.setStreamName(streamname+"_passthru")
     spatialDetectionNetwork.passthrough.link(xoutNNpassthru.input)
 
+
+#mobilenet models
+def init_model_nopassthru(pipeline,model_name,camera,stereo,streamname='detections',shaves=6):
+    #spatial detection of people
+    spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
+    spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
+    spatialDetectionNetwork.setConfidenceThreshold(0.5)
+    spatialDetectionNetwork.input.setBlocking(False)
+    spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+    spatialDetectionNetwork.setDepthLowerThreshold(100)
+    spatialDetectionNetwork.setDepthUpperThreshold(5000)
+    camera.link(spatialDetectionNetwork.input)
+    stereo.depth.link(spatialDetectionNetwork.inputDepth)
+    xoutNN = pipeline.createXLinkOut()
+    xoutNN.setStreamName(streamname)
+    spatialDetectionNetwork.out.link(xoutNN.input)
+
 #class agnostic
 def init_class_agnostic(pipeline,camera):
     NN_PATH = blobconverter.from_zoo(name="mobile_object_localizer_192x192", zoo_type="depthai")
@@ -236,6 +253,35 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
                 #logger.debug("image shape {}".format(image.shape))
                 #logger.debug("x1 x2 y1 y2 {} {} {} {}".format(x1,x2,y1,y2))
                 det_item["subimage"]=image[y1:y2,x1:x2]
+            detection_message.append(det_item)
+        if len(detection_message)!=0:
+            frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
+            frame_message["detection_name"]="detections_hardware"
+            frame_message["detections"]=detection_message
+            broker.publish(frame_message,["detections"])
+        return None
+    else:
+        return None
+
+
+def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
+    image=None
+    #publish detections from a nn
+    #no return
+    inDet = detectionNNQueue.tryGet()
+    if inDet is not None:
+        #logger.debug("nn deetection got")
+        #image_seqnum=metadata.getSequenceNum()
+        device_timestamp=inDet.getTimestamp().total_seconds()
+        #logger.debug("metadata deetection got timestamp {}".format(device_timestamp))
+        detection_message=[]
+        for detection in inDet.detections:
+            det_item={}
+            bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+            det_item["bbox_array"]=bbox_array
+            det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+            det_item["label"] = model_labels[detection.label]
+            det_item["confidence"] = detection.confidence
             detection_message.append(det_item)
         if len(detection_message)!=0:
             frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}

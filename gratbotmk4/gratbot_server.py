@@ -29,7 +29,8 @@ from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.ClockGyrus import ClockGyrus
 from gyrii.LEDDisplayGyrus import LEDDisplayGyrus
 #from SpeechDetectorGyrus import SpeechDetectorGyrus
-from OakDGyrus3 import OakDGyrus
+#from OakDGyrus3 import OakDGyrus #generic objects
+from OakDGyrus4 import OakDGyrus #faces
 from OakDGyrusPeople import OakDGyrusPeople
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
