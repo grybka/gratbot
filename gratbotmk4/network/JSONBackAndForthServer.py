@@ -27,6 +27,7 @@ class JSONBackAndForth():
         #connect to server
         logger.info("creating client socket")
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.sock.settimeout(5)
         logger.info("connecting")
         conninfo= self.sock.connect((self.host,self.port))
@@ -47,6 +48,7 @@ class JSONBackAndForth():
         self.port=port
         self.server_sock= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        self.server_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         #self.server_sock=socket.create_server( (self.host,self.port), reuse_port=True )
         self.server_sock.settimeout(5)
         logger.info("binding to {} {}".format(self.host,port))
