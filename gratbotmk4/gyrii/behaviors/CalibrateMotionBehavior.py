@@ -12,23 +12,24 @@ logger.setLevel(logging.DEBUG)
 
 class ServoVelUpAndDown(GratbotBehavior):
     def __init__(self):
-        self.vel_amplitude=10
+        self.vel_amplitude=100
         self.period=10
         self.servo_num=0
 
     def act(self,**kwargs):
         broker=kwargs["broker"]
         t=time.time()
-        vel=self.vel_amplitude*math.sin(2*np.pi*t/self.period)
+        vel=self.vel_amplitude*np.sin(2*np.pi*t/self.period)
         servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
-        broker.publish(motor_command,"servo_command")
-        return GratbotBehaviorStatus.COMPLETED,{}
+        broker.publish(servo_command,"servo_command")
+        return GratbotBehaviorStatus.INPROGRESS,{}
 
 class RunMotors(GratbotBehavior):
     def __init__(self,lmotor,rmotor,duration):
         self.lmotor=lmotor
         self.rmotor=rmotor
         self.duration=duration
+
     def act(self,**kwargs):
         broker=kwargs["broker"]
         motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": self.lmotor,

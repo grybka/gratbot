@@ -63,8 +63,8 @@ gyrii.append(ServoGyrusVelocity(broker))
 
 #### Processing ####
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
-#gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
-gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
+gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown()))
+#gyrii.append(BehaviorGyrus(broker,Announce("announcement")))
 
 ##### Logging #####
 
