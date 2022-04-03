@@ -247,7 +247,7 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
         return None
 
 
-def tryget_classagnostic(q_nn,broker):
+def tryget_classagnostic(q_nn,broker,image):
     in_nn = q_nn.get()
     THRESHOLD=0.2
     if in_nn is not None:
@@ -255,8 +255,8 @@ def tryget_classagnostic(q_nn,broker):
         device_timestamp=in_nn.getTimestamp().total_seconds()
         detection_boxes = np.array(in_nn.getLayerFp16("ExpandDims")).reshape((100, 4))
         detection_scores = np.array(in_nn.getLayerFp16("ExpandDims_2"))
-        #xshape=192
-        #yshape=192
+        preview_xshape=192
+        preview_yshape=192
         xshape=640
         yshape=360
 
@@ -272,6 +272,11 @@ def tryget_classagnostic(q_nn,broker):
             y2 = (yshape * box[2]).astype(int)
             x1 = (xshape * box[1]).astype(int)
             x2 = (xshape * box[3]).astype(int)
+            preview_y1 = (preview_yshape * box[0]).astype(int)
+            preview_y2 = (preview_yshape * box[2]).astype(int)
+            preview_x1 = (preview_xshape * box[1]).astype(int)
+            preview_x2 = (preview_xshape * box[3]).astype(int)
+
 
             bbox_array=[x1,x2,y1,y2]
             det_item={}
@@ -280,6 +285,10 @@ def tryget_classagnostic(q_nn,broker):
             #det_item["label"] = model_labels[detection.label]
             det_item["label"] = "unknown"
             det_item["confidence"] = detection_scores[i]
+            if image is not None:
+                det_item["subimage"]=image[preview_y1:preview_y2,preview_x1:preview_x2]
+            else:
+                det_item["subimage"]=0
             detection_message.append(det_item)
         if len(detection_message)!=0:
             frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}

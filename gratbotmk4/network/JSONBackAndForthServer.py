@@ -145,12 +145,8 @@ class JSONBackAndForth():
                         #self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
                         tosend=(json.dumps(self.output_queue.get())).encode()
                         length=len(tosend).to_bytes(4,byteorder='big')
-                        self.sock.send(length)
-                        lengthsent=0
-                        while lengthsent<length:
-                            lengthsent+=self.sock.send(tosend[lengthsent:])
-                        #self.sock.sendall(length)
-                        #self.sock.sendall(tosend)
+                        self.sock.sendall(length)
+                        self.sock.sendall(tosend)
 
                     else:
                         logger.debug("short sleep")

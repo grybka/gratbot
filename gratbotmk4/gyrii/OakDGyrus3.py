@@ -94,9 +94,10 @@ class OakDGyrus(ThreadedGyrus):
                 tryget_depth(depthQueue,self.broker)
                 image_timestamp,frame=tryget_image(previewQueue,self.broker)
                 if frame is not None:
-                    last_frame=frame
+                    #last_frame=frame
+                    last_frame=None
                 #MOODEL THNIGLABL
-                tryget_classagnostic(q_nn,self.broker)
+                tryget_classagnostic(q_nn,self.broker,last_frame)
                 #for model in self.models:
                 #    tryget_nndetections(model["queue"],model["queue_passthru"],self.broker,last_frame,model["labels"])
         logging.debug("Exiting OakD thread")
@@ -118,6 +119,7 @@ class OakDGyrus(ThreadedGyrus):
         #camRgb.setPreviewSize(416, 416)
         #camRgb.setPreviewSize(256, 256)
         camRgb.setPreviewSize(640, 360)
+        #camRgb.setPreviewSize(320, 180)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
