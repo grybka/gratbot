@@ -5,6 +5,7 @@ from collections import deque
 import numpy as np
 import logging
 import time
+from underpinnings.MotionCorrection import MotionCorrection
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.INFO)
@@ -47,6 +48,7 @@ class NeckGazeGyrus(ThreadedGyrus):
         #Units are degrees per second per pixel
         self.pid_controller=MyPID(-0.25,0,0,output_clip=[-100,100])
         self.servo_num=0
+        self.motion_corrector=MotionCorrection()
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
@@ -54,7 +56,28 @@ class NeckGazeGyrus(ThreadedGyrus):
     def get_name(self):
         return "NeckGazeGyrus"
 
+    def get_track_error(self,message):
+        track=get_track_with_id(self.tracked_object,message["tracks"])
+        if track is None or self.tracked_object is None:
+            if len(message["tracks"])!=0:
+                self.tracked_object=message["tracks"][0]["id"]
+                track=message["tracks"][0]
+                logger.debug("new looking at {}".format(id_to_name(track["id"])))
+            else:
+                logger.debug("Nothing to look at")
+                return None
+        position_at_image=track["center"][1]
+        error_signal=180-position_at_image
+        ratio=0.19*2*3.14/360 #don't hard code this TODO
+        return error_signal*ratio
+
+    def get_pitch_error(self):
+        my_pitch=self.motion_corrector.get_pitch()
+        logger.debug("pitch error is {}".format(my_pitch))
+        return my_pitch
+
     def read_message(self,message):
+        self.motion_corrector.read_message(message)
 #        if "packets" in message: #this tracks the rotation vector
 #            if self.time_ref==None:
 #                self.time_ref=-message['timestamp']+message['packets'][-1]['gyroscope_timestamp']
@@ -63,18 +86,9 @@ class NeckGazeGyrus(ThreadedGyrus):
 #                self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
 
         if "tracks" in message:
-            #If I've lost my last track, find something new
-            track=get_track_with_id(self.tracked_object,message["tracks"])
-            if track is None or self.tracked_object is None:
-                if len(message["tracks"])!=0:
-                    self.tracked_object=message["tracks"][0]["id"]
-                    track=message["tracks"][0]
-                    logger.debug("new looking at {}".format(id_to_name(track["id"])))
-                else:
-                    logger.debug("Nothing to look at")
-                    return #TODO I should switch to level here
-            position_at_image=track["center"][1]
-            error_signal=180-position_at_image
+            error_signal=self.get_track_error(message)
+            if error_signal is None: #Not following anything
+                error_signal=self.get_pitch_error()
             self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
             logger.debug("Error: {}, vel {}".format(error_signal,vel))
