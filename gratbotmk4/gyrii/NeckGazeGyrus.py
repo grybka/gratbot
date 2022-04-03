@@ -5,7 +5,7 @@ from collections import deque
 import numpy as np
 import logging
 import time
-from underpinnings.MotionCorrection import MotionCorrection
+from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.INFO)
@@ -46,9 +46,9 @@ class NeckGazeGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #Units are degrees per second per pixel
-        self.pid_controller=MyPID(-0.25,0,0,output_clip=[-100,100])
+        self.pid_controller=MyPID(-100.,0,0,output_clip=[-100,100])
         self.servo_num=0
-        self.motion_corrector=MotionCorrection()
+        self.motion_corrector=MotionCorrectionRecord()
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
@@ -65,6 +65,7 @@ class NeckGazeGyrus(ThreadedGyrus):
                 logger.debug("new looking at {}".format(id_to_name(track["id"])))
             else:
                 logger.debug("Nothing to look at")
+                self.tracked_object=None
                 return None
         position_at_image=track["center"][1]
         error_signal=180-position_at_image
@@ -73,8 +74,7 @@ class NeckGazeGyrus(ThreadedGyrus):
 
     def get_pitch_error(self):
         my_pitch=self.motion_corrector.get_pitch()
-        logger.debug("pitch error is {}".format(my_pitch))
-        return my_pitch
+        return (3.14159/2-my_pitch) #in radians
 
     def read_message(self,message):
         self.motion_corrector.read_message(message)
@@ -85,10 +85,21 @@ class NeckGazeGyrus(ThreadedGyrus):
 #            for packet in message["packets"]:
 #                self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
 
+        if "clock_pulse" in message:
+            if self.tracked_object is None:
+                if self.motion_corrector.get_latest_timestamp()==0: #no info yet
+                    return
+                error_signal=self.get_pitch_error()
+                self.pid_controller.observe(error_signal)
+                vel=self.pid_controller.get_response()
+                logger.debug("Error: {}, vel {}".format(error_signal,vel))
+                servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
+                self.broker.publish(servo_command,"servo_command")
+
         if "tracks" in message:
             error_signal=self.get_track_error(message)
             if error_signal is None: #Not following anything
-                error_signal=self.get_pitch_error()
+                return
             self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
             logger.debug("Error: {}, vel {}".format(error_signal,vel))
