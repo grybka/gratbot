@@ -90,7 +90,7 @@ class JSONBackAndForth2:
             except queue.Empty:
                 ...
             except socket.error as e:
-                logger.error("socket eror {}".format(e))
+                logger.error("sender socket error {}, closing".format(e))
                 break
 
 

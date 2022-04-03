@@ -10,6 +10,20 @@ from underpinnings.id_to_name import id_to_name
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+class ServoVelUpAndDown(GratbotBehavior):
+    def __init__(self):
+        self.vel_amplitude=10
+        self.period=10
+        self.servo_num=0
+
+    def act(self,**kwargs):
+        broker=kwargs["broker"]
+        t=time.time()
+        vel=self.vel_amplitude*math.sin(2*np.pi*t/self.period)
+        servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
+        broker.publish(motor_command,"servo_command")
+        return GratbotBehaviorStatus.COMPLETED,{}
+
 class RunMotors(GratbotBehavior):
     def __init__(self,lmotor,rmotor,duration):
         self.lmotor=lmotor

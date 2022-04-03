@@ -9,6 +9,7 @@ from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
+from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
 from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
 from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
@@ -20,7 +21,7 @@ from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 from gyrii.MicrophoneGyrus2 import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
-from gyrii.behaviors.CalibrateMotionBehavior import ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
+from gyrii.behaviors.CalibrateMotionBehavior import ServoVelUpAndDown,ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
 from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_around
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
@@ -54,7 +55,8 @@ gyrii.append(ClockGyrus(broker))
 gyrii.append(OakDGyrus(broker))
 #gyrii.append(OakDGyrusPeople(broker))
 #gyrii.append(MotorGyrus(broker))
-gyrii.append(ServoGyrus(broker))
+#gyrii.append(ServoGyrus(broker))
+gyrii.append(ServoGyrusVelocity(broker))
 #gyrii.append(LEDDisplayGyrus(broker))
 #gyrii.append(MicrophoneGyrus(broker))
 
@@ -62,6 +64,7 @@ gyrii.append(ServoGyrus(broker))
 #### Processing ####
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
+gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 
 ##### Logging #####
 
@@ -71,7 +74,6 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(FollowerGyrus(broker,only_turn=True))
-#gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(BehaviorGyrus(broker,look_around()))
 #gyrii.append(BehaviorGyrus(broker,find_and_follow(["face","person"])))
 #gyrii.append(BehaviorGyrus(broker,tail_test()))
