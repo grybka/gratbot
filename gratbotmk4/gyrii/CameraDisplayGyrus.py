@@ -28,7 +28,7 @@ class TrackMerger:
             self.tracks.pop(id,None)
 
 class CameraDisplayGyrus(ThreadedGyrus):
-    def __init__(self,broker,display=None):
+    def __init__(self,broker,display=None,mode=None):
         self.display=display
         self.show_fps=True
         self.fps=0
@@ -38,7 +38,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.display_subimages=False
 
-        self.mode="show_detections"
+        if mode==None:
+            self.mode="show_detections"
+        else:
+            self.mode=mode
         #self.mode="show_tracks"
         super().__init__(broker)
 
@@ -74,10 +77,15 @@ class CameraDisplayGyrus(ThreadedGyrus):
         height = frame.shape[0]
         width  = frame.shape[1]
         try:
-            x1 = int(d["bbox_array"][0] * width)
-            x2 = int(d["bbox_array"][1] * width)
-            y1 = int(d["bbox_array"][2] * height)
-            y2 = int(d["bbox_array"][3] * height)
+            x1 = int(d["bbox_array"][0] )
+            x2 = int(d["bbox_array"][1] )
+            y1 = int(d["bbox_array"][2] )
+            y2 = int(d["bbox_array"][3] )
+
+            ##x1 = int(d["bbox_array"][0] * width)
+            #x2 = int(d["bbox_array"][1] * width)
+            #y1 = int(d["bbox_array"][2] * height)
+            #y2 = int(d["bbox_array"][3] * height)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
             cv2.putText(frame, str(d["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
         except:
@@ -95,10 +103,15 @@ class CameraDisplayGyrus(ThreadedGyrus):
         width  = frame.shape[1]
         if t["info"]=="PROBATION":
             return
-        x1 = int(t["bbox_array"][0]*width )
-        x2 = int(t["bbox_array"][1]*width)
-        y1 = int(t["bbox_array"][2]*height )
-        y2 = int(t["bbox_array"][3]*height )
+        x1 = int(t["bbox_array"][0])
+        x2 = int(t["bbox_array"][1])
+        y1 = int(t["bbox_array"][2])
+        y2 = int(t["bbox_array"][3])
+
+        #x1 = int(t["bbox_array"][0]*width )
+        #x2 = int(t["bbox_array"][1]*width)
+        #y1 = int(t["bbox_array"][2]*height )
+        #y2 = int(t["bbox_array"][3]*height )
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
         #cv2.putText(frame, str(id_to_name(t["id"])), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
         cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
@@ -127,8 +140,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 if lag<self.max_track_lag:
                     for t in self.tracks[track_type]["tracks"]:
                         self.draw_track_bbox(frame,t)
-                #else:
-                #    logger.debug("{} lag too great {} ms".format(track_type,1000*lag))
+                else:
+                    logger.debug("{} lag too great {} ms".format(track_type,1000*lag))
         if self.show_fps==True:
             self.update_fps_and_put_text(frame)
         self.display.update_image("camera",frame)
@@ -144,8 +157,11 @@ class CameraDisplayGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "image" in message:
             self.last_image_message=message
+            #print("image timestamp {}".format(message["image_timestamp"]))
             self.update_display()
         if "detections" in message:
+            #print("detection timestamp {}".format(message["image_timestamp"]))
+            #logger.debug("got detections {}".format(message))
             self.detections[message["detection_name"]]=message
 
             if self.display_subimages and len(message["detections"])>0:

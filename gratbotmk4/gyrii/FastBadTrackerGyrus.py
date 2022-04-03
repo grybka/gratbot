@@ -2,20 +2,21 @@
 import time
 import numpy as np
 import logging
+
 import uuid
 from scipy.optimize import linear_sum_assignment
 from underpinnings.id_to_name import id_to_name
 from underpinnings.MotionCorrection import MotionCorrection
+
 from Gyrus import ThreadedGyrus
-from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.WARNING)
 logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 def bbox_to_xywh(bbox):
     return [0.5*(bbox[0]+bbox[1]),0.5*(bbox[2]+bbox[3]),bbox[1]-bbox[0],bbox[3]-bbox[2]]
+
 
 class Tracklet:
     def __init__(self,timestamp,detection):
@@ -29,8 +30,10 @@ class Tracklet:
         self.n_detections=0
         self.probation_detections=4
         #here we keep a list of [timestamp, [x,y,w,h]] measurements
-        self.recent_measurements_max_length=4
-        self.recent_measurements=[]
+        #self.recent_measurements_max_length=4
+        #self.recent_measurements=[]
+        self.last_measurement=None
+        self.last_measurement_time=None
         self.last_spatial_array=None
         self.update(timestamp,detection)
         logger.debug("my xywh {}".format(self.xywh))
@@ -43,13 +46,13 @@ class Tracklet:
             logger.debug("switching label from {} to {}".format(self.last_label,detection["label"]))
             self.last_label=detection["label"]
         self.last_subimage=detection["subimage"]
-        self.recent_measurements.append( [timestamp,np.array(xywh) ] )
-        self.recent_measurements.sort(key=lambda y: y[0])
-        if len(self.recent_measurements)>self.recent_measurements_max_length:
-            self.recent_measurements.pop(0)
+        self.last_measurement=np.array(xywh)
+        self.xywh=self.last_measurement
+        self.last_measurement_time=timestamp
+        #self.recent_measurements.append( [timestamp,np.array(xywh) ] )
+        #self.recent_measurements.sort(key=lambda y: y[0])
         if "spatial_array" in detection:
             self.last_spatial_array=detection["spatial_array"]
-        self.last_timestamp=self.recent_measurements[-1][0]
         self.n_detections+=1
         #take it off probation if enough detection
         if self.status!="PROBATION" or self.n_detections>self.probation_detections:
@@ -60,28 +63,7 @@ class Tracklet:
     def project_to_time(self,timestamp):
         if self.status=="EXITED":
             return
-        points=np.array([ x[1] for x in self.recent_measurements])
-        mean_xywh=np.mean(points,axis=0)
-        #if False:
-        if len(self.recent_measurements)>2:
-            #TODO try linear fit
-            times=np.array([ x[0] for x in self.recent_measurements])
-
-            #suppose it was moving with constant velocity
-            xfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,0],2)
-            yfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,1],2)
-            xpred=xfit(timestamp)
-            ypred=yfit(timestamp)
-            #logger.debug("mean {} {}".format(mean_xywh[0],mean_xywh[1]))
-            #logger.debug("pval {} {}".format(xpred,ypred))
-            #never let tracks travel more than mostly off screen
-            w=mean_xywh[2]
-            h=mean_xywh[3]
-            #xpred=np.clip(xpred,-w/2,1+w/2)
-            #ypred=np.clip(ypred,-h/2,1+h/2)
-            self.xywh=np.array([xpred,ypred,w,h,])
-        else:
-            self.xywh=mean_xywh
+        #do nothing
 
     def update_self_motion(self,xoffset,yoffset):
         ...
@@ -90,12 +72,10 @@ class Tracklet:
         return self.xywh
 
     def account_for_offset(self,x_offset,y_offset):
-        #logger.debug("offest {} {}".format(x_offset,y_offset))
-        for measurement in self.recent_measurements:
-            measurement[1][0]+=x_offset
-            measurement[1][1]+=y_offset
+        self.last_measurement[0]+=x_offset
+        self.last_measurement[1]+=y_offset
 
-class TrackerGyrus(ThreadedGyrus):
+class FastBadTrackerGyrus(ThreadedGyrus):
     def __init__(self,broker,include_subimages=False,detection_name="detections",confidence_trigger=0.5):
         self.detection_name=detection_name
         super().__init__(broker)

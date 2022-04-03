@@ -16,6 +16,7 @@ from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
+from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
@@ -124,7 +125,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_command","servo_response","logged_note"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState"]))
-gyrii.append(CameraDisplayGyrus(broker,display_loop))
+gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
@@ -135,6 +136,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7))
+gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
