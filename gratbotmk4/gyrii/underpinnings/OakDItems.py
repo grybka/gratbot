@@ -282,6 +282,7 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
             det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
             det_item["label"] = model_labels[detection.label]
             det_item["confidence"] = detection.confidence
+            det_item["subimage"] = 0
             detection_message.append(det_item)
         if len(detection_message)!=0:
             frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}

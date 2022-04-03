@@ -129,11 +129,11 @@ class OakDGyrus(ThreadedGyrus):
     # Create manip
         NN_WIDTH=256
         NN_HEIGHT=256
-        manip = pipeline.create(dai.node.ImageManip)
+        manip = self.pipeline.create(dai.node.ImageManip)
         manip.initialConfig.setResize(NN_WIDTH, NN_HEIGHT)
         manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888p)
         manip.initialConfig.setKeepAspectRatio(False)
-        camera.preview.link(manip.inputImage)
+        camRgb.preview.link(manip.inputImage)
         #manip = self.pipeline.createImageManip()
         #manip.initialConfig.setResize(416, 416)
         #manip.initialConfig.setResizeThumbnail(416, 416)
