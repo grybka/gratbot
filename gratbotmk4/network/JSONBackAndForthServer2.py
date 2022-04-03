@@ -142,21 +142,21 @@ class JSONBackAndForth2:
                         break
                     data+=newdata
                     read_size=read_size-len(newdata)
-                    try:
-                        #json_strings=data.decode().split('\n') #andle multiple messages all in one go
-                        json_string=data.decode() #andle multiple messages all in one go
-                        #json_strings.pop(-1)
-                        #for s in json_strings:
-                            #logger.debug("message is {}".format(s))
-                        datastructure=json.loads(json_string+'\n')
-                        #if "tracks" not in datastructure:
-                        for elem in datastructure:
-                            self.input_queue.put(elem)
-                        #else:
-                        #    logger.info("tracks discarded")
-                    except Exception as error:
-                        logger.error("Error parsing json")
-                        logger.exception(error)
+                try:
+                    #json_strings=data.decode().split('\n') #andle multiple messages all in one go
+                    json_string=data.decode() #andle multiple messages all in one go
+                    #json_strings.pop(-1)
+                    #for s in json_strings:
+                        #logger.debug("message is {}".format(s))
+                    datastructure=json.loads(json_string+'\n')
+                    #if "tracks" not in datastructure:
+                    for elem in datastructure:
+                        self.input_queue.put(elem)
+                    #else:
+                    #    logger.info("tracks discarded")
+                except Exception as error:
+                    logger.error("Error parsing json")
+                    logger.exception(error)
 
 
 if __name__ == '__main__':
