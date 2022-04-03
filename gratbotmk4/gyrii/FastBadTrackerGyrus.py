@@ -114,29 +114,49 @@ class FastBadTrackerGyrus(ThreadedGyrus):
     def update_tracklets(self,timestamp,detections,offset_x,offset_y):
         #if detections[0]["label"]!="face":
         #    logger.debug("detections: {}".format([ d["label"] for d in detections]))
+
+        leftover_detection_indices=[ i for i in range(len(detections)) ]
+        leftover_tracks=[]
         for track in self.tracklets:
             #TODO include offset here
             track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
-        cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
-        for i in range(len(detections)):
-            for j in range(len(self.tracklets)):
-                cost_matrix[i,j]=self.get_score(timestamp,detections[i],self.tracklets[j])
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        leftover_is=np.setdiff1d(np.arange(len(detections)),row_ind)
-        leftover_js=np.setdiff1d(np.arange(len(self.tracklets)),col_ind)
-        for i in range(len(row_ind)):
-            if cost_matrix[row_ind[i],col_ind[i]]>self.max_assignment_cost:
-                #logger.debug("assignment cost too high {}".format(cost_matrix[row_ind[i],col_ind[i]]))
-                #logger.debug("trying to hit {},{} - {}".format(self.tracklets[row_ind[i]].xywh[0],self.tracklets[row_ind[i]].xywh[1],id_to_name(self.tracklets[row_ind[i]].id)))
-                leftover_is=np.append(leftover_is,row_ind[i])
-                leftover_js=np.append(leftover_js,col_ind[i])
+            best_cost=np.inf
+            assignment=-1
+            for j in leftover_detection_indices:
+                cost=self.get_score(timestamp,detections[j],track)
+                if cost<best_cost and cost<self.max_assignment_cost:
+                    assignment=j
+                    best_cost=cost
+            if assignment!=-1: #I can assign it
+                leftover_detection_indices.remove(assignment)
+                track.update(timestamp,detections[assignment])
             else:
-                #logger.debug("assigned with score {}".format(cost_matrix[row_ind[i],col_ind[i]]))
-                self.tracklets[col_ind[i]].update(timestamp,detections[row_ind[i]])
+                leftover_tracks.append(track)
 
-        leftover_detections=[ detections[i] for i in leftover_is]
-        leftover_tracks=[ self.tracklets[j] for j in leftover_js]
+
+
+
+        #cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
+        #for i in range(len(detections)):
+        #    for j in range(len(self.tracklets)):
+        #        cost_matrix[i,j]=self.get_score(timestamp,detections[i],self.tracklets[j])
+
+        #row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        #leftover_is=np.setdiff1d(np.arange(len(detections)),row_ind)
+        #leftover_js=np.setdiff1d(np.arange(len(self.tracklets)),col_ind)
+        #for i in range(len(row_ind)):
+        #    if cost_matrix[row_ind[i],col_ind[i]]>self.max_assignment_cost:
+        #        #logger.debug("assignment cost too high {}".format(cost_matrix[row_ind[i],col_ind[i]]))
+        #        #logger.debug("trying to hit {},{} - {}".format(self.tracklets[row_ind[i]].xywh[0],self.tracklets[row_ind[i]].xywh[1],id_to_name(self.tracklets[row_ind[i]].id)))
+        #        leftover_is=np.append(leftover_is,row_ind[i])
+        #        leftover_js=np.append(leftover_js,col_ind[i])
+        #    else:
+        #        #logger.debug("assigned with score {}".format(cost_matrix[row_ind[i],col_ind[i]]))
+        #        self.tracklets[col_ind[i]].update(timestamp,detections[row_ind[i]])
+
+
+        leftover_detections=[ detections[i] for i in leftover_detection_indices]
         for detection in leftover_detections:
             #propose new track
             self.propose_new_track(timestamp,detection)
