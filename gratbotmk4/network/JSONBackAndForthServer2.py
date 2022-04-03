@@ -128,20 +128,24 @@ class JSONBackAndForth2:
             if self.sock in exceptional:
                 logger.error("Exception in socket")
             if self.sock in readable:
-                length=self.sock.recv(4)
-                if length==b'':
-                    logger.info("Closing connection to ".format(self.host))
-                    break
-                read_size=int.from_bytes(length,byteorder='big')
-                logger.debug("readed length {}".format(read_size))
-                data=b''
-                while(read_size>0):
-                    newdata=self.sock.recv(read_size)
-                    if newdata==b'':
+                try:
+                    length=self.sock.recv(4)
+                    if length==b'':
                         logger.info("Closing connection to ".format(self.host))
                         break
-                    data+=newdata
-                    read_size=read_size-len(newdata)
+                    read_size=int.from_bytes(length,byteorder='big')
+                    logger.debug("readed length {}".format(read_size))
+                    data=b''
+                    while(read_size>0):
+                        newdata=self.sock.recv(read_size)
+                        if newdata==b'':
+                            logger.info("Closing connection to ".format(self.host))
+                            break
+                        data+=newdata
+                        read_size=read_size-len(newdata)
+                except Exception as error:
+                    logger.error("Recvr error, closing")
+                    break
                 try:
                     #json_strings=data.decode().split('\n') #andle multiple messages all in one go
                     json_string=data.decode() #andle multiple messages all in one go
