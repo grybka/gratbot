@@ -101,7 +101,7 @@ class JSONBackAndForth():
                         logger.info("Closing connection to ".format(self.host))
                         break
                     read_size=int.from_bytes(length,byteorder='big')
-                    logger.debug("readed length {}".format(length))
+                    logger.debug("readed length {}".format(read_size))
                     data=b''
                     while(read_size>0):
                         newdata=self.sock.recv(read_size)
@@ -132,7 +132,10 @@ class JSONBackAndForth():
                         #for s in json_strings:
                             #logger.debug("message is {}".format(s))
                         datastructure=json.loads(json_string+'\n')
+                        #if "tracks" not in datastructure:
                         self.input_queue.put(datastructure)
+                        #else:
+                        #    logger.info("tracks discarded")
                     except Exception as error:
                         logger.error("Error parsing json")
                         logger.exception(error)
@@ -142,11 +145,16 @@ class JSONBackAndForth():
                         #self.sock.sendall((json.dumps(self.output_queue.get())+"\n").encode())
                         tosend=(json.dumps(self.output_queue.get())).encode()
                         length=len(tosend).to_bytes(4,byteorder='big')
-                        self.sock.sendall(length)
-                        self.sock.sendall(tosend)
+                        self.sock.send(length)
+                        lengthsent=0
+                        while lengthsent<length:
+                            lengthsent+=self.sock.send(tosend[lengthsent:])
+                        #self.sock.sendall(length)
+                        #self.sock.sendall(tosend)
+
                     else:
                         logger.debug("short sleep")
-                        time.sleep(0.001) #just for a break
+                        time.sleep(0.0001) #just for a break
                 logger.debug("loop end")
             logger.warning("closing socket")
             self.sock.close()
