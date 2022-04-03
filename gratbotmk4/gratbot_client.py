@@ -5,7 +5,7 @@ sys.path.append('network')
 import logging
 import cv2 as cv
 import argparse
-from network.JSONBackAndForthServer import JSONBackAndForth
+from network.JSONBackAndForthServer2 import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import ThreadedGyrus,GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink

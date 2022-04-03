@@ -3,7 +3,7 @@ import sys,os,traceback,time
 sys.path.append('gyrii')
 sys.path.append('network')
 import logging
-from network.JSONBackAndForthServer import JSONBackAndForth
+from network.JSONBackAndForthServer2 import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink
@@ -41,7 +41,7 @@ broker=MessageBroker()
 #Open up a server to talk
 logging.debug("Starting Server")
 test_port=23033
-network_server=JSONBackAndForth()
+network_server=JSONBackAndForth2()
 network_server.start_server(test_port)
 
 logging.debug("Creating Gyrus List")

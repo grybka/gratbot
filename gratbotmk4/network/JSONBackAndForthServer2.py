@@ -89,6 +89,9 @@ class JSONBackAndForth2:
                 self.sock.sendall(tosend)
             except queue.Empty:
                 ...
+            except socket.error as e:
+                logger.error("socket eror {}".format(e))
+                break
 
 
     def _thread_loop_server(self):
@@ -147,7 +150,8 @@ class JSONBackAndForth2:
                             #logger.debug("message is {}".format(s))
                         datastructure=json.loads(json_string+'\n')
                         #if "tracks" not in datastructure:
-                        self.input_queue.put(datastructure)
+                        for elem in datastructure:
+                            self.input_queue.put(elem)
                         #else:
                         #    logger.info("tracks discarded")
                     except Exception as error:
