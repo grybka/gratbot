@@ -47,9 +47,11 @@ class NeckGazeGyrus(ThreadedGyrus):
         super().__init__(broker)
         self.tracked_object=None
         #Units are degrees per second per pixel
-        self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
+        #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
+        self.pid_controller=MyPID(-100.,0,0,output_clip=[-150,150])
         self.servo_num=0
         self.motion_corrector=MotionCorrectionRecord()
+        self.last_track_time=0
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
@@ -96,7 +98,8 @@ class NeckGazeGyrus(ThreadedGyrus):
 #                self.rot_vector_history.append([packet["gyroscope_timestamp"],packet["local_rotation"]])
 
         if "clock_pulse" in message:
-            if self.tracked_object is None:
+            if self.tracked_object is None or time.time()>(self.last_track_time+1):
+                self.tracked_object=None
                 if self.motion_corrector.get_latest_timestamp()==0: #no info yet
                     return
                 error_signal=self.get_pitch_error()
@@ -109,6 +112,7 @@ class NeckGazeGyrus(ThreadedGyrus):
                 logger.debug("tracked object is {}".format(id_to_name(self.tracked_object)))
 
         if "tracks" in message:
+            self.last_track_time=time.time()
             error_signal=self.get_track_error(message)
             if error_signal is None: #Not following anything
                 logger.debug("not following anything")

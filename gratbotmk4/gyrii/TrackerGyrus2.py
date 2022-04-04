@@ -56,6 +56,8 @@ class Tracklet:
             #if self.status=="PROBATION":
             #    logger.debug("{} is off probation with {} detections".format(id_to_name(self.id),self.n_detections))
             self.status="DETECTED"
+        else:
+            self.status="PROBATION"
 
     def project_to_time(self,timestamp):
         if self.status=="EXITED":
@@ -138,6 +140,7 @@ class TrackerGyrus(ThreadedGyrus):
             #TODO include offset here
             track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
+            track.status="MISSING"
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):
             for j in range(len(self.tracklets)):
