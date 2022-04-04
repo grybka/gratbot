@@ -14,6 +14,15 @@ logger=logging.getLogger(__name__)
 #logger.setLevel(logging.WARNING)
 logger.setLevel(logging.INFO)
 
+#Behavior -
+#A detection is either identified as part of an existing tracklet, or as a new track, depending on match score
+#A new tracklet is 'on probation' for probation_detection_frames
+#If a tracklet on probation does not reach probation_detection_frames in tracklet_persist_time_on_probation seconds, it will be discarded
+#if a tracklet not on probation is not detected in a frame it is declared MISSING
+#if a MISSING tracklet's projected position is off-screen, it is declared EXITED
+#if a MISSING tracklet has not had a detection in tracklet_persist_time, it is declared LOST and removed after report
+#tracklets that are not on probation are reported with DETECTED, MISSING, EXITED, or LOST status
+
 def bbox_to_xywh(bbox):
     return [0.5*(bbox[0]+bbox[1]),0.5*(bbox[2]+bbox[3]),bbox[1]-bbox[0],bbox[3]-bbox[2]]
 
@@ -25,7 +34,7 @@ class Tracklet:
         self.id=uuid.uuid1()
         self.last_label=detection["label"]
         #the probability that this thing moves on its own
-        self.status="PROBATION"
+        self.status="PROBATION" #One of PROBATION DETECTED MISSING EXITED or LOST
         self.n_detections=0
         self.probation_detections=4
         #here we keep a list of [timestamp, [x,y,w,h]] measurements
@@ -53,11 +62,7 @@ class Tracklet:
         self.n_detections+=1
         #take it off probation if enough detection
         if self.status!="PROBATION" or self.n_detections>self.probation_detections:
-            #if self.status=="PROBATION":
-            #    logger.debug("{} is off probation with {} detections".format(id_to_name(self.id),self.n_detections))
             self.status="DETECTED"
-        else:
-            self.status="PROBATION"
 
     def project_to_time(self,timestamp):
         if self.status=="EXITED":
@@ -140,7 +145,6 @@ class TrackerGyrus(ThreadedGyrus):
             #TODO include offset here
             track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
-            track.status="MISSING"
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):
             for j in range(len(self.tracklets)):
@@ -167,6 +171,8 @@ class TrackerGyrus(ThreadedGyrus):
 
         track_message=[]
         for track in self.tracklets:
+            if track.status=="PROBATION":
+                continue #Don't report probationary tracks
             det_item={}
             x,y,w,h=track.get_xywh()
             det_item["bbox_array"]=[ x-w/2, x+w/2,y-h/2,y+h/2]
@@ -216,19 +222,21 @@ class TrackerGyrus(ThreadedGyrus):
 
     def mark_missed_tracks(self,timestamp,tracks):
         for track in tracks:
+            if track.status!="EXITED" and track.status!="PROBATION":
+                track.status="MISSING"
             if track.xywh[0]<0 or track.xywh[0]>1 or track.xywh[1]<0 or track.xywh[1]>1:
-                if track.status!="EXITED":
-                    logger.debug("{} has exited view".format(id_to_name(track.id)))
                 track.status="EXITED"
-            if timestamp-track.last_timestamp>self.tracklet_lost_time:
-                track.status="LOST"
-            if timestamp-track.last_timestamp>self.tracklet_persist_time or (track.status=="PROBATION" and timestamp-track.last_timestamp>self.tracklet_persist_time_on_probation):
-                track.status="LOST"
+            if track.status=="PROBATION":
+                if timestamp-track.last_timestamp>self.tracklet_persist_time_on_probation:
+                    track.status="LOST"
+            elif track.status=="MISSING" or track.status=="EXITED":
+                if timestamp-track.last_timestamp>self.tracklet_lost_time:
+                    track.status="LOST"
 
     def handle_missed_tracks(self,timestamp,tracks):
         dead_tracks=[]
         for track in tracks:
-            if timestamp-track.last_timestamp>self.tracklet_persist_time or (track.status=="PROBATION" and timestamp-track.last_timestamp>self.tracklet_persist_time_on_probation):
+            if track.status=="LOST":
                 dead_tracks.append(track)
         for track in dead_tracks:
             logger.debug("removing track {} at {}".format(id_to_name(track.id),timestamp))

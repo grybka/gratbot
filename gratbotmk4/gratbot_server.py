@@ -67,7 +67,7 @@ gyrii.append(ServoGyrusVelocity(broker))
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
-gyrii.append(NeckGazeGyrus(broker))
+####gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####
 
