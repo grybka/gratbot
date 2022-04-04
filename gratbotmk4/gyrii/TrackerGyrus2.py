@@ -219,6 +219,8 @@ class TrackerGyrus(ThreadedGyrus):
                 track.status="EXITED"
             if timestamp-track.last_timestamp>self.tracklet_lost_time:
                 track.status="LOST"
+            if timestamp-track.last_timestamp>self.tracklet_persist_time or (track.status=="PROBATION" and timestamp-track.last_timestamp>self.tracklet_persist_time_on_probation):
+                track.status="LOST"
 
     def handle_missed_tracks(self,timestamp,tracks):
         dead_tracks=[]
