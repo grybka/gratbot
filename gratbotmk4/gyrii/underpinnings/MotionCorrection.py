@@ -27,7 +27,7 @@ def get_closest_value(timestamp,mylist):
 class MotionCorrectionRecord:
     def __init__(self,max_recent_history=20):
         self.max_recent_history=max_recent_history
-        self.accel=np.array([0,0,10]) #for gravity
+        self.accel=np.array([-10,0,0]) #for gravity z,x,y
         self.headings=deque([],maxlen=self.max_recent_history) #from gyro integration
         self.z_gyro_index=0
         self.y_gyro_index=2
@@ -49,7 +49,7 @@ class MotionCorrectionRecord:
                 self.headings.append( [packet["gyroscope_timestamp"],next_heading])
 
     def get_pitch(self):
-        return np.arctan2(self.accel[2],self.accel[1])
+        return np.arctan2(self.accel[2],-self.accel[0])
 
     def get_rotation_between(self,time_a,time_b):
         #gives the left right and pitch rotations

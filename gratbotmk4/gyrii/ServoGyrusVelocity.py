@@ -17,7 +17,7 @@ class ServoGyrusVelocity(ThreadedGyrus):
         self.kit = ServoKit(channels=self.servo_count)
         self.max_angle=165
         self.min_angle=60
-        self.max_vel=100
+        self.max_vel=150
         self.velocity_thread=None
         self.thread_sleep_time=0.005
         self.servo_velocities=np.zeros(self.servo_count)
