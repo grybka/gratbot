@@ -269,7 +269,6 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
     #publish detections from a nn
     #no return
     #assume its squeezed
-    xoffset=0.5*(output_image_size[0]-output_image_size[1])
 
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:

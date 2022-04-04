@@ -79,6 +79,7 @@ class NeckGazeGyrus(ThreadedGyrus):
         position_at_image=track["center"][1]
         error_signal=180-position_at_image
         ratio=0.19*2*3.14/360 #don't hard code this TODO
+        return None
         return error_signal*ratio
 
     def get_pitch_error(self):

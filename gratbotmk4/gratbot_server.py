@@ -67,11 +67,12 @@ gyrii.append(ServoGyrusVelocity(broker))
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
-####gyrii.append(NeckGazeGyrus(broker))
+###gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####
 
 #gyrii.append(MessageLoggerGyrus(broker,keys=["image","tracks"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["detections","tracks"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections","image"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections"]))
 #gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
