@@ -264,10 +264,13 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
         return None
 
 
-def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
+def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels,nn_image_size,output_image_size):
     image=None
     #publish detections from a nn
     #no return
+    #assume its squeezed
+    xoffset=0.5*(output_image_size[0]-output_image_size[1])
+
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
         #logger.debug("nn deetection got")
@@ -277,7 +280,11 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
-            bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+            #bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+            bbox_array=[detection.xmin*output_image_size[1]+xoffset,
+                        detection.xmax*output_image_size[1]+xoffset,
+                        detection.ymin*output_image_size[1],
+                        detection.ymax*output_image_size[1]]
             det_item["bbox_array"]=bbox_array
             det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
             det_item["label"] = model_labels[detection.label]
