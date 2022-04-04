@@ -15,6 +15,7 @@ logger.setLevel(logging.DEBUG)
 #alternately, hold head level if I'm tilted
 #reworked from headtrackergyrus
 
+
 class MyPID:
     def __init__(self,p,i,d,output_clip=[-1,1]):
         self.const_p=p

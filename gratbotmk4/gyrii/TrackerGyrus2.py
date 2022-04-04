@@ -160,7 +160,7 @@ class TrackerGyrus(ThreadedGyrus):
         for detection in leftover_detections:
             #propose new track
             self.propose_new_track(timestamp,detection)
-        self.handle_missed_tracks(timestamp,leftover_tracks)
+        self.mark_missed_tracks(timestamp,leftover_tracks)
 
         track_message=[]
         for track in self.tracklets:
@@ -182,6 +182,7 @@ class TrackerGyrus(ThreadedGyrus):
                      "offset": [offset_x,offset_y],
                      "detection_name": self.detection_name}
         self.broker.publish(message_out,["tracks"])
+        self.handle_missed_tracks(timestamp,leftover_tracks)
 
     def get_score(self,timestamp,detection,track):
         x,y,w,h=bbox_to_xywh(detection["bbox_array"])
@@ -210,8 +211,7 @@ class TrackerGyrus(ThreadedGyrus):
         logger.debug("at {},{} with confidence {} at {}".format(new_track.xywh[0],new_track.xywh[1],detection["confidence"],timestamp))
         self.tracklets.append(new_track)
 
-    def handle_missed_tracks(self,timestamp,tracks):
-        dead_tracks=[]
+    def mark_missed_tracks(self,timestamp,tracks):
         for track in tracks:
             if track.xywh[0]<0 or track.xywh[0]>1 or track.xywh[1]<0 or track.xywh[1]>1:
                 if track.status!="EXITED":
@@ -219,6 +219,10 @@ class TrackerGyrus(ThreadedGyrus):
                 track.status="EXITED"
             if timestamp-track.last_timestamp>self.tracklet_lost_time:
                 track.status="LOST"
+
+    def handle_missed_tracks(self,timestamp,tracks):
+        dead_tracks=[]
+        for track in tracks:
             if timestamp-track.last_timestamp>self.tracklet_persist_time or (track.status=="PROBATION" and timestamp-track.last_timestamp>self.tracklet_persist_time_on_probation):
                 dead_tracks.append(track)
         for track in dead_tracks:
