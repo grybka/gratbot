@@ -264,7 +264,7 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
         return None
 
 
-def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels,nn_image_size,output_image_size):
+def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
     image=None
     #publish detections from a nn
     #no return
@@ -280,11 +280,7 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels,nn_image
         detection_message=[]
         for detection in inDet.detections:
             det_item={}
-            #bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
-            bbox_array=[detection.xmin*output_image_size[1]+xoffset,
-                        detection.xmax*output_image_size[1]+xoffset,
-                        detection.ymin*output_image_size[1],
-                        detection.ymax*output_image_size[1]]
+            bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
             det_item["bbox_array"]=bbox_array
             det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
             det_item["label"] = model_labels[detection.label]
@@ -322,12 +318,16 @@ def tryget_classagnostic(q_nn,broker,image):
         detection_message=[]
         for i in range(boxes.shape[0]):
             box = boxes[i]
-            y1 = (yshape * box[0]).astype(int)
-            y2 = (yshape * box[2]).astype(int)
-            x1 = (xshape * box[1]).astype(int)
-            x2 = (xshape * box[3]).astype(int)
-            if x2-x1 > 640*0.75 or y2-y1>360*0.75:
-                continue #objects that use up 75$ of the area are too close
+            y1 = box[0]
+            y2= box[2]
+            x1=box[1]
+            x2=box[3]
+            #y1 = (yshape * box[0]).astype(int)
+            #y2 = (yshape * box[2]).astype(int)
+            #x1 = (xshape * box[1]).astype(int)
+            #x2 = (xshape * box[3]).astype(int)
+            #if x2-x1 > 640*0.75 or y2-y1>360*0.75:
+            #    continue #objects that use up 75$ of the area are too close
             preview_y1 = (preview_yshape * box[0]).astype(int)
             preview_y2 = (preview_yshape * box[2]).astype(int)
             preview_x1 = (preview_xshape * box[1]).astype(int)
