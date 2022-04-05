@@ -148,7 +148,7 @@ class TrackerGyrus(ThreadedGyrus):
         #camera is 69 x 55 degrees, allegedly (or is it 73?  it is different in different places)
         for track in self.tracklets:
             #TODO include offset here
-            track.account_for_offset(offset_x,offset_y)
+            #track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):

@@ -8,7 +8,7 @@ import time
 from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 
 
@@ -45,11 +45,11 @@ class PointingErrorGyrus(ThreadedGyrus):
             else:
                 logger.debug("Nothing to look at")
                 self.tracked_object=None
-                return None
+                return None,None
         if track["info"]=="LOST":
             logger.debug("Track lost")
             self.tracked_object=None
-            return None
+            return None,None
         else:
             logger.debug("track status {}".format(track["info"]))
         yposition_at_image=track["center"][1]
@@ -84,7 +84,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         if "tracks" in message:
             self.last_track_time=time.time()
             xerror_signal,yerror_signal=self.get_track_error(message)
-            if error_signal is None: #Not following anything
+            if yerror_signal is None: #Not following anything
                 logger.debug("not following anything")
                 return
             self.report_error(xerror_signal,yerror_signal)
@@ -97,6 +97,9 @@ class MyPID:
         self.const_d=d
         self.history_size=10
         self.history=deque([  ],maxlen=self.history_size)
+        #set zero error as the history
+        for i in range(self.history_size):
+            self.history.append(0)
         self.output_clip=output_clip
 
     def observe(self,val):
@@ -139,7 +142,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        self.pid_controller=MyPID(-1,0,0,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.15,-0.3,0,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
@@ -151,11 +154,13 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "pointing_error_x" in message:
             error_signal=message["pointing_error_x"]
+            logger.debug("Body Pointing Error {}".format(error_signal))
             self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
 
-            left_throttle=vel
-            right_throttle=-vel
+            left_throttle=-vel
+            right_throttle=vel
+            logger.debug("x velocity {}".format(vel))
             dur=0.2
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")

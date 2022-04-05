@@ -12,7 +12,7 @@ from gyrii.ServoGyrus import ServoGyrus
 from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
 #from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
 #from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
-from gyrii.NeckGazeGyrus import NeckGazeGyrus, NeckPointingErrorCorrectionGyrus,PointingErrorGyrus,BodyPointingErrorCorrectionGyrus
+from gyrii.NeckGazeGyrus import  NeckPointingErrorCorrectionGyrus,PointingErrorGyrus,BodyPointingErrorCorrectionGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
@@ -56,7 +56,7 @@ gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.ou
 gyrii.append(ClockGyrus(broker))
 gyrii.append(OakDGyrus(broker))
 #gyrii.append(OakDGyrusPeople(broker))
-#gyrii.append(MotorGyrus(broker))
+gyrii.append(MotorGyrus(broker))
 #gyrii.append(ServoGyrus(broker))
 gyrii.append(ServoGyrusVelocity(broker))
 #gyrii.append(LEDDisplayGyrus(broker))
