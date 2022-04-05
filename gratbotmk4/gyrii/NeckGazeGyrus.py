@@ -8,8 +8,8 @@ import time
 from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-#logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def get_track_with_id(id,tracks):
@@ -27,6 +27,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.tracked_object=None
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
+        self.resting_angle=30*(2*3.14/360)
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
@@ -59,10 +60,11 @@ class PointingErrorGyrus(ThreadedGyrus):
     def get_pitch_error(self):
         my_pitch=self.motion_corrector.get_pitch()
         #logger.debug("pitch {}".format(my_pitch))
-        return -my_pitch #in radians
+        return -my_pitch+self.resting_angle #in radians
 
-    def report_error(self,yerror,xerror):
+    def report_error(self,xerror,yerror):
         #xerror and yerror should be roughly in degrees
+        logger.debug("Reporting error {} {}".format(xerror,yerror))
         message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror}
         self.broker.publish(message_out,["pointing_error_x","pointing_error_y"])
 
