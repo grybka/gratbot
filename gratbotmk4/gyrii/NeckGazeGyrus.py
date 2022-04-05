@@ -8,8 +8,8 @@ import time
 from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 #if I'm paying attention to a tracked object, follow it with my head
 #alternately, hold head level if I'm tilted
@@ -48,7 +48,7 @@ class NeckGazeGyrus(ThreadedGyrus):
         self.tracked_object=None
         #Units are degrees per second per pixel
         #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
-        self.pid_controller=MyPID(-100.,0,0,output_clip=[-150,150])
+        self.pid_controller=MyPID(-100.,-10,-400,output_clip=[-150,150])
         self.servo_num=0
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
@@ -77,10 +77,9 @@ class NeckGazeGyrus(ThreadedGyrus):
         else:
             logger.debug("track status {}".format(track["info"]))
         position_at_image=track["center"][1]
-        error_signal=180-position_at_image
-        ratio=0.19*2*3.14/360 #don't hard code this TODO
-        return None
-        return error_signal*ratio
+        error_signal=position_at_image-0.5
+        ratio=2*2*3.14*60/360 #don't hard code this TODO
+        return -error_signal*ratio
 
     def get_pitch_error(self):
         my_pitch=self.motion_corrector.get_pitch()
@@ -109,8 +108,8 @@ class NeckGazeGyrus(ThreadedGyrus):
                 #logger.debug("Error: {}, vel {}".format(error_signal,vel))
                 servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
                 self.broker.publish(servo_command,"servo_command")
-            else:
-                logger.debug("tracked object is {}".format(id_to_name(self.tracked_object)))
+            #else:
+            #    logger.debug("tracked object is {}".format(id_to_name(self.tracked_object)))
 
         if "tracks" in message:
             self.last_track_time=time.time()
