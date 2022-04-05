@@ -141,6 +141,11 @@ class TrackerGyrus(ThreadedGyrus):
     def update_tracklets(self,timestamp,detections,offset_x,offset_y):
         #if detections[0]["label"]!="face":
         #    logger.debug("detections: {}".format([ d["label"] for d in detections]))
+
+
+        #offset x and y should be in radians
+        #track positions are in vido full scale
+        #camera is 69 x 55 degrees, allegedly (or is it 73?  it is different in different places)
         for track in self.tracklets:
             #TODO include offset here
             track.account_for_offset(offset_x,offset_y)
