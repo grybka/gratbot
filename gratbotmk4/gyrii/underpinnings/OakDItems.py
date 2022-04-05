@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import blobconverter
 
+#Rule:
+#Detection bounding boxes should be given in terms of fraction of full width or height
 
 
 logger=logging.getLogger(__name__)

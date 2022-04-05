@@ -77,10 +77,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
         height = frame.shape[0]
         width  = frame.shape[1]
         try:
-            x1 = int(d["bbox_array"][0] )
-            x2 = int(d["bbox_array"][1] )
-            y1 = int(d["bbox_array"][2] )
-            y2 = int(d["bbox_array"][3] )
+            x1 = int(d["bbox_array"][0] *width )
+            x2 = int(d["bbox_array"][1] *width)
+            y1 = int(d["bbox_array"][2] *height)
+            y2 = int(d["bbox_array"][3] *height)
 
             ##x1 = int(d["bbox_array"][0] * width)
             #x2 = int(d["bbox_array"][1] * width)
@@ -103,10 +103,10 @@ class CameraDisplayGyrus(ThreadedGyrus):
         width  = frame.shape[1]
         if t["info"]=="PROBATION":
             return
-        x1 = int(t["bbox_array"][0])
-        x2 = int(t["bbox_array"][1])
-        y1 = int(t["bbox_array"][2])
-        y2 = int(t["bbox_array"][3])
+        x1 = int(t["bbox_array"][0]*width)
+        x2 = int(t["bbox_array"][1]*width)
+        y1 = int(t["bbox_array"][2]*height)
+        y2 = int(t["bbox_array"][3]*height)
 
         #x1 = int(t["bbox_array"][0]*width )
         #x2 = int(t["bbox_array"][1]*width)
