@@ -182,6 +182,7 @@ class TrackerGyrus(ThreadedGyrus):
             x,y,w,h=track.get_xywh()
             det_item["bbox_array"]=[ x-w/2, x+w/2,y-h/2,y+h/2]
             det_item["center"]=[x,y]
+            det_item["recent_measurements"]=track.recent_measurements
             det_item["id"]=track.id
             det_item["info"]=track.status
             det_item["label"]=track.last_label

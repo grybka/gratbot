@@ -98,6 +98,19 @@ class CameraDisplayGyrus(ThreadedGyrus):
             cv2.putText(frame, f"Z: {int(d['spatial_array'][2])} mm", (x1 + 10, y1 + 80), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
 
     def draw_track_bbox(self,frame,t):
+        for i in range(t["recent_measurements"]):
+            color = (255, 40*i, 0)
+            x,y,w,h=t["recent_measurements"][i][1]
+            x1=int(x-w/2)
+            x2=int(x+w/2)
+            y1=int(y-h/2)
+            y2=int(y+h/2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+            if i==0:
+                cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+
+    def old_draw_track_bbox(self,frame,t):
         color = (255, 0, 0)
         height = frame.shape[0]
         width  = frame.shape[1]
