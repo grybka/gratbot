@@ -9,7 +9,7 @@ from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 
 
 def get_track_with_id(id,tracks):
@@ -142,7 +142,8 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        self.pid_controller=MyPID(-0.15,-0.3,0,output_clip=[-1,1])
+        #self.pid_controller=MyPID(-0.10,-0.3,0,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.20,0,-0.15,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
