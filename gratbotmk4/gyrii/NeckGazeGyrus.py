@@ -27,6 +27,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.tracked_object=None
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
+        self.track_time_declare_lost=2
         self.resting_angle=30*(2*3.14/360)
 
     def get_keys(self):
@@ -36,8 +37,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         return "PointingErrorGyrus"
 
     def get_track_error(self,message):
-        track=get_track_with_id(self.tracked_object,message["tracks"])
-        if track is None or self.tracked_object is None:
+        if self.tracked_object is None: #decide to look at something new
             if len(message["tracks"])!=0:
                 self.tracked_object=message["tracks"][0]["id"]
                 track=message["tracks"][0]
@@ -47,6 +47,9 @@ class PointingErrorGyrus(ThreadedGyrus):
                 logger.debug("Nothing to look at")
                 self.tracked_object=None
                 return None,None
+        track=get_track_with_id(self.tracked_object,message["tracks"])
+        if track is None:
+            return None,None
         if track["info"]=="LOST":
             logger.debug("Track lost")
             self.tracked_object=None
@@ -74,8 +77,11 @@ class PointingErrorGyrus(ThreadedGyrus):
     def read_message(self,message):
         self.motion_corrector.read_message(message)
         if "clock_pulse" in message:
+            #if I haven't heard from the thing I'm tracking in a long time, drop it
+            if self.last_track_time-time.time()>self.track_time_declare_lost:
+                self.tracked_object=None
             #if I'm no tracking something, hold head level
-            if self.tracked_object is None or time.time()>(self.last_track_time+1):
+            if self.tracked_object is None:
                 self.tracked_object=None
                 if self.motion_corrector.get_latest_timestamp()==0: #no info yet
                     return
@@ -85,8 +91,8 @@ class PointingErrorGyrus(ThreadedGyrus):
         if "tracks" in message:
             self.last_track_time=time.time()
             xerror_signal,yerror_signal=self.get_track_error(message)
-            if yerror_signal is None: #Not following anything
-                logger.debug("not following anything")
+            if yerror_signal is None: #Not following anything or wasn't in this message
+                #logger.debug("not following anything")
                 return
             self.report_error(xerror_signal,yerror_signal)
 
