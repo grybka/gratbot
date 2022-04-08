@@ -41,7 +41,8 @@ class PointingErrorGyrus(ThreadedGyrus):
             if len(message["tracks"])!=0:
                 self.tracked_object=message["tracks"][0]["id"]
                 track=message["tracks"][0]
-                logger.debug("new looking at {}".format(id_to_name(track["id"])))
+                #logger.debug("new looking at {}".format(id_to_name(track["id"])))
+                logger.info("new looking at {}".format(track["label"]))
             else:
                 logger.debug("Nothing to look at")
                 self.tracked_object=None
@@ -143,7 +144,8 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
         super().__init__(broker)
         #Units are throttle per radian
         #self.pid_controller=MyPID(-0.10,-0.3,0,output_clip=[-1,1])
-        self.pid_controller=MyPID(-0.20,0,-0.15,output_clip=[-1,1])
+        #self.pid_controller=MyPID(-0.20,0,-0.15,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.10,0,0,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
