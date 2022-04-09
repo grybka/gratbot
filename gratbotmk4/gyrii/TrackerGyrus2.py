@@ -29,6 +29,7 @@ def bbox_to_xywh(bbox):
 class Tracklet:
     def __init__(self,timestamp,detection):
         self.xywh=bbox_to_xywh(detection["bbox_array"])
+        self.vxvy=[0,0]
         self.last_timestamp=timestamp
         self.last_subimage=detection["subimage"]
         self.id=uuid.uuid1()
@@ -75,8 +76,9 @@ class Tracklet:
             times=np.array([ x[0] for x in self.recent_measurements])
 
             #suppose it was moving with constant velocity
-            xfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,0],2)
-            yfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,1],2)
+            xfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,0],1)
+            yfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,1],1)
+            self.vxvy=[xfit.convert().coef[1],yfit.convert().coef[1]]
             xpred=xfit(timestamp)
             ypred=yfit(timestamp)
             #logger.debug("mean {} {}".format(mean_xywh[0],mean_xywh[1]))
@@ -139,7 +141,7 @@ class TrackerGyrus(ThreadedGyrus):
                 logger.info("Track Report")
                 logger.info("Time Lag : {}".format(time_lag))
                 for tracklet in self.tracklets:
-                    logger.info("{} {}: {}".format(tracklet.last_label,id_to_name(tracklet.id),tracklet.status))
+                    logger.info("{} {}: {}  vx,vy ({},{})".format(tracklet.last_label,id_to_name(tracklet.id),tracklet.status,tracklet.vxvy[0],tracklet.vxvy[1]))
 
 
     def update_tracklets(self,timestamp,detections,offset_x,offset_y):
