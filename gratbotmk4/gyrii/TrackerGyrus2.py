@@ -131,7 +131,7 @@ class TrackerGyrus(ThreadedGyrus):
         if "detections" in message and len(message["detections"])!=0:
             #offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
-            offset_x,offset_y=0,0
+            #offset_x,offset_y=0,0
             self.update_tracklets(message["image_timestamp"],message["detections"],offset_x,offset_y)
             if time.time()-self.last_report>self.report_time:
                 time_lag=message["image_timestamp"]-self.motion_corrector.get_latest_timestamp()
@@ -152,7 +152,7 @@ class TrackerGyrus(ThreadedGyrus):
         #camera is 69 x 55 degrees, allegedly (or is it 73?  it is different in different places)
         for track in self.tracklets:
             #TODO include offset here
-            #track.account_for_offset(offset_x,offset_y)
+            track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):
