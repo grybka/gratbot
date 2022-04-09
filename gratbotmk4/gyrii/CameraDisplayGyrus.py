@@ -9,24 +9,6 @@ logger=logging.getLogger(__name__)
 #logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 
-class TrackMerger:
-    def __init__(self):
-        self.tracks={}
-
-    def merge_tracks(self,message):
-        for t in message["tracks"]:
-            if t["info"]=="LOST":
-                self.tracks.pop(t["id"],None)
-            else:
-                self.tracks[t["id"]]=t
-                self.tracks[t["id"]]["last_update"]=time.time()
-        to_drop=[]
-        for id in self.tracks:
-            if time.time()-self.tracks[id]["last_update"]>10:
-                to_drop.append(id)
-        for id in to_drop:
-            self.tracks.pop(id,None)
-
 class CameraDisplayGyrus(ThreadedGyrus):
     def __init__(self,broker,display=None,mode=None):
         self.display=display
@@ -47,8 +29,6 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         self.tracks={}
         self.detections={}
-
-
 
         self.last_detections_message={"detections": []}
         self.last_image_message={}
@@ -133,6 +113,14 @@ class CameraDisplayGyrus(ThreadedGyrus):
         #cv2.putText(frame, "{:.2f} {:.2f} Dist: {:.2f}m".format(t["center"][0],t["center"][1],t["center"][2]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
         cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
 
+    def update_tracks(self,message):
+        for track in message["tracks"]:
+            if track["info"]=="LOST":
+                if track["id"] in self.tracks:
+                    del self.tracks[track["id"]]
+            else:
+                self.tracks[track["id"]]=track
+
     def update_display(self):
         if "image" not in self.last_image_message:
             return
@@ -149,14 +137,14 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 #else:
                 #    logger.debug("{} lag too great {} ms".format(detection_type,1000*lag))
         elif self.mode=="show_tracks":
-            self.max_track_lag=0.5
-            for track_type in self.tracks:
-                lag=-self.tracks[track_type]["image_timestamp"]+self.last_image_message["image_timestamp"]
-                if lag<self.max_track_lag:
-                    for t in self.tracks[track_type]["tracks"]:
-                        self.draw_track_bbox(frame,t)
-                else:
-                    logger.debug("{} lag too great {} ms".format(track_type,1000*lag))
+            for trackid in self.tracks:
+                self.draw_track_bbox(frame,self.tracks[trackid])
+            #self.max_track_lag=0.5
+            #for track_type in self.tracks:
+            #    lag=-self.tracks[track_type]["image_timestamp"]+self.last_image_message["image_timestamp"]
+            #    if lag<self.max_track_lag:
+            #        for t in self.tracks[track_type]["tracks"]:
+            #            self.draw_track_bbox(frame,t)
         if self.show_fps==True:
             self.update_fps_and_put_text(frame)
         self.display.update_image("camera",frame)
@@ -183,7 +171,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message and self.mode=="show_tracks":
-            self.tracks[message["detection_name"]]=message
+            self.update_tracks(message)
+            #self.tracks[message["detection_name"]]=message
             #self.last_tracks_message=message
             #if self.display_subimages and len(message["tracks"])>0:
             #    self.display.update_image("subimage",message["tracks"][0]["subimage"])

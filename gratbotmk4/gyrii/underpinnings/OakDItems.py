@@ -208,6 +208,11 @@ def tryget_image(previewQueue,broker):
         frame_message["image_timestamp"]=image_timestamp
         frame_message["image"]=frame
         frame_message["keys"]=["image"]
+
+        sequenceNum=inPreview.getSequenceNum()
+        logger.debug("Image squence num {}".format(sequenceNum))
+
+
         broker.publish(frame_message,frame_message["keys"])
         return image_timestamp,frame
     else:
@@ -279,6 +284,8 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
         device_timestamp=inDet.getTimestamp().total_seconds()
         #logger.debug("metadata deetection got timestamp {}".format(device_timestamp))
         detection_message=[]
+        sequenceNum=inDet.getSequenceNum()
+        logger.debug("Image squence num {}".format(sequenceNum))
         for detection in inDet.detections:
             det_item={}
             bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
