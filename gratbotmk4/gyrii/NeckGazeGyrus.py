@@ -45,13 +45,12 @@ class PointingErrorGyrus(ThreadedGyrus):
                 logger.info("new looking at {}".format(track["label"]))
             else:
                 logger.debug("Nothing to look at")
-                self.tracked_object=None
                 return None,None
         track=get_track_with_id(self.tracked_object,message["tracks"])
         if track is None:
             return None,None
         if track["info"]=="LOST":
-            logger.debug("Track lost")
+            logger.info("Track lost")
             self.tracked_object=None
             return None,None
         else:
@@ -77,9 +76,6 @@ class PointingErrorGyrus(ThreadedGyrus):
     def read_message(self,message):
         self.motion_corrector.read_message(message)
         if "clock_pulse" in message:
-            #if I haven't heard from the thing I'm tracking in a long time, drop it
-            if self.last_track_time-time.time()>self.track_time_declare_lost:
-                self.tracked_object=None
             #if I'm no tracking something, hold head level
             if self.tracked_object is None:
                 self.tracked_object=None
@@ -87,13 +83,20 @@ class PointingErrorGyrus(ThreadedGyrus):
                     return
                 error_signal=self.get_pitch_error()
                 self.report_error(0,error_signal)
+                return
+            #if I haven't heard from the thing I'm tracking in a long time, drop it
+            if time.time()-self.last_track_time>self.track_time_declare_lost:
+                logger.info("Track timed out without being reported as lost")
+                self.tracked_object=None
+
+
 
         if "tracks" in message:
-            self.last_track_time=time.time()
             xerror_signal,yerror_signal=self.get_track_error(message)
             if yerror_signal is None: #Not following anything or wasn't in this message
                 #logger.debug("not following anything")
                 return
+            self.last_track_time=time.time()
             self.report_error(xerror_signal,yerror_signal)
 
 

@@ -44,7 +44,7 @@ broker=MessageBroker()
 #Open up a server to talk
 logging.debug("Starting Server")
 test_port=23033
-network_server=JSONBackAndForth2()
+network_server=JSONBackAndForth2(maxsize=10)
 network_server.start_server(test_port)
 
 logging.debug("Creating Gyrus List")
@@ -69,7 +69,7 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
-gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
+#gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
 #gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####

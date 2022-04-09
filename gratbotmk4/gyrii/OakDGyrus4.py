@@ -44,17 +44,12 @@ class OakDGyrus(ThreadedGyrus):
         self.oak_comm_thread=None
         #self.model="person-detection-retail-0013"
         self.models=[]
-        #self.models.append({"modelname": "face-detection-0200",
-        #               "streamname": "face_detections",
-        #               "labels": ["face"]})
+        self.models.append({"modelname": "face-detection-0200",
+                       "streamname": "face_detections",
+                       "labels": ["face"]})
         self.models.append({"modelname": "person-detection-0200",
                        "streamname": "person_detections",
                        "labels": ["person"]})
-        self.models=[ {"modelname": "face-detection-0200",
-                       "streamname": "face_detections",
-                       "labels": ["face"]}]
-        #self.model1="person-detection-0200"
-        #self.model2="face-detection-0200"
         self.local_rotation=np.zeros(3)
         self.last_gyro_Ts=0
         self.broker=broker
@@ -117,7 +112,8 @@ class OakDGyrus(ThreadedGyrus):
         camRgb = self.pipeline.createColorCamera()
         camRgb.setFps(20)
         #camRgb.setPreviewSize(640, 360)
-        camRgb.setPreviewSize(640, 480)
+        #camRgb.setPreviewSize(640, 480)
+        camRgb.setPreviewSize(320, 240)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)

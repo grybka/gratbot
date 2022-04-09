@@ -80,6 +80,12 @@ class MotionCorrection: #to correct image frames from heading changes
         self.y_gyro_index=2
         self.x_gyro_index=1
 
+    def get_latest_timestamp(self):
+        if len(self.headings)!=0:
+            return self.headings[-1][0]
+        return 0
+
+
 
     def read_message(self,message):
         if 'packets' in message: #rotation, etc
