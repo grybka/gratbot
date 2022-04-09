@@ -11,7 +11,8 @@ import blobconverter
 
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
@@ -20,8 +21,11 @@ nnBlobPath = os.getcwd()+'/models/tiny-yolo-v4_openvino_2021.2_6shave.blob'
 def create_imu(pipeline,name="imu"):
     imu = pipeline.createIMU()
     #imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ARVR_STABILIZED_ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
-    imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
-    imu.setBatchReportThreshold(5)
+    #imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 400)
+    imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.MAGNETOMETER_CALIBRATED,dai.IMUSensor.ROTATION_VECTOR,dai.IMUSensor.GYROSCOPE_CALIBRATED], 100)
+    #imu.setBatchReportThreshold(5)
+    imu.setBatchReportThreshold(4)
+    #imu.setMaxBatchReports(20)
     imu.setMaxBatchReports(20)
     imu_xlinkOut = pipeline.createXLinkOut()
     imu_xlinkOut.setStreamName(name)
@@ -285,7 +289,7 @@ def tryget_nndetections_nopassthru(detectionNNQueue,broker,model_labels):
         #logger.debug("metadata deetection got timestamp {}".format(device_timestamp))
         detection_message=[]
         sequenceNum=inDet.getSequenceNum()
-        logger.debug("Image squence num {}".format(sequenceNum))
+        logger.debug("NN squence num {}".format(sequenceNum))
         for detection in inDet.detections:
             det_item={}
             bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]

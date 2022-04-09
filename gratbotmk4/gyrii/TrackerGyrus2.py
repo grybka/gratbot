@@ -10,9 +10,9 @@ from Gyrus import ThreadedGyrus
 from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 
 #Behavior -
 #A detection is either identified as part of an existing tracklet, or as a new track, depending on match score
@@ -136,10 +136,10 @@ class TrackerGyrus(ThreadedGyrus):
             if time.time()-self.last_report>self.report_time:
                 time_lag=message["image_timestamp"]-self.motion_corrector.get_latest_timestamp()
                 self.last_report=time.time()
-                logger.debug("Track Report")
-                logger.debug("Time Lag : {}".format(time_lag))
+                logger.info("Track Report")
+                logger.info("Time Lag : {}".format(time_lag))
                 for tracklet in self.tracklets:
-                    logger.debug("{} {}".format(tracklet.last_label,id_to_name(tracklet.id)))
+                    logger.info("{} {}: {}".format(tracklet.last_label,id_to_name(tracklet.id),tracklet.status))
 
 
     def update_tracklets(self,timestamp,detections,offset_x,offset_y):
