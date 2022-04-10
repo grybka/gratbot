@@ -22,7 +22,8 @@ from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 from gyrii.MicrophoneGyrus2 import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
-from gyrii.behaviors.CalibrateMotionBehavior import ServoVelUpAndDown,ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion
+from gyrii.behaviors.CalibrateMotionBehavior import ServoVelUpAndDown,ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion,calibrate_turn_motion_motors_only
+
 from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_around
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
@@ -69,16 +70,17 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_det
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 
-#gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
-#gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
-#gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
+gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
+gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
+gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
 
 #gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####
 
 #gyrii.append(MessageLoggerGyrus(broker,keys=["image","tracks"]))
-gyrii.append(MessageLoggerGyrus(broker,keys=["detections","tracks"]))
+#gyrii.append(MessageLoggerGyrus(broker,keys=["detections","tracks"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["logged_note"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections","image"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","motor_command","motor_response","servo_command","servo_response","detections","tracks","logged_note","detections"]))
 #gyrii.append(TrackerGyrusNoCV(broker,include_subimages=True))
@@ -93,7 +95,7 @@ gyrii.append(MessageLoggerGyrus(broker,keys=["detections","tracks"]))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ServoUpAndDown()))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
-gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion_motors_only()))
+#gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion_motors_only()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(TailGyrus(broker))

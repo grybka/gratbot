@@ -182,9 +182,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        #self.pid_controller=MyPID(-0.10,-0.3,0,output_clip=[-1,1])
-        #self.pid_controller=MyPID(-0.20,0,-0.15,output_clip=[-1,1])
-        self.pid_controller=MyPID(-0.025,0,0,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.10,0,0,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
@@ -203,7 +201,9 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
             left_throttle=-vel
             right_throttle=vel
             logger.info("sending x velocity {}".format(vel))
-            dur=0.2
+            #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next 
+            #correction
+            dur=0.05 #at 20 fps
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")
             self.broker.publish(motor_command,"motor_command")

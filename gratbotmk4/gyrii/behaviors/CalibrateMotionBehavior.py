@@ -311,7 +311,7 @@ def calibrate_turn_motion_motors_only():
                 IgnoreFailure(calibrate_turn_motion_step(allowed_labels,j,motor_speed_times_time/j)),
                 IgnoreFailure(calibrate_turn_motion_step(allowed_labels,-j,motor_speed_times_time/j))]))
     task_list.append(Announce("Saving Turn Motor Calibration"))
-    task_list.append(BroadcastCalibration("motor_turn_calib"))
+    task_list.append(BroadcastCalibration("turn_calib"))
     return DoOnce(GratbotBehavior_Checklist(task_list))
 
 def calibrate_turn_motion():
