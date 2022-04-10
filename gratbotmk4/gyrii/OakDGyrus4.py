@@ -47,9 +47,9 @@ class OakDGyrus(ThreadedGyrus):
         self.models.append({"modelname": "face-detection-0200",
                        "streamname": "face_detections",
                        "labels": ["face"]})
-#        self.models.append({"modelname": "person-detection-0200",
-#                       "streamname": "person_detections",
-#                       "labels": ["person"]})
+        self.models.append({"modelname": "person-detection-0200",
+                       "streamname": "person_detections",
+                       "labels": ["person"]})
         self.local_rotation=np.zeros(3)
         self.last_gyro_Ts=0
         self.broker=broker

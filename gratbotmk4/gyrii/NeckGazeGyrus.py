@@ -8,8 +8,8 @@ import time
 from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 
 def get_track_with_id(id,tracks):
@@ -125,7 +125,7 @@ class PointingErrorGyrus(ThreadedGyrus):
                     #logger.debug("not following anything")
                         self.state="WAITING"
                         self.wait_start_time=time.time()
-                        return
+                    return
                 self.last_track_time=time.time()
                 self.report_error(xerror_signal,yerror_signal)
 
@@ -184,7 +184,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
         #Units are throttle per radian
         #self.pid_controller=MyPID(-0.10,-0.3,0,output_clip=[-1,1])
         #self.pid_controller=MyPID(-0.20,0,-0.15,output_clip=[-1,1])
-        self.pid_controller=MyPID(-0.10,0,0,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.025,0,0,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
@@ -202,7 +202,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
 
             left_throttle=-vel
             right_throttle=vel
-            #logger.debug("x velocity {}".format(vel))
+            logger.info("sending x velocity {}".format(vel))
             dur=0.2
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")
