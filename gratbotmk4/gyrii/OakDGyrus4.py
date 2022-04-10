@@ -96,7 +96,7 @@ class OakDGyrus(ThreadedGyrus):
                 #MOODEL THNIGLABL
                 for model in self.models:
                     #tryget_nndetections(model["queue"],model["queue_passthru"],self.broker,last_frame,model["labels"])
-                    tryget_nndetections_nopassthru(model["queue"],self.broker,model["labels"])
+                    tryget_nndetections_nopassthru(model["queue"],self.broker,model["labels"],model["streamname"])
         logging.debug("Exiting OakD thread")
 
     def init_oakd(self):
