@@ -6,6 +6,7 @@ import time
 import numpy as np
 from Gyrus import ThreadedGyrus
 from adafruit_motorkit import MotorKit
+from adafruit_motor import motor
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -16,7 +17,8 @@ class MotorGyrus(ThreadedGyrus):
         self.motor_lock=threading.Lock()
         self.kit._pca.frequency=100
         self.thread_sleep_time=0.005
-        self.min_throttle=0.35
+        #self.min_throttle=0.35
+        self.min_throttle=0.2
 
         self.left_run_until=0
         self.right_run_until=0
@@ -27,8 +29,8 @@ class MotorGyrus(ThreadedGyrus):
         self.left_motor.throttle=0
         self.right_motor.throttle=0
 
-        self.left_motor.DECAY_MODE=self.left_motor.SLOW_DECAY #Default is fast
-        self.right_motor.DECAY_MODE=self.right_motor.SLOW_DECAY #Default is fast
+        self.left_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
+        self.right_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
 
         self.motor_thread=None
         super().__init__(broker)
