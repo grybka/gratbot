@@ -14,7 +14,7 @@ class MotorGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.kit=MotorKit(i2c=board.I2C())
         self.motor_lock=threading.Lock()
-        self.kit._pca.frequency=1000
+        self.kit._pca.frequency=100
         self.thread_sleep_time=0.005
         self.min_throttle=0.35
 
@@ -26,6 +26,9 @@ class MotorGyrus(ThreadedGyrus):
         self.right_motor=self.kit.motor2
         self.left_motor.throttle=0
         self.right_motor.throttle=0
+
+        self.left_motor.DECAY_MODE=self.left_motor.SLOW_DECAY #Default is fast
+        self.right_motor.DECAY_MODE=self.right_motor.SLOW_DECAY #Default is fast
 
         self.motor_thread=None
         super().__init__(broker)
