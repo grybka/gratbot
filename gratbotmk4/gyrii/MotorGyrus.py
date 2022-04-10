@@ -14,20 +14,23 @@ logger.setLevel(logging.DEBUG)
 class MotorGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.kit=MotorKit(i2c=board.I2C())
-        self.motor_lock=threading.Lock()
+
         self.kit._pca.frequency=100
-        self.thread_sleep_time=0.005
+        self.thread_sleep_time=0.02
         #self.min_throttle=0.35
         self.min_throttle=0.2
 
+        self.left_motor=self.kit.motor1
+        self.right_motor=self.kit.motor2
+
+        self.motor_lock=threading.Lock()
+        self.left_motor.throttle=0
+        self.right_motor.throttle=0
         self.left_run_until=0
         self.right_run_until=0
         self.left_on=True
         self.right_on=True
-        self.left_motor=self.kit.motor1
-        self.right_motor=self.kit.motor2
-        self.left_motor.throttle=0
-        self.right_motor.throttle=0
+
 
         self.left_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
         self.right_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
@@ -59,30 +62,20 @@ class MotorGyrus(ThreadedGyrus):
         while not self.should_quit:
             time.sleep(self.thread_sleep_time)
             now=time.time()
-            send_message=False
-            m={}
+            #acquire most recent motor settings, set to zero if time out
             with self.motor_lock:
-                if now>=self.left_run_until and self.left_on:
-                    self.left_motor.throttle=0
-                    #m['left_throttle']=0
-                    #m['left_duration']=0
-                    self.left_on=False
-                    send_message=True
-                if now>=self.right_run_until and self.right_on:
-                    self.right_motor.throttle=0
-                    #m['right_throttle']=0
-                    #m['right_duration']=0
-                    self.right_on=False
-                    send_message=True
-            if send_message:
-                m['left_throttle']=self.left_motor.throttle
-                m['right_throttle']=self.right_motor.throttle
-                m['left_duration']=max(self.left_run_until-now,0)
-                m['right_duration']=max(self.right_run_until-now,0)
-                self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
-        with self.motor_lock:
-            self.left_motor.throttle=0
-            self.right_motor.throttle=0
+                if now>self.left_run_until:
+                    self.left_motor_throttle=0
+                if now>self.right_run_until:
+                    self.right_motor_throttle=0
+                left_motor_throttle=self.left_motor.throttle
+                right_motor_throttle=self.right_motor.throttle
+            #communicate to the motors.  This seems to take some time,
+            #which is why this has its own separate thread
+            self.left_motor.throttle=left_motor_throttle
+            self.right_motor.throttle=right_motor_throttle
+        self.left_motor.throttle=0
+        self.right_motor.throttle=0
 
 
     def scale_throttle(self,throttle,duration):
@@ -92,7 +85,7 @@ class MotorGyrus(ThreadedGyrus):
         new_duration=duration*scale
         if new_duration<self.thread_sleep_time:
             return 0,0
-        return np.sign(throttle)*self.min_throttle,duration*scale
+        return np.clip(np.sign(throttle)*self.min_throttle,-1,1),duration*scale
 
     def read_message(self,message):
         if "motor_command" in message:
@@ -104,10 +97,6 @@ class MotorGyrus(ThreadedGyrus):
             with self.motor_lock:
                 self.left_run_until=now+left_duration
                 self.right_run_until=now+right_duration
-                self.left_motor.throttle=np.clip(left_throttle,-1,1)
-                #if abs(left_throttle)>0:
-                self.left_on=True
-                self.right_motor.throttle=np.clip(right_throttle,-1,1)
-                #if abs(right_throttle)>0:
-                self.right_on=True
-                self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
+                self.left_motor_throttle=left_throttle
+                self.right_motor_throttle=right_throttle
+            #self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])
