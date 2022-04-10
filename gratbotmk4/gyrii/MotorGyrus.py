@@ -9,7 +9,8 @@ from adafruit_motorkit import MotorKit
 from adafruit_motor import motor
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 class MotorGyrus(ThreadedGyrus):
     def __init__(self,broker):
@@ -17,8 +18,8 @@ class MotorGyrus(ThreadedGyrus):
 
         self.kit._pca.frequency=100
         self.thread_sleep_time=0.02
-        #self.min_throttle=0.35
-        self.min_throttle=0.2
+        self.min_throttle=0.35
+        #self.min_throttle=0.2
 
         self.left_motor=self.kit.motor1
         self.right_motor=self.kit.motor2
@@ -30,10 +31,11 @@ class MotorGyrus(ThreadedGyrus):
         self.right_run_until=0
         self.left_on=True
         self.right_on=True
+        self.last_motor_message_time=time.time()
 
 
-        self.left_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
-        self.right_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
+        #self.left_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
+        #self.right_motor.DECAY_MODE=motor.SLOW_DECAY #Default is fast
 
         self.motor_thread=None
         super().__init__(broker)
@@ -68,23 +70,30 @@ class MotorGyrus(ThreadedGyrus):
                     self.left_motor_throttle=0
                 if now>self.right_run_until:
                     self.right_motor_throttle=0
-                left_motor_throttle=self.left_motor.throttle
-                right_motor_throttle=self.right_motor.throttle
+                left_motor_throttle=self.left_motor_throttle
+                right_motor_throttle=self.right_motor_throttle
+                message_time=self.last_motor_message_time
             #communicate to the motors.  This seems to take some time,
             #which is why this has its own separate thread
+            #start_time=time.time()
             self.left_motor.throttle=left_motor_throttle
             self.right_motor.throttle=right_motor_throttle
+            logger.debug("set motors to  {},{} with delay {}".format(left_motor_throttle,right_motor_throttle,now-message_time))
         self.left_motor.throttle=0
         self.right_motor.throttle=0
 
 
     def scale_throttle(self,throttle,duration):
+        #if abs(throttle)<self.min_throttle:
+        #    return 0,0
+        #return throttle,duration
         if abs(throttle)>=self.min_throttle:
             return throttle,duration
         scale=abs(throttle)/self.min_throttle
         new_duration=duration*scale
         if new_duration<self.thread_sleep_time:
             return 0,0
+
         return np.clip(np.sign(throttle)*self.min_throttle,-1,1),duration*scale
 
     def read_message(self,message):
@@ -100,4 +109,6 @@ class MotorGyrus(ThreadedGyrus):
                 self.right_run_until=now+right_duration
                 self.left_motor_throttle=left_throttle
                 self.right_motor_throttle=right_throttle
+                #logger.debug("right motor throttle will be {}".format(right_throttle))
+                self.last_motor_message_time=time.time()
             #self.broker.publish({"timestamp": time.time(),"motor_response": m},["motor_response"])

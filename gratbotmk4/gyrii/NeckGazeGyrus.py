@@ -182,7 +182,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        self.pid_controller=MyPID(-0.10,0,0,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.40,-0.10,-0.2,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
@@ -203,80 +203,9 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
             #logger.info("sending x velocity {}".format(vel))
             #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next 
             #correction
-            dur=0.05 #at 20 fps
+            #dur=0.05 #at 20 fps
+            dur=0.06 #there is lag intalking to the motor
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")
             self.broker.publish(motor_command,"motor_command")
 
-#class NeckGazeGyrus(ThreadedGyrus):
-#    def __init__(self,broker):
-#        super().__init__(broker)
-#        self.tracked_object=None
-#        #Units are degrees per second per pixel
-#        #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
-#        self.pid_controller=MyPID(-100.,-10,-400,output_clip=[-150,150])
-#        self.servo_num=0
-#        self.motion_corrector=MotionCorrectionRecord()
-#        self.last_track_time=0
-#
-#    def get_keys(self):
-#        return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
-#
-#    def get_name(self):
-#        return "NeckGazeGyrus"
-#
-#    def get_track_error(self,message):
-#        track=get_track_with_id(self.tracked_object,message["tracks"])
-#        if track is None or self.tracked_object is None:
-#            if len(message["tracks"])!=0:
-#                self.tracked_object=message["tracks"][0]["id"]
-#                track=message["tracks"][0]
-#                logger.debug("new looking at {}".format(id_to_name(track["id"])))
-#            else:
-#                logger.debug("Nothing to look at")
-#                self.tracked_object=None
-#                return None
-#        if track["info"]=="LOST":
-#            logger.debug("Track lost")
-#            self.tracked_object=None
-#            return None
-#        else:
-#            logger.debug("track status {}".format(track["info"]))
-#        position_at_image=track["center"][1]
-#        error_signal=position_at_image-0.5
-#        ratio=2*2*3.14*60/360 #don't hard code this TODO
-#        return -error_signal*ratio
-#
-#    def get_pitch_error(self):
-#        my_pitch=self.motion_corrector.get_pitch()
-#        #logger.debug("pitch {}".format(my_pitch))
-#        return -my_pitch #in radians
-#
-#    def read_message(self,message):
-#        self.motion_corrector.read_message(message)
-#
-#        if "clock_pulse" in message:
-#            if self.tracked_object is None or time.time()>(self.last_track_time+1):
-#                self.tracked_object=None
-#                if self.motion_corrector.get_latest_timestamp()==0: #no info yet
-#                    return
-#                error_signal=self.get_pitch_error()
-#                self.pid_controller.observe(error_signal)
-#                vel=self.pid_controller.get_response()
-#                #logger.debug("Error: {}, vel {}".format(error_signal,vel))
-#                servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
-#                self.broker.publish(servo_command,"servo_command")
-#            #else:
-#            #    logger.debug("tracked object is {}".format(id_to_name(self.tracked_object)))
-#
-#        if "tracks" in message:
-#            self.last_track_time=time.time()
-#            error_signal=self.get_track_error(message)
-#            if error_signal is None: #Not following anything
-#                logger.debug("not following anything")
-#                return
-#            self.pid_controller.observe(error_signal)
-#            vel=self.pid_controller.get_response()
-#            logger.debug("Track Error: {}, vel {}".format(error_signal,vel))
-#            servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
-#            self.broker.publish(servo_command,"servo_command")
