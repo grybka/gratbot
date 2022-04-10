@@ -299,21 +299,19 @@ def calibrate_turn_motion_motors_only():
     allowed_labels=["face"]
     motor_speeds=np.linspace(0.2,1.0,5)
     task_list=[]
+    motor_speed_times_time=0.1
     for j in motor_speeds:
         task_list.append(
             GratbotBehavior_Checklist([
                 GratbotBehavior_Series([
                     locate_object_neck_with_label(allowed_labels),
-                    #Announce("Adjusting Neck Position to {}".format(neck_pos)),
-                    #NeckCenterFocusObject(target_position=neck_pos),
-                    Announce("Adjusting Turn Position"),
-                    TurnCenterFocusObject()]),
+                    Announce("Located object ")]),
                 GratbotBehavior_Wait(1.0),
                 Announce("Turning {}".format(j)),
                 IgnoreFailure(calibrate_turn_motion_step(allowed_labels,j,motor_speed_times_time/j)),
                 IgnoreFailure(calibrate_turn_motion_step(allowed_labels,-j,motor_speed_times_time/j))]))
     task_list.append(Announce("Saving Turn Motor Calibration"))
-    task_list.append(BroadcastCalibration("turn_calib"))
+    task_list.append(BroadcastCalibration("motor_turn_calib"))
     return DoOnce(GratbotBehavior_Checklist(task_list))
 
 def calibrate_turn_motion():
