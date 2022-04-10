@@ -68,9 +68,11 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_det
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="person_detections"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
-gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
-gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
-gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
+
+#gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
+#gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
+#gyrii.append(BodyPointingErrorCorrectionGyrus(broker)) #send motors commands to correct error
+
 #gyrii.append(NeckGazeGyrus(broker))
 
 ##### Logging #####
@@ -91,7 +93,7 @@ gyrii.append(MessageLoggerGyrus(broker,keys=["detections","tracks"]))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ServoUpAndDown()))
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
-#gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion()))
+gyrii.append(BehaviorGyrus(broker,calibrate_turn_motion_motors_only()))
 #gyrii.append(BehaviorGyrus(broker,TrackIfSeen()))
 #gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(TailGyrus(broker))
