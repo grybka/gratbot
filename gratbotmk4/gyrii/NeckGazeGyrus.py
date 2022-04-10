@@ -8,8 +8,8 @@ import time
 from underpinnings.MotionCorrection import MotionCorrectionRecord
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-#logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def get_track_with_id(id,tracks):
@@ -29,6 +29,12 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.last_track_time=0
         self.track_time_declare_lost=2
         self.resting_angle=30*(2*3.14/360)
+        self.state="WAITING" # or LOOKING_AT_SOMETHING or LEVELLING
+        self.wait_time=2
+        self.wait_start_time=time.time()
+        #for debug messages
+        self.last_report_time=time.time()
+        self.report_period=1
 
     def get_keys(self):
         return ["rotation_vector","tracks","servo_response","gyrus_config","clock_pulse"]
@@ -37,15 +43,6 @@ class PointingErrorGyrus(ThreadedGyrus):
         return "PointingErrorGyrus"
 
     def get_track_error(self,message):
-        if self.tracked_object is None: #decide to look at something new
-            if len(message["tracks"])!=0:
-                self.tracked_object=message["tracks"][0]["id"]
-                track=message["tracks"][0]
-                #logger.debug("new looking at {}".format(id_to_name(track["id"])))
-                logger.info("new looking at {}".format(track["label"]))
-            else:
-                logger.debug("Nothing to look at")
-                return None,None
         track=get_track_with_id(self.tracked_object,message["tracks"])
         if track is None:
             return None,None
@@ -69,35 +66,68 @@ class PointingErrorGyrus(ThreadedGyrus):
 
     def report_error(self,xerror,yerror):
         #xerror and yerror should be roughly in degrees
-        logger.debug("Reporting error {} {}".format(xerror,yerror))
+        #logger.debug("Reporting error {} {}".format(xerror,yerror))
         message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror}
         self.broker.publish(message_out,["pointing_error_x","pointing_error_y"])
+
+    def find_new_object(self,message):
+        tracks=message["tracks"]
+        if len(tracks)==0:
+            return None
+        for i in range(len(tracks)):
+            closest_point=10000
+            best_track={"id":None}
+            if tracks[i]["info"]=="DETECTED":
+                dx=tracks[i]["center"][0]-0.5
+                dy=tracks[i]["center"][1]-0.5
+                dist=dx*dx+dy*dy
+                if dist<closest_point:
+                    best_track=tracks[i]
+                    closest_point=dist
+        if best_track["id"]!=None:
+            self.state="LOOKING_AT_SOMETHING"
+            self.tracked_object=best_track["id"]
+            logger.info("new looking at {}: {}".format(best_track["label"],best_track["info"]))
+        return best_track["id"]
 
     def read_message(self,message):
         self.motion_corrector.read_message(message)
         if "clock_pulse" in message:
+            if self.last_report_time+self.report_period<time.time():
+                logger.info("Pointing state {}".format(self.state))
+                self.last_report_time=time.time()
+
             #if I'm no tracking something, hold head level
-            if self.tracked_object is None:
-                self.tracked_object=None
+            if self.state=="LEVELLING":
                 if self.motion_corrector.get_latest_timestamp()==0: #no info yet
                     return
                 error_signal=self.get_pitch_error()
                 self.report_error(0,error_signal)
-                return
-            #if I haven't heard from the thing I'm tracking in a long time, drop it
-            if time.time()-self.last_track_time>self.track_time_declare_lost:
-                logger.info("Track timed out without being reported as lost")
-                self.tracked_object=None
-
-
+            elif self.state=="WAITING":
+                if time.time()-self.wait_start_time>self.wait_time:
+                    self.state="LEVELLING"
+            else:
+                #if I haven't heard from the thing I'm tracking in a long time, drop it
+                if time.time()-self.last_track_time>self.track_time_declare_lost:
+                    logger.info("Track timed out without being reported as lost {}".format(time.time()-self.last_track_time))
+                    self.tracked_object=None
+                    self.state="WAITING"
+                    self.wait_start_time=time.time()
 
         if "tracks" in message:
-            xerror_signal,yerror_signal=self.get_track_error(message)
-            if yerror_signal is None: #Not following anything or wasn't in this message
-                #logger.debug("not following anything")
-                return
-            self.last_track_time=time.time()
-            self.report_error(xerror_signal,yerror_signal)
+            if self.state=="LEVELLING":
+                self.find_new_object(message)
+            if self.state=="LOOKING_AT_SOMETHING":
+                xerror_signal,yerror_signal=self.get_track_error(message)
+                if yerror_signal is None: #Not following anything or wasn't in this message
+                    if self.tracked_object==None:
+                        logger.debug("Ihavenotracked object")
+                    #logger.debug("not following anything")
+                        self.state="WAITING"
+                        self.wait_start_time=time.time()
+                        return
+                self.last_track_time=time.time()
+                self.report_error(xerror_signal,yerror_signal)
 
 
 class MyPID:
@@ -166,13 +196,13 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def read_message(self,message):
         if "pointing_error_x" in message:
             error_signal=message["pointing_error_x"]
-            logger.debug("Body Pointing Error {}".format(error_signal))
+            #logger.debug("Body Pointing Error {}".format(error_signal))
             self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
 
             left_throttle=-vel
             right_throttle=vel
-            logger.debug("x velocity {}".format(vel))
+            #logger.debug("x velocity {}".format(vel))
             dur=0.2
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")

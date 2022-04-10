@@ -11,8 +11,8 @@ from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.INFO)
 
 #Behavior -
 #A detection is either identified as part of an existing tracklet, or as a new track, depending on match score
@@ -78,7 +78,17 @@ class Tracklet:
             #suppose it was moving with constant velocity
             xfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,0],1)
             yfit=np.polynomial.polynomial.Polynomial.fit(times,points[:,1],1)
-            self.vxvy=[xfit.convert().coef[1],yfit.convert().coef[1]]
+            xcoeffs=xfit.convert().coef
+            ycoeffs=yfit.convert().coef
+            if len(xcoeffs)<2:
+                xv=0
+            else:
+                xv=xcoeffs[1]
+            if len(ycoeffs)<2:
+                yv=0
+            else:
+                yv=ycoeffs[1]
+            self.vxvy=[xv,yv]
             xpred=xfit(timestamp)
             ypred=yfit(timestamp)
             #logger.debug("mean {} {}".format(mean_xywh[0],mean_xywh[1]))
