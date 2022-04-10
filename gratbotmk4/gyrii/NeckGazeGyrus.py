@@ -200,7 +200,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
 
             left_throttle=-vel
             right_throttle=vel
-            logger.info("sending x velocity {}".format(vel))
+            #logger.info("sending x velocity {}".format(vel))
             #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next 
             #correction
             dur=0.05 #at 20 fps

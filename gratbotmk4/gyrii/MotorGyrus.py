@@ -98,6 +98,7 @@ class MotorGyrus(ThreadedGyrus):
         if "motor_command" in message:
             m=message["motor_command"]
             now=time.time()
+            logger.debug("Received {},{} with time lag {}".format(m["left_throttle"],m["right_throttle"],now-message["timestamp"]))
             left_throttle,left_duration=self.scale_throttle(m["left_throttle"],m["left_duration"])
             right_throttle,right_duration=self.scale_throttle(m["right_throttle"],m["right_duration"])
             #handle low throttles with reduced duration
