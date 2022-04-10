@@ -77,7 +77,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         for i in range(len(tracks)):
             closest_point=10000
             best_track={"id":None}
-            if tracks[i]["info"]=="DETECTED":
+            if tracks[i]["info"]=="DETECTED" or tracks[i]["info"]=="EXITED":
                 dx=tracks[i]["center"][0]-0.5
                 dy=tracks[i]["center"][1]-0.5
                 dist=dx*dx+dy*dy
@@ -182,7 +182,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        self.pid_controller=MyPID(-0.40,-0.10,-0.2,output_clip=[-1,1])
+        self.pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
