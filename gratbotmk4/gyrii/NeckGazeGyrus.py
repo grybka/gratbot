@@ -21,6 +21,7 @@ def get_track_with_id(id,tracks):
 #Takes info from tracks and IMU
 #Outputs an error signal between my current y heading and desired y heading
 #Currently either picks an object to track, or keeps head level
+#I should separate out this from the thing that decides what to look at
 class PointingErrorGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
@@ -32,6 +33,9 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.state="WAITING" # or LOOKING_AT_SOMETHING or LEVELLING
         self.wait_time=2
         self.wait_start_time=time.time()
+
+        self.do_distance_corrections=False
+        self.target_distance=1.0
         #for debug messages
         self.last_report_time=time.time()
         self.report_period=1
@@ -49,7 +53,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         if track["info"]=="LOST":
             logger.info("Track lost")
             self.tracked_object=None
-            return None,None
+            return None,None,None
         else:
             logger.debug("track status {}".format(track["info"]))
         yposition_at_image=track["center"][1]
@@ -57,18 +61,22 @@ class PointingErrorGyrus(ThreadedGyrus):
         yerror_signal=yposition_at_image-0.5
         xerror_signal=xposition_at_image-0.5
         ratio=2*2*3.14*60/360 #don't hard code this TODO
-        return -xerror_signal*ratio,-yerror_signal*ratio
+        disterror=0
+        if "spatial_array" in track:
+            zdist=track["spatial_array"][2]
+            disterror=zdist-self.target_distance
+        return -xerror_signal*ratio,-yerror_signal*ratio,disterror
 
     def get_pitch_error(self):
         my_pitch=self.motion_corrector.get_pitch()
         #logger.debug("pitch {}".format(my_pitch))
         return -my_pitch+self.resting_angle #in radians
 
-    def report_error(self,xerror,yerror):
+    def report_error(self,xerror,yerror,disterror=0):
         #xerror and yerror should be roughly in degrees
         #logger.debug("Reporting error {} {}".format(xerror,yerror))
-        message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror}
-        self.broker.publish(message_out,["pointing_error_x","pointing_error_y"])
+        message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror, "distance_error": disterror}
+        self.broker.publish(message_out,["pointing_error_x","pointing_error_y","distance_error"])
 
     def find_new_object(self,message):
         tracks=message["tracks"]
@@ -118,7 +126,7 @@ class PointingErrorGyrus(ThreadedGyrus):
             if self.state=="LEVELLING":
                 self.find_new_object(message)
             if self.state=="LOOKING_AT_SOMETHING":
-                xerror_signal,yerror_signal=self.get_track_error(message)
+                xerror_signal,yerror_signal,disterror_signal=self.get_track_error(message)
                 if yerror_signal is None: #Not following anything or wasn't in this message
                     if self.tracked_object==None:
                         logger.debug("Ihavenotracked object")
@@ -182,7 +190,9 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
         super().__init__(broker)
         #Units are throttle per radian
-        self.pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
+        self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
+        #units are throttle per meter
+        self.distance_pid_controller=MyPID(-0.5,0,0,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
@@ -190,22 +200,25 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def get_name(self):
         return "BodyPointingErrorCorrectionGyrus"
 
-
     def read_message(self,message):
         if "pointing_error_x" in message:
             error_signal=message["pointing_error_x"]
             #logger.debug("Body Pointing Error {}".format(error_signal))
-            self.pid_controller.observe(error_signal)
-            vel=self.pid_controller.get_response()
+            self.turn_pid_controller.observe(error_signal)
+            turn_vel=self.turn_pid_controller.get_response()
+            dist_vel=0
 
-            left_throttle=-vel
-            right_throttle=vel
+            if "distance_error" in message:
+                self.distance_pid_controller.observe(message["distance_error"])
+                dist_vel=self.distance_pid_controller.get_response()
+
+            left_throttle=-turn_vel+dist_vel
+            right_throttle=turn_vel+dist_vel
             #logger.info("sending x velocity {}".format(vel))
-            #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next 
+            #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next
             #correction
             #dur=0.05 #at 20 fps
             dur=0.06 #there is lag intalking to the motor
             motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")
             self.broker.publish(motor_command,"motor_command")
-
