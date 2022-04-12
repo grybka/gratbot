@@ -34,8 +34,9 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.wait_time=2
         self.wait_start_time=time.time()
 
-        self.do_distance_corrections=False
-        self.target_distance=1.0
+        self.do_distance_corrections=True
+        self.target_width=0.1
+        #self.target_distance=2.0
         #for debug messages
         self.last_report_time=time.time()
         self.report_period=1
@@ -62,10 +63,14 @@ class PointingErrorGyrus(ThreadedGyrus):
         xerror_signal=xposition_at_image-0.5
         ratio=2*2*3.14*60/360 #don't hard code this TODO
         disterror=0
-        if "spatial_array" in track:
-            zdist=track["spatial_array"][2]
-            disterror=zdist-self.target_distance
-        return -xerror_signal*ratio,-yerror_signal*ratio,disterror
+        width=track["bbox_array"][1]-track["bbox_array"][0]
+        widtherror=-width+self.target_width
+        disterror=0.08*widtherror/(self.target_width*self.target_width)
+        logger.debug("disterror {}".format(disterror))
+        if self.do_distance_corrections==True:
+            return -xerror_signal*ratio,-yerror_signal*ratio,disterror
+        else:
+            return -xerror_signal*ratio,-yerror_signal*ratio,0
 
     def get_pitch_error(self):
         my_pitch=self.motion_corrector.get_pitch()
@@ -74,6 +79,7 @@ class PointingErrorGyrus(ThreadedGyrus):
 
     def report_error(self,xerror,yerror,disterror=0):
         #xerror and yerror should be roughly in degrees
+        #disterror should be roughly in meters
         #logger.debug("Reporting error {} {}".format(xerror,yerror))
         message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror, "distance_error": disterror}
         self.broker.publish(message_out,["pointing_error_x","pointing_error_y","distance_error"])
@@ -135,7 +141,7 @@ class PointingErrorGyrus(ThreadedGyrus):
                         self.wait_start_time=time.time()
                     return
                 self.last_track_time=time.time()
-                self.report_error(xerror_signal,yerror_signal)
+                self.report_error(xerror_signal,yerror_signal,disterror_signal)
 
 
 class MyPID:
@@ -192,7 +198,7 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
         #Units are throttle per radian
         self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
         #units are throttle per meter
-        self.distance_pid_controller=MyPID(-0.5,0,0,output_clip=[-1,1])
+        self.distance_pid_controller=MyPID(1.5,2.0,1.5,output_clip=[-1,1])
 
     def get_keys(self):
         return ["pointing_error_x"]
