@@ -35,8 +35,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.wait_start_time=time.time()
 
         self.do_distance_corrections=True
-        self.target_width=0.1
-        #self.target_distance=2.0
+        self.target_distance=1.0
         #for debug messages
         self.last_report_time=time.time()
         self.report_period=1
@@ -50,7 +49,7 @@ class PointingErrorGyrus(ThreadedGyrus):
     def get_track_error(self,message):
         track=get_track_with_id(self.tracked_object,message["tracks"])
         if track is None:
-            return None,None
+            return None,None,None
         if track["info"]=="LOST":
             logger.info("Track lost")
             self.tracked_object=None
@@ -64,9 +63,18 @@ class PointingErrorGyrus(ThreadedGyrus):
         ratio=2*2*3.14*60/360 #don't hard code this TODO
         disterror=0
         width=track["bbox_array"][1]-track["bbox_array"][0]
-        widtherror=-width+self.target_width
-        disterror=0.08*widtherror/(self.target_width*self.target_width)
-        logger.debug("disterror {}".format(disterror))
+        #widtherror=-width+self.target_width
+        expected_width_meters=0.1
+        if track["label"]=="face":
+            expected_width_meters=0.1
+        elif track["label"]=="person":
+            expected_width_meters=0.55
+        dist=expected_width_meters/np.tan(width*2*np.pi*72/360)
+        #disterror=self.target_distance-dist
+        disterror=dist-self.target_distance
+        
+        #disterror=expected_width_meters*0.8*widtherror/(self.target_width*self.target_width)
+        logger.info("disterror {}".format(disterror))
         if self.do_distance_corrections==True:
             return -xerror_signal*ratio,-yerror_signal*ratio,disterror
         else:
@@ -220,6 +228,10 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
 
             left_throttle=-turn_vel+dist_vel
             right_throttle=turn_vel+dist_vel
+            if max(abs(left_throttle),abs(right_throttle))>1:
+                scale=max(abs(left_throttle),abs(right_throttle))
+                left_throttle=left_throttle/scale
+                right_throttle=right_throttle/scale
             #logger.info("sending x velocity {}".format(vel))
             #dur=0.2 In the current configuration, this should be an honest assestment of when I will make the next
             #correction
