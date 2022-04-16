@@ -1,0 +1,4 @@
+- name: Gray
+  face_images:
+    - config/faces/gray_0.png
+    - config/faces/gray_1.png

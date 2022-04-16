@@ -61,7 +61,9 @@ class XboxControllerGyrus(ThreadedGyrus):
                 self.broker.publish(motor_command,"motor_command")
 
 
-            servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
+            #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
+            servo_command={"timestamp": time.time(),"servo_command": {"servo_number": 0,"vel": 5*left_lr}}
+            #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
             if left_lr!=0:
                 self.broker.publish(servo_command,"servo_command")
 
