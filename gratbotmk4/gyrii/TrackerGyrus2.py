@@ -32,6 +32,7 @@ class Tracklet:
         self.vxvy=[0,0]
         self.last_timestamp=timestamp
         self.last_subimage=detection["subimage"]
+        self.last_detection_bbox=[0,0,0,0]
         self.id=uuid.uuid1()
         self.last_label=detection["label"]
         #the probability that this thing moves on its own
@@ -46,6 +47,7 @@ class Tracklet:
         logger.debug("my xywh {}".format(self.xywh))
 
     def update(self,timestamp,detection):
+        self.last_detection_bbox=detection["bbox_array"]
         xywh=bbox_to_xywh(detection["bbox_array"])
         #if I wanted this long, I would use the bisect alrgorithm
         #but it needs only be a few frames long
@@ -197,6 +199,7 @@ class TrackerGyrus(ThreadedGyrus):
             det_item={}
             x,y,w,h=track.get_xywh()
             det_item["bbox_array"]=[ x-w/2, x+w/2,y-h/2,y+h/2]
+            det_item["last_detection_bbox"]=self.last_detection_bbox
             det_item["center"]=[x,y]
             det_item["recent_measurements"]=track.recent_measurements
             det_item["id"]=track.id

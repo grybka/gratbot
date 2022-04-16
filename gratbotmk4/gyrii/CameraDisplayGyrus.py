@@ -165,9 +165,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
         if "detections" in message:
             #print("detection timestamp {}".format(message["image_timestamp"]))
             #logger.debug("got detections {}".format(message))
-            self.detections[message["detection_name"]]=message
 
             if self.display_subimages and len(message["detections"])>0:
+                self.detections[message["detection_name"]]=message
                 if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message and self.mode=="show_tracks":

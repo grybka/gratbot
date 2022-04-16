@@ -14,6 +14,7 @@ from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
+from gyrii.FaceRecognizer import FaceRecognizer
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
 from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
@@ -126,6 +127,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
+gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
