@@ -201,8 +201,8 @@ class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
             self.broker.publish(servo_command,"servo_command")
 
 class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
-    def __init__(self,broker):
-        super().__init__(broker,enabled=True)
+    def __init__(self,broker,enabled=True):
+        super().__init__(broker)
         #Units are throttle per radian
         self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
         #units are throttle per meter
@@ -221,10 +221,13 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
             if "enabled" in config_dat:
                 if config_dat["enabled"]=="Toggle":
                     self.enabled=not self.enabled
-                if config_dat["enabled"]=="True":
+                elif config_dat["enabled"]=="True":
                     self.enabled=True
                 else:
                     self.enabled=False
+                logger.info("BodyPointingErrorCorrection Enabled now {}".format(self.enabled))
+        if not self.enabled:
+            return
 
         if "pointing_error_x" in message:
             error_signal=message["pointing_error_x"]
