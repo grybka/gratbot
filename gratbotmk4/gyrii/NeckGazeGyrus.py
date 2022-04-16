@@ -177,7 +177,7 @@ class MyPID:
 #Take in reports of pointing error and correct them
 class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        super().__init__(broker)
+        super().__init__(broker,enabled=True)
         #self.tracked_object=None
         #Units are degrees per second per pixel
         #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
@@ -185,14 +185,26 @@ class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
         self.servo_num=0
         #self.motion_corrector=MotionCorrectionRecord()
         #self.last_track_time=0
+        self.enabled=enabled
 
     def get_keys(self):
-        return ["pointing_error_y"]
+        return ["pointing_error_y",self.get_name()+"_config"]
 
     def get_name(self):
         return "NeckPointingErrorCorrectionGyrus"
 
     def read_message(self,message):
+        if self.get_name()+"_config" in message:
+            config_dat=message[self.get_name()+"_config"]
+            if "enabled" in config_dat:
+                if config_dat["enabled"]=="Toggle":
+                    self.enabled=not self.enabled
+                elif config_dat["enabled"]=="True":
+                    self.enabled=True
+                else:
+                    self.enabled=False
+        if not self.enabled:
+            return
         if "pointing_error_y" in message:
             error_signal=message["pointing_error_y"]
             self.pid_controller.observe(error_signal)

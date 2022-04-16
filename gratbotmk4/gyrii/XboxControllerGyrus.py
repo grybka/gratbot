@@ -17,6 +17,7 @@ class XboxControllerGyrus(ThreadedGyrus):
         #self.gamepad=devices.gamepads[0]
         #self.gamepad_max_val=32768
         #self.controller_dead_zone=0.3*self.gamepad_max_val
+        self.old_button_state=[self.joystick.get_button(0)]
 
         self.motor_emission_period=0.1
         self.last_motor_emission=time.time()
@@ -71,7 +72,8 @@ class XboxControllerGyrus(ThreadedGyrus):
 
 
             behavior_command=None
-            if self.joystick.get_button(0):
+            new_button_state=[self.joystick.get_button(0)]
+            if new_button_state[0]==True and self.old_button_state[0]==False:
                 #behavior_command={"behavior_request": {"name": "trackifseen"}}
                 #behavior_command={"behavior_request": {"name": "exerciseservo"}}
                 #config_command={"gyrus_config":{"target_gyrus":"SoundRecordGyrus","command": "start"}}
@@ -79,6 +81,8 @@ class XboxControllerGyrus(ThreadedGyrus):
                 #logger.debug("requesting recording")
                 config_command={"BodyPointingErrorCorrectionGyrus_config": {"enabled": "Toggle"}}
                 self.broker.publish(config_command,["gyrus_config","BodyPointingErrorCorrectionGyrus_config"])
+                config_command={"NeckPointingErrorCorrectionGyrus_config": {"enabled": "Toggle"}}
+                self.broker.publish(config_command,["gyrus_config","NeckPointingErrorCorrectionGyrus_config"])
                 logger.debug("toggling control ")
             if self.joystick.get_button(3):
                 behavior_command={"behavior_request": {"name": "nothing"}}
@@ -88,4 +92,5 @@ class XboxControllerGyrus(ThreadedGyrus):
                 status=self.joystick.get_button(i)
                 #if status:
                 #    print("Button {} status {}".format(i,status))
+            self.old_button_state=new_button_state
             time.sleep(self.sleep_duration)
