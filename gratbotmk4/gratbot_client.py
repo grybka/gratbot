@@ -17,7 +17,7 @@ from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
 from gyrii.FaceRecognizer import FaceRecognizer
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
-from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
+#from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
@@ -25,7 +25,7 @@ from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
 from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion
 
-from gyrii.behaviors.ChaseBehavior import TrackIfSeen
+#from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 #from gyrii.HandTrackerGyrus import HandTrackerGyrus
 from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
@@ -33,13 +33,13 @@ from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
-from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
-from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
-from gyrii.PitchManagementGyrus import PitchManagementGyrus
-from underpinnings.ObjectMemory import load_object_info_file
-from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
-from gyrii.PeripersonalSpaceDisplayGyrus import PeripersonalSpaceDisplayGyrus
-from gyrii.ServoNNGyrus import ServoTrackerAgentGyrus,ServoTrackerLearnerGyrus
+#from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
+#from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
+#from gyrii.PitchManagementGyrus import PitchManagementGyrus
+#from underpinnings.ObjectMemory import load_object_info_file
+#from gyrii.ObjectRecognizerGyrus import ObjectRecognizerGyrus
+#from gyrii.PeripersonalSpaceDisplayGyrus import PeripersonalSpaceDisplayGyrus
+#from gyrii.ServoNNGyrus import ServoTrackerAgentGyrus,ServoTrackerLearnerGyrus
 
 #from hanging_threads import start_monitoring
 #monitoring_thread = start_monitoring()
@@ -100,9 +100,6 @@ display_loop=DisplayLoop()
 #This stores the message passing
 broker=MessageBroker()
 
-#load objects that will go into memory
-object_info=load_object_info_file()
-
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
@@ -141,7 +138,7 @@ gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
-#gyrii.append(XboxControllerGyrus(broker))
+gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
 #gyrii.append(ObjectTaggerGyrus(broker))

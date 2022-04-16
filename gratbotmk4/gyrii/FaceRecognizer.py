@@ -14,7 +14,7 @@ import numpy as np
 import yaml
 
 logger=logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class FaceRecognizer(ThreadedGyrus):
     def __init__(self,broker,display=None):
@@ -65,12 +65,13 @@ class FaceRecognizer(ThreadedGyrus):
     def match_face(self,encoding,facedict):
         ids=[]
         dists=[]
-        if len(facedict)==0:
-            return [],[]
         for id in facedict:
             for face in facedict[id]:
                 ids.append(id)
                 dists.append(np.linalg.norm(face-encoding))
+        if len(ids)==0:
+            return [],[]
+
         return zip(*sorted(zip(dists,ids))) #dists, ids
 
     def match_seen_face(self,subimage):
@@ -79,7 +80,7 @@ class FaceRecognizer(ThreadedGyrus):
         dists,ids=self.match_face(face_encoding,self.face_dictionary)
         if len(dists)!=0 and dists[0]<self.match_tolerance: #counts as a match
             #TODO should I then give a prob distribution
-            logger.info("Matched face to {} ({})".format(self.name_dictionary[ids[0]],dists[0]))
+            logger.debug("Matched face to {} ({})".format(self.name_dictionary[ids[0]],dists[0]))
             return ids[0]
         else:
             dists,ids=self.match_face(face_encoding,self.unknown_face_dictionary)
@@ -108,9 +109,10 @@ class FaceRecognizer(ThreadedGyrus):
                 if ipairs[0]==message["image_timestamp"]:
                     the_image=ipairs[1]
             if the_image is None:
-                logger.warning("couldn't find an image to match track timestamp: {}, available:".format(message["image_timestamp"]))
+                #TODO this happens a lot.  How to fix?
+                logger.debug("couldn't find an image to match track timestamp: {}, available:".format(message["image_timestamp"]))
                 for ipairs in self.last_images:
-                    logger.warning("{}".format(ipairs[0]))
+                    logger.debug("{}".format(ipairs[0]))
             else:
                 #only take the first of each instance
                 if track["id"] not in self.track_subimage_map:

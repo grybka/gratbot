@@ -18,6 +18,10 @@ class XboxControllerGyrus(ThreadedGyrus):
         #self.gamepad_max_val=32768
         #self.controller_dead_zone=0.3*self.gamepad_max_val
 
+        self.motor_emission_period=0.1
+        self.last_motor_emission=time.time()
+        self.sleep_duration=0.01
+
         self.receive_thread = threading.Thread(target=self._receive_thread_loop)
         self.receive_thread.daemon = True
         super().__init__(broker)
@@ -46,25 +50,22 @@ class XboxControllerGyrus(ThreadedGyrus):
             left= self.joystick.get_axis(1)
             right=self.joystick.get_axis(3)
             left_lr=self.joystick.get_axis(0)
-            if abs(left)<0.2:
-                left=0
-            if abs(right)<0.2:
-                right=0
-            if abs(left_lr)<0.2:
-                left_lr=0
-            self.duration=0.2
-            motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": left,
-                                                                   "right_throttle": right,
-                                                                   "left_duration": self.duration,
-                                                                   "right_duration": self.duration},"keys": ["motor_command"]}
-            if left !=0 or right !=0:
+            if time.time()>self.last_motor_emission+self.motor_emission_period:
+                if abs(left)<0.2:
+                    left=0
+                if abs(right)<0.2:
+                    right=0
+                if abs(left_lr)<0.2:
+                    left_lr=0
+                self.duration=self.motor_emission_period*2
+                motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": left,
+                                                                       "right_throttle": right,
+                                                                       "left_duration": self.duration,
+                                                                       "right_duration": self.duration},"keys": ["motor_command"]}
                 self.broker.publish(motor_command,"motor_command")
 
 
-            #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
-            servo_command={"timestamp": time.time(),"servo_command": {"servo_number": 0,"vel": 5*left_lr}}
-            #servo_command={"timestamp": time.time(),"servo_command": {"servo_number":0,"delta_angle": 5*left_lr}}
-            if left_lr!=0:
+                servo_command={"timestamp": time.time(),"servo_command": {"servo_number": 0,"vel": 100*left_lr}}
                 self.broker.publish(servo_command,"servo_command")
 
 
@@ -73,9 +74,12 @@ class XboxControllerGyrus(ThreadedGyrus):
             if self.joystick.get_button(0):
                 #behavior_command={"behavior_request": {"name": "trackifseen"}}
                 #behavior_command={"behavior_request": {"name": "exerciseservo"}}
-                config_command={"gyrus_config":{"target_gyrus":"SoundRecordGyrus","command": "start"}}
-                self.broker.publish(config_command,["gyrus_config"])
-                logger.debug("requesting recording")
+                #config_command={"gyrus_config":{"target_gyrus":"SoundRecordGyrus","command": "start"}}
+                #self.broker.publish(config_command,["gyrus_config"])
+                #logger.debug("requesting recording")
+                config_command={"BodyPointingErrorCorrectionGyrus_config": {"enabled": "Toggle"}}
+                self.broker.publish(config_command,["gyrus_config","BodyPointingErrorCorrectionGyrus_config"])
+                logger.debug("toggling control ")
             if self.joystick.get_button(3):
                 behavior_command={"behavior_request": {"name": "nothing"}}
             if behavior_command is not None:
@@ -84,4 +88,4 @@ class XboxControllerGyrus(ThreadedGyrus):
                 status=self.joystick.get_button(i)
                 #if status:
                 #    print("Button {} status {}".format(i,status))
-            time.sleep(self.duration)
+            time.sleep(self.sleep_duration)
