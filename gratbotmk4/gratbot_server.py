@@ -64,9 +64,9 @@ gyrii.append(ServoGyrusVelocity(broker))
 #gyrii.append(MicrophoneGyrus(broker))
 
 
-#### Processing ####
-gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
-#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="person_detections"))
+### Processing ####
+#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
+gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7,detection_name="person_detections"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 
