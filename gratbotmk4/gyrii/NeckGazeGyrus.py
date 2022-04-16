@@ -72,7 +72,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         dist=expected_width_meters/np.tan(width*2*np.pi*72/360)
         #disterror=self.target_distance-dist
         disterror=dist-self.target_distance
-        
+
         #disterror=expected_width_meters*0.8*widtherror/(self.target_width*self.target_width)
         logger.info("disterror {}".format(disterror))
         if self.do_distance_corrections==True:
@@ -202,19 +202,30 @@ class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
 
 class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker):
-        super().__init__(broker)
+        super().__init__(broker,enabled=True)
         #Units are throttle per radian
         self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
         #units are throttle per meter
         self.distance_pid_controller=MyPID(1.5,2.0,1.5,output_clip=[-1,1])
+        self.enabled=enabled
 
     def get_keys(self):
-        return ["pointing_error_x"]
+        return ["pointing_error_x",self.get_name()+"_config"]
 
     def get_name(self):
         return "BodyPointingErrorCorrectionGyrus"
 
     def read_message(self,message):
+        if self.get_name()+"_config" in message:
+            config_dat=message[self.get_name()+"_config"]
+            if "enabled" in config_dat:
+                if config_dat["enabled"]=="Toggle":
+                    self.enabled=not self.enabled
+                if config_dat["enabled"]=="True":
+                    self.enabled=True
+                else:
+                    self.enabled=False
+
         if "pointing_error_x" in message:
             error_signal=message["pointing_error_x"]
             #logger.debug("Body Pointing Error {}".format(error_signal))
