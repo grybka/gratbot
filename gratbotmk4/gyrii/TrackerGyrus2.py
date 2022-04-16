@@ -199,7 +199,7 @@ class TrackerGyrus(ThreadedGyrus):
             det_item={}
             x,y,w,h=track.get_xywh()
             det_item["bbox_array"]=[ x-w/2, x+w/2,y-h/2,y+h/2]
-            det_item["last_detection_bbox"]=self.last_detection_bbox
+            det_item["last_detection_bbox"]=track.last_detection_bbox
             det_item["center"]=[x,y]
             det_item["recent_measurements"]=track.recent_measurements
             det_item["id"]=track.id

@@ -74,7 +74,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         disterror=dist-self.target_distance
         
         #disterror=expected_width_meters*0.8*widtherror/(self.target_width*self.target_width)
-        logger.info("disterror {}".format(disterror))
+        logger.debug("disterror {}".format(disterror))
         if self.do_distance_corrections==True:
             return -xerror_signal*ratio,-yerror_signal*ratio,disterror
         else:
