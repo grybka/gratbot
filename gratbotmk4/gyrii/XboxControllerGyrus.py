@@ -58,7 +58,7 @@ class XboxControllerGyrus(ThreadedGyrus):
                     right=0
                 if abs(left_lr)<0.2:
                     left_lr=0
-                self.duration=self.motor_emission_period*2
+                self.duration=self.motor_emission_period*1.1
                 motor_command={"timestamp": time.time(),"motor_command": {"left_throttle": left,
                                                                        "right_throttle": right,
                                                                        "left_duration": self.duration,

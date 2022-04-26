@@ -32,6 +32,7 @@ from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
 from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
+from gyrii.StateAssesorGyrus import StateAssesorGyrus
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
 #from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
 #from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
@@ -87,7 +88,10 @@ class DisplayLoop(VideoDisplay):
             if key not in self.open_windows:
                 cv.namedWindow(key)
                 self.open_windows.append(key)
-            cv.imshow(key, self.window_images[key])
+            try:
+                cv.imshow(key, self.window_images[key])
+            except:
+                logger.warning("unable to show image in window {}".format(key))
         self.frame_lock.release()
         key = cv.waitKey(30)
 
@@ -124,7 +128,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
-gyrii.append(FaceRecognizer(broker,display_loop))
+#gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))
 #gyrii.append(BehaviorGyrus(broker,ExerciseTurns()))
@@ -141,6 +145,7 @@ gyrii.append(FaceRecognizer(broker,display_loop))
 gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
 gyrii.append(ClockGyrus(broker))
+gyrii.append(StateAssesorGyrus(broker))
 #gyrii.append(ObjectTaggerGyrus(broker))
 #gyrii.append(HandTrackerGyrus(broker))
 #gyrii.append(SoundDisplayGyrus(broker,display_loop))
