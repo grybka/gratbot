@@ -13,6 +13,7 @@ import blobconverter
 
 from oakd_interface.OakDIMU import OakDIMU
 from oakd_interface.OakDCamera import OakDCamera,OakDDepth,OakDManip
+from oakd_interface.OakDMobileNet import OakDMobileNetDetections
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
@@ -47,10 +48,11 @@ class OakDGyrus(ThreadedGyrus):
         pipeline = dai.Pipeline()
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline)
+        manip=OakDManip(pipeline,[256,256],camera.camRgb)
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
-        self.elements.append(depth)
-        self.elements.append(OakDMobileNetDetections("face-detection-0200",6,camera.camRgb,stereo.stereo,"face_detections",["face"]))
+        self.elements.append(stereo)
+        self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
         self.pipeline=pipeline
 
     def _oak_comm_thread_loop(self):

@@ -51,7 +51,7 @@ class OakDCamera(OakDElement):
                 broker.publish(frame_message,frame_message["keys"])
 
 class OakDManip(OakDElement):
-    def __init__(self,new_size,camRgb):
+    def __init__(self,pipeline,new_size,camRgb):
         #create a manipulation that resizes the camera preview
         #camRgb is a ColorCamera object
         #new_size is an array [new_x,new_y]

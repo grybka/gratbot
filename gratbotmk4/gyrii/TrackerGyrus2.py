@@ -31,7 +31,7 @@ class Tracklet:
         self.xywh=bbox_to_xywh(detection["bbox_array"])
         self.vxvy=[0,0]
         self.last_timestamp=timestamp
-        self.last_subimage=detection["subimage"]
+        #self.last_subimage=detection["subimage"]
         self.last_detection_bbox=[0,0,0,0]
         self.id=uuid.uuid1()
         self.last_label=detection["label"]
@@ -54,7 +54,7 @@ class Tracklet:
         if self.last_label!=detection["label"]:
             logger.debug("switching label from {} to {}".format(self.last_label,detection["label"]))
             self.last_label=detection["label"]
-        self.last_subimage=detection["subimage"]
+        #self.last_subimage=detection["subimage"]
         self.recent_measurements.append( [timestamp,np.array(xywh) ] )
         self.recent_measurements.sort(key=lambda y: y[0])
         if len(self.recent_measurements)>self.recent_measurements_max_length:
@@ -205,7 +205,7 @@ class TrackerGyrus(ThreadedGyrus):
             det_item["id"]=track.id
             det_item["info"]=track.status
             det_item["label"]=track.last_label
-            det_item["subimage"]=track.last_subimage
+            #det_item["subimage"]=track.last_subimage
             det_item["seen_frames"]=track.n_detections
             if track.last_spatial_array is not None:
                 det_item["spatial_array"]=[track.last_spatial_array[0]/1000,track.last_spatial_array[1]/1000,track.last_spatial_array[2]/1000]

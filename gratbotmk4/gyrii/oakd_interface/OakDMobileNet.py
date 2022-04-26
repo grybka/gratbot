@@ -18,10 +18,9 @@ logger.setLevel(logging.INFO)
 #stereo is the source of stereo information
 #streamname is the name of the output stream for detections
 class OakDMobileNetDetections(OakDElement):
-    def __init__(self,model_name,shaves,camera,stereo,streamname,model_labels):
-
-        logger.info("Creating MobilenetV2 Detections: {}".format(self.streamname))
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels):
         self.streamname=streamname
+        logger.info("Creating MobilenetV2 Detections: {}".format(self.streamname))
         self.model_labels=model_labels
         spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
         spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
@@ -55,6 +54,6 @@ class OakDMobileNetDetections(OakDElement):
                 detection_message.append(det_item)
             if len(detection_message)!=0:
                 frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
-                frame_message["detection_name"]=streamname
+                frame_message["detection_name"]=self.streamname
                 frame_message["detections"]=detection_message
-                broker.publish(frame_message,["detections",streamname])
+                broker.publish(frame_message,["detections",self.streamname])
