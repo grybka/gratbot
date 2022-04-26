@@ -51,9 +51,10 @@ def create_depth(pipeline,name="depth"):
     stereo.disparity.link(depthout.input)
     return stereo
 
-def create_yolo(pipeline,name="detections"):
+def create_yolo(pipeline,name="detections",stereo):
     logger.info("Creating Spatial Detection Network")
-    spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
+    #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
+    spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
     spatialDetectionNetwork.setBlobPath(nnBlobPath)
     spatialDetectionNetwork.setConfidenceThreshold(0.5)
     spatialDetectionNetwork.input.setBlocking(False)
@@ -71,6 +72,7 @@ def create_yolo(pipeline,name="detections"):
     xoutNN = pipeline.createXLinkOut()
     xoutNN.setStreamName(name)
     spatialDetectionNetwork.out.link(xoutNN.input)
+    stereo.depth.link(spatialDetectionNetwork.inputDepth)
     return spatialDetectionNetwork
 
 #mobilenet models
@@ -222,15 +224,16 @@ def tryget_image(previewQueue,broker):
     else:
         return None,None
 
-def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels):
+#def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels):
+def tryget_nndetections(detectionNNQueue,broker,model_labels):
     #publish detections from a nn
     #no return
     inDet = detectionNNQueue.tryGet()
     if inDet is not None:
         #logger.debug("nn deetection got")
-        metadata=passthruQueue.get()
+        #metadata=passthruQueue.get()
         #image_seqnum=metadata.getSequenceNum()
-        device_timestamp=metadata.getTimestamp().total_seconds()
+        device_timestamp=inDet.getTimestamp().total_seconds()
         #logger.debug("metadata deetection got timestamp {}".format(device_timestamp))
         detection_message=[]
         for detection in inDet.detections:
@@ -240,7 +243,8 @@ def tryget_nndetections(detectionNNQueue,passthruQueue,broker,image,model_labels
             det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
             det_item["label"] = model_labels[detection.label]
             det_item["confidence"] = detection.confidence
-            if image is not None:
+            if False:
+            #if image is not None:
                 height = image.shape[0]
                 width = image.shape[1]
                 #  (x-0.5)+w/(2h)
