@@ -1,0 +1,77 @@
+
+import depthai as dai
+import logging
+import time
+import numpy as np
+import os
+from pathlib import Path
+import blobconverter
+from oakd_interface.OakDElement import OakDElement
+
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Tiny yolo v3/4 label texts
+labelMap = [
+    "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
+    "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",   "parking meter", "bench",
+    "bird",           "cat",        "dog",           "horse",         "sheep",       "cow",           "elephant",
+    "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",    "handbag",       "tie",
+    "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball", "kite",          "baseball bat",
+    "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",      "wine glass",    "cup",
+    "fork",           "knife",      "spoon",         "bowl",          "banana",      "apple",         "sandwich",
+    "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",       "donut",         "cake",
+    "chair",          "sofa",       "pottedplant",   "bed",           "diningtable", "toilet",        "tvmonitor",
+    "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",  "microwave",     "oven",
+    "toaster",        "sink",       "refrigerator",  "book",          "clock",       "vase",          "scissors",
+    "teddy bear",     "hair drier", "toothbrush"
+]
+class OakDYoloDetections(OakDElement):
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels):
+        logger.info("Creating Spatial Detection Network")
+        self.streamname=streamname
+        #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
+        spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
+        spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves,zoo_type="depthai")))
+        #spatialDetectionNetwork.setBlobPath(nnBlobPath)
+        spatialDetectionNetwork.setConfidenceThreshold(0.3)
+        spatialDetectionNetwork.input.setBlocking(False)
+        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+        spatialDetectionNetwork.setDepthLowerThreshold(100)
+        spatialDetectionNetwork.setDepthUpperThreshold(5000)
+
+        # Yolo specific parameters
+        spatialDetectionNetwork.setNumClasses(80)
+        spatialDetectionNetwork.setCoordinateSize(4)
+        spatialDetectionNetwork.setAnchors(np.array([10,14, 23,27, 37,58, 81,82, 135,169, 344,319]))
+        spatialDetectionNetwork.setAnchorMasks({ "side26": np.array([1,2,3]), "side13": np.array([3,4,5]) })
+        spatialDetectionNetwork.setIouThreshold(0.5)
+
+        xoutNN = pipeline.createXLinkOut()
+        xoutNN.setStreamName(streamname)
+        spatialDetectionNetwork.out.link(xoutNN.input)
+        stereo.depth.link(spatialDetectionNetwork.inputDepth)
+        self.spatialDetectionNetwork=spatialDetectionNetwork
+        self.model_labels=labelMap
+
+    def build_queues(self,device):
+        self.detectionNNQueue = device.getOutputQueue(name=self.streamname, maxSize=4, blocking=False)
+
+    def tryget(self,broker):
+        inDet = self.detectionNNQueue.tryGet()
+        if inDet is not None:
+            device_timestamp=inDet.getTimestamp().total_seconds()
+            detection_message=[]
+            for detection in inDet.detections:
+                det_item={}
+                bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+                det_item["bbox_array"]=bbox_array
+                det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                det_item["label"] = self.model_labels[detection.label]
+                det_item["confidence"] = detection.confidence
+                detection_message.append(det_item)
+            if len(detection_message)!=0:
+                frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
+                frame_message["detection_name"]=self.streamname
+                frame_message["detections"]=detection_message
+                broker.publish(frame_message,["detections",self.streamname])
