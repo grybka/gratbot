@@ -7,6 +7,7 @@ import numpy as np
 import os
 from pathlib import Path
 import blobconverter
+from oakd_interface.OakDElement import OakDElement
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -16,44 +17,44 @@ logger.setLevel(logging.INFO)
 #camera is the source of images
 #stereo is the source of stereo information
 #streamname is the name of the output stream for detections
-def init_oakdmobilenet(name,shaves,camera,stereo,streamname):
-    spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
-    spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
-    spatialDetectionNetwork.setConfidenceThreshold(0.5)
-    spatialDetectionNetwork.input.setBlocking(False)
-    spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
-    spatialDetectionNetwork.setDepthLowerThreshold(100)
-    spatialDetectionNetwork.setDepthUpperThreshold(5000)
-    camera.link(spatialDetectionNetwork.input)
-    stereo.depth.link(spatialDetectionNetwork.inputDepth)
-    xoutNN = pipeline.createXLinkOut()
-    xoutNN.setStreamName(streamname)
-    spatialDetectionNetwork.out.link(xoutNN.input)
-    return spatialDetectionNetwork
+class OakDMobileNetDetections(OakDElement):
+    def __init__(self,model_name,shaves,camera,stereo,streamname,model_labels):
 
+        logger.info("Creating MobilenetV2 Detections: {}".format(self.streamname))
+        self.streamname=streamname
+        self.model_labels=model_labels
+        spatialDetectionNetwork = pipeline.createMobileNetSpatialDetectionNetwork()
+        spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves)))
+        spatialDetectionNetwork.setConfidenceThreshold(0.5)
+        spatialDetectionNetwork.input.setBlocking(False)
+        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+        spatialDetectionNetwork.setDepthLowerThreshold(100)
+        spatialDetectionNetwork.setDepthUpperThreshold(5000)
+        camera.link(spatialDetectionNetwork.input)
+        stereo.depth.link(spatialDetectionNetwork.inputDepth)
+        xoutNN = pipeline.createXLinkOut()
+        xoutNN.setStreamName(streamname)
+        spatialDetectionNetwork.out.link(xoutNN.input)
+        self.spatialDetectionNetwork=spatialDetectionNetwork
 
-def tryget_oakdmobilenet_detections(detectionNNQueue,broker,model_labels,streamname):
-    inDet = detectionNNQueue.tryGet()
-    if inDet is not None:
-        device_timestamp=inDet.getTimestamp().total_seconds()
-        detection_message=[]
-        sequenceNum=inDet.getSequenceNum()
-        logger.debug("NN squence num {}".format(sequenceNum))
-        for detection in inDet.detections:
-            det_item={}
-            bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
-            det_item["bbox_array"]=bbox_array
-            det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
-            det_item["label"] = model_labels[detection.label]
-            det_item["confidence"] = detection.confidence
-            det_item["subimage"] = 0
-            detection_message.append(det_item)
-        if len(detection_message)!=0:
-            frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
-            frame_message["detection_name"]=streamname
-            frame_message["detections"]=detection_message
-            broker.publish(frame_message,["detections",streamname])
-        return None
-    else:
-        return None
-    ...
+    def build_queues(self,device):
+        self.detectionNNQueue = device.getOutputQueue(name=self.streamname, maxSize=4, blocking=False)
+
+    def tryget(self,broker):
+        inDet = self.detectionNNQueue.tryGet()
+        if inDet is not None:
+            device_timestamp=inDet.getTimestamp().total_seconds()
+            detection_message=[]
+            for detection in inDet.detections:
+                det_item={}
+                bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+                det_item["bbox_array"]=bbox_array
+                det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                det_item["label"] = self.model_labels[detection.label]
+                det_item["confidence"] = detection.confidence
+                detection_message.append(det_item)
+            if len(detection_message)!=0:
+                frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
+                frame_message["detection_name"]=streamname
+                frame_message["detections"]=detection_message
+                broker.publish(frame_message,["detections",streamname])

@@ -45,9 +45,12 @@ class OakDGyrus(ThreadedGyrus):
 
     def init_oakd(self):
         pipeline = dai.Pipeline()
+        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        stereo=OakDDepth(pipeline)
         self.elements.append(OakDIMU(pipeline))
-        self.elements.append(OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb"))
-        #self.elements.append(OakDDepth(pipeline))
+        self.elements.append(camera)
+        self.elements.append(depth)
+        self.elements.append(OakDMobileNetDetections("face-detection-0200",6,camera.camRgb,stereo.stereo,"face_detections",["face"]))
         self.pipeline=pipeline
 
     def _oak_comm_thread_loop(self):
