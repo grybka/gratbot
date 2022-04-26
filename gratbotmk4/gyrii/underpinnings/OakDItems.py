@@ -51,12 +51,12 @@ def create_depth(pipeline,name="depth"):
     stereo.disparity.link(depthout.input)
     return stereo
 
-def create_yolo(pipeline,name="detections",stereo):
+def create_yolo(pipeline,stereo,name="detections"):
     logger.info("Creating Spatial Detection Network")
     #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
     spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
     spatialDetectionNetwork.setBlobPath(nnBlobPath)
-    spatialDetectionNetwork.setConfidenceThreshold(0.5)
+    spatialDetectionNetwork.setConfidenceThreshold(0.3)
     spatialDetectionNetwork.input.setBlocking(False)
     spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
     spatialDetectionNetwork.setDepthLowerThreshold(100)
@@ -243,6 +243,7 @@ def tryget_nndetections(detectionNNQueue,broker,model_labels):
             det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
             det_item["label"] = model_labels[detection.label]
             det_item["confidence"] = detection.confidence
+            det_item["subimage"] = 0
             if False:
             #if image is not None:
                 height = image.shape[0]

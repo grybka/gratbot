@@ -5,7 +5,7 @@ import numpy as np
 import os
 from pathlib import Path
 import blobconverter
-import OakDElement
+from oakd_interface.OakDElement import OakDElement
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -44,8 +44,8 @@ class OakDIMU(OakDElement):
                 rvTs = rVvalues.timestamp.get()
                 acceleroTs = acceleroValues.timestamp.get()
                 magneticTs = magneticField.timestamp.get()
-                local_rotation+=np.array([gyroscope.x,gyroscope.y,gyroscope.z])*(gyroscopeTs.total_seconds()-last_gyro_Ts)
-                last_gyro_Ts=gyroscopeTs.total_seconds()
+                self.local_rotation+=np.array([gyroscope.x,gyroscope.y,gyroscope.z])*(gyroscopeTs.total_seconds()-self.last_gyro_Ts)
+                self.last_gyro_Ts=gyroscopeTs.total_seconds()
                 #rValues.accuracy didn't work
                 dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,3],
                             "rotation_vector_timestamp": rvTs.total_seconds(),
@@ -53,7 +53,7 @@ class OakDIMU(OakDElement):
                             "acceleration_timestamp": acceleroTs.total_seconds(),
                             "magnetic_field": [magneticField.x,magneticField.y,magneticField.z],
                             "magneticTs": magneticTs.total_seconds(),
-                            "local_rotation": local_rotation.tolist(),
+                            "local_rotation": self.local_rotation.tolist(),
                             "gyroscope": [gyroscope.x,gyroscope.y,gyroscope.z],
                             "gyroscope_timestamp": gyroscopeTs.total_seconds()})
             my_keys=["rotation_vector","acceleration","magnetic_field","gyroscope"]

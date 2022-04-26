@@ -44,10 +44,11 @@ class OakDGyrus(ThreadedGyrus):
         ... #TODO this could reload what models I use
 
     def init_oakd(self):
-        self.pipeline = dai.Pipeline()
-        self.elements.append(OakDIMU(pipline))
+        pipeline = dai.Pipeline()
+        self.elements.append(OakDIMU(pipeline))
         self.elements.append(OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb"))
-        self.elements.append(OakDDepth(pipeline))
+        #self.elements.append(OakDDepth(pipeline))
+        self.pipeline=pipeline
 
     def _oak_comm_thread_loop(self):
         self.init_oakd()

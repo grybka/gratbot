@@ -74,8 +74,9 @@ class OakDGyrus(ThreadedGyrus):
             previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
             #previewQueue = device.getOutputQueue(name="mrgb", maxSize=4, blocking=False)
             depthQueue = device.getOutputQueue(name="depth", maxSize=4,blocking=False)
-            for model in self.models:
-                model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
+            detectionNNQueue=device.getOutputQueue(name="detections",maxSize=4,blocking=False)
+            #for model in self.models:
+            #    model["queue"] = device.getOutputQueue(name=model["streamname"], maxSize=4, blocking=False)
                 #model["queue_passthru"] = device.getOutputQueue(name=model["streamname"]+"_passthru", maxSize=4, blocking=False)
             logging.debug("OakD created and queue's gotten")
             last_frame=None
@@ -86,7 +87,7 @@ class OakDGyrus(ThreadedGyrus):
                 if frame is not None:
                     last_frame=frame
 
-                tryget_nndetections(detectionNNQueue,broker,labelMap)
+                tryget_nndetections(detectionNNQueue,self.broker,labelMap)
                 #MOODEL THNIGLABL
                 #for model in self.models:
                     #tryget_nndetections(model["queue"],model["queue_passthru"],self.broker,last_frame,model["labels"])
@@ -104,10 +105,10 @@ class OakDGyrus(ThreadedGyrus):
         #setup camera
         logger.info("Creating RGB Camera in pipeline")
         camRgb = self.pipeline.createColorCamera()
-        camRgb.setFps(20)
+        camRgb.setFps(15)
         #camRgb.setPreviewSize(640, 360)
-        #camRgb.setPreviewSize(640, 480)
-        camRgb.setPreviewSize(320, 240)
+        camRgb.setPreviewSize(640, 480)
+        #camRgb.setPreviewSize(320, 240)
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)

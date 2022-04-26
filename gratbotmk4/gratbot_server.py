@@ -32,8 +32,9 @@ from gyrii.LEDDisplayGyrus import LEDDisplayGyrus
 #from SpeechDetectorGyrus import SpeechDetectorGyrus
 #from OakDGyrus3 import OakDGyrus #generic objects
 #from OakDGyrus4 import OakDGyrus #faces
-from OakDGyrusYolo import OakDGyrus #faces
-from OakDGyrusPeople import OakDGyrusPeople
+#from OakDGyrusYolo import OakDGyrus #faces
+#from OakDGyrusPeople import OakDGyrusPeople
+from OakDGyrus5 import OakDGyrus
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -66,7 +67,8 @@ gyrii.append(ServoGyrusVelocity(broker))
 
 
 ### Processing ####
-gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
+gyrii.append(TrackerGyrus(broker,confidence_trigger=0.2,detection_name="detections"))
+#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7,detection_name="person_detections"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))

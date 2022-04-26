@@ -6,7 +6,7 @@ import numpy as np
 import os
 from pathlib import Path
 import blobconverter
-import OakDElement
+from oakd_interface.OakDElement import OakDElement
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -18,7 +18,7 @@ class OakDCamera(OakDElement):
         self.fps=fps
 
         logger.info("Creating RGB Camera in pipeline with size [{}x{}] at {} fps".format(preview_size[0],preview_size[1],fps))
-        camRgb = self.pipeline.createColorCamera()
+        camRgb = pipeline.createColorCamera()
         camRgb.setFps(fps)
         camRgb.setPreviewSize(preview_size[0], preview_size[1])
         camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
@@ -26,7 +26,7 @@ class OakDCamera(OakDElement):
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
         #setup the preview output stream
         if preview_streamname is not None:
-            xoutRgb = self.pipeline.createXLinkOut()
+            xoutRgb = pipeline.createXLinkOut()
             xoutRgb.setStreamName(self.preview_streamname)
             camRgb.preview.link(xoutRgb.input)
         self.camRgb=camRgb
@@ -56,7 +56,7 @@ class OakDManip(OakDElement):
         #camRgb is a ColorCamera object
         #new_size is an array [new_x,new_y]
         #the presumption is that the aspect ratio can be squeezed
-        manip = self.pipeline.create(dai.node.ImageManip)
+        manip = pipeline.create(dai.node.ImageManip)
         manip.initialConfig.setResize(new_size[0], new_size[1])
         manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888p)
         manip.initialConfig.setKeepAspectRatio(False)
