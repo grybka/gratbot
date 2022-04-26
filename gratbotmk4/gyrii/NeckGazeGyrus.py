@@ -176,8 +176,8 @@ class MyPID:
 
 #Take in reports of pointing error and correct them
 class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
-    def __init__(self,broker):
-        super().__init__(broker,enabled=True)
+    def __init__(self,broker,enabled=True):
+        super().__init__(broker)
         #self.tracked_object=None
         #Units are degrees per second per pixel
         #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])

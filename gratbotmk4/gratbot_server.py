@@ -71,7 +71,7 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_det
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 
 gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
-#gyrii.append(NeckPointingErrorCorrectionGyrus(broker)) #send servo commands to correct error
+gyrii.append(NeckPointingErrorCorrectionGyrus(broker,enabled=False)) #send servo commands to correct error
 gyrii.append(BodyPointingErrorCorrectionGyrus(broker,enabled=False)) #send motors commands to correct error
 
 #gyrii.append(NeckGazeGyrus(broker))
