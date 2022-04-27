@@ -128,6 +128,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
+#gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior()))

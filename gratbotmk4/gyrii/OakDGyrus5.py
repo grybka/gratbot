@@ -15,13 +15,14 @@ from oakd_interface.OakDIMU import OakDIMU
 from oakd_interface.OakDCamera import OakDCamera,OakDDepth,OakDManip
 from oakd_interface.OakDMobileNet import OakDMobileNetDetections
 from oakd_interface.OakDYolo import OakDYoloDetections
+from oakd_interface.OakDTracker import OakDTracker
 
 class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         self.broker=broker
-        #self.preview_size=[320,240]
-        self.preview_size=[416,416]
+        self.preview_size=[320,240]
+        #self.preview_size=[416,416]
         self.fps=20
         self.elements=[]
         super().__init__(broker)
@@ -50,13 +51,16 @@ class OakDGyrus(ThreadedGyrus):
         pipeline = dai.Pipeline()
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline)
-        #manip=OakDManip(pipeline,[256,256],camera.camRgb)
+        manip=OakDManip(pipeline,[256,256],camera.camRgb)
         #manip=OakDManip(pipeline,[416,416],camera.camRgb)
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
         self.elements.append(stereo)
         #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
-        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,camera.camRgb.preview,stereo.stereo,"detections",None))
+        detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
+        tracker=OakDTracker(pipeline,camera,stereo,detector)
+        self.elements.append(detector)
+        #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,camera.camRgb.preview,stereo.stereo,"detections",None))
         self.pipeline=pipeline
 
     def _oak_comm_thread_loop(self):
