@@ -49,19 +49,22 @@ class OakDGyrus(ThreadedGyrus):
 
     def init_oakd(self):
         pipeline = dai.Pipeline()
+        self.pipeline=pipeline
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline)
         manip=OakDManip(pipeline,[256,256],camera.camRgb)
         #manip=OakDManip(pipeline,[416,416],camera.camRgb)
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
-        self.elements.append(stereo)
-        #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
+        #self.elements.append(stereo)
+        #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"])
         detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
-        tracker=OakDTracker(pipeline,camera,stereo,detector)
         self.elements.append(detector)
+
+        tracker=OakDTracker(pipeline,camera.camRgb,detector.spatialDetectionNetwork)
+        self.elements.append(tracker)
+
         #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,camera.camRgb.preview,stereo.stereo,"detections",None))
-        self.pipeline=pipeline
 
     def _oak_comm_thread_loop(self):
         self.init_oakd()

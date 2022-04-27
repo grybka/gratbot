@@ -31,9 +31,10 @@ class OakDMobileNetDetections(OakDElement):
         spatialDetectionNetwork.setDepthUpperThreshold(5000)
         camera.link(spatialDetectionNetwork.input)
         stereo.depth.link(spatialDetectionNetwork.inputDepth)
-        xoutNN = pipeline.createXLinkOut()
-        xoutNN.setStreamName(streamname)
-        spatialDetectionNetwork.out.link(xoutNN.input)
+        if self.streamname is not None:
+            xoutNN = pipeline.createXLinkOut()
+            xoutNN.setStreamName(streamname)
+            spatialDetectionNetwork.out.link(xoutNN.input)
         self.spatialDetectionNetwork=spatialDetectionNetwork
 
     def build_queues(self,device):
