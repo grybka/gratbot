@@ -37,9 +37,12 @@ class OakDMobileNetDetections(OakDElement):
         self.spatialDetectionNetwork=spatialDetectionNetwork
 
     def build_queues(self,device):
-        self.detectionNNQueue = device.getOutputQueue(name=self.streamname, maxSize=4, blocking=False)
+        if self.streamname is not None:
+            self.detectionNNQueue = device.getOutputQueue(name=self.streamname, maxSize=4, blocking=False)
 
     def tryget(self,broker):
+        if self.streamname is None:
+            return #no detections to get
         inDet = self.detectionNNQueue.tryGet()
         if inDet is not None:
             device_timestamp=inDet.getTimestamp().total_seconds()
