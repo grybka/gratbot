@@ -10,7 +10,6 @@ import cv2
 #import blobconverter
 from pathlib import Path
 import blobconverter
-from underpinnings.OakDItems import *
 
 logger=logging.getLogger(__name__)
 

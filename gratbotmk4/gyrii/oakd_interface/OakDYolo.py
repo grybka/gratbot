@@ -71,8 +71,8 @@ class OakDYoloDetections(OakDElement):
                 det_item["label"] = self.model_labels[detection.label]
                 det_item["confidence"] = detection.confidence
                 detection_message.append(det_item)
-            if len(detection_message)!=0:
-                frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
-                frame_message["detection_name"]=self.streamname
-                frame_message["detections"]=detection_message
-                broker.publish(frame_message,["detections",self.streamname])
+            #Send a detections message even if its empty
+            frame_message={"timestamp": time.time(),"image_timestamp": device_timestamp}
+            frame_message["detection_name"]=self.streamname
+            frame_message["detections"]=detection_message
+            broker.publish(frame_message,["detections",self.streamname])
