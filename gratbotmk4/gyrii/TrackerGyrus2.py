@@ -123,7 +123,7 @@ class TrackerGyrus(ThreadedGyrus):
         self.motion_corrector=MotionCorrection()
 
         self.min_confidence_for_new_track=confidence_trigger
-        self.max_assignment_cost=2.0
+        self.max_assignment_cost=2.5
         self.tracklet_persist_time=1.0 #how many seconds can a a tracklet persist without being seen
         self.tracklet_persist_time_on_probation=0.5
         self.tracklet_lost_time=0.75 #mark a track as lost if its gone longer than this
@@ -231,7 +231,7 @@ class TrackerGyrus(ThreadedGyrus):
         label_correct_score=0.4 #80 percent likely
         label_incorrect_score=3.2 #20 percent likely
         #Confidence
-        score+=self.min_confidence_for_new_track/(detection["confidence"]+0.05)
+        score+=self.min_confidence_for_new_track/(detection["confidence"]+0.10)
 
         if track.last_label==detection["label"]:
             score+=label_correct_score

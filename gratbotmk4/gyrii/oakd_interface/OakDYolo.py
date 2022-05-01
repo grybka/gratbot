@@ -27,14 +27,14 @@ labelMap = [
     "teddy bear",     "hair drier", "toothbrush"
 ]
 class OakDYoloDetections(OakDElement):
-    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels):
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels,confidence_threshold=0.3):
         logger.info("Creating Spatial Detection Network")
         self.streamname=streamname
         #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
         spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
         spatialDetectionNetwork.setBlobPath(str(blobconverter.from_zoo(name=model_name, shaves=shaves,zoo_type="depthai")))
         #spatialDetectionNetwork.setBlobPath(nnBlobPath)
-        spatialDetectionNetwork.setConfidenceThreshold(0.3)
+        spatialDetectionNetwork.setConfidenceThreshold(confidence_threshold)
         spatialDetectionNetwork.input.setBlocking(False)
         spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
         spatialDetectionNetwork.setDepthLowerThreshold(100)

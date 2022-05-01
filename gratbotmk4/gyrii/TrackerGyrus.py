@@ -15,8 +15,8 @@ from Gyrus import ThreadedGyrus
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.INFO)
 
 #TODO if something moved plausibly offscreen, then it should persist longer
 

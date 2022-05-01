@@ -52,7 +52,8 @@ network_server.start_server(test_port)
 
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
-gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
+#gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
+gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
 #gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","servo_response","logged_note","microphone_data"])) #TODO define keys here
 #### Hardware interface #####
 
@@ -67,8 +68,12 @@ gyrii.append(ServoGyrusVelocity(broker))
 
 
 ### Processing ####
+#For Yolo
 gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detections"))
-#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
+
+#For Faces
+#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.9,detection_name="face_detections"))
+
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7,detection_name="person_detections"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))

@@ -52,19 +52,23 @@ class OakDGyrus(ThreadedGyrus):
         self.pipeline=pipeline
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline)
-        manip=OakDManip(pipeline,[256,256],camera.camRgb)
-        #manip=OakDManip(pipeline,[416,416],camera.camRgb)
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
         #self.elements.append(stereo)
-        #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"])
-        detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
-        self.elements.append(detector)
 
-        tracker=OakDTracker(pipeline,camera.camRgb,detector.spatialDetectionNetwork)
-        self.elements.append(tracker)
+        #For faces
+        #manip=OakDManip(pipeline,[256,256],camera.camRgb)
+        #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
+        
+        #For Yolo
+        manip=OakDManip(pipeline,[416,416],camera.camRgb)
+        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,stereo.stereo,"detections",None,confidence_threshold=0.1))
 
-        #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,camera.camRgb.preview,stereo.stereo,"detections",None))
+        #For tracking (doesn't work)
+        #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
+        #tracker=OakDTracker(pipeline,camera.camRgb,detector.spatialDetectionNetwork)
+        #self.elements.append(tracker)
+
 
     def _oak_comm_thread_loop(self):
         self.init_oakd()
