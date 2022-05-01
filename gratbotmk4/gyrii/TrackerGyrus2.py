@@ -11,8 +11,8 @@ from scipy.optimize import linear_sum_assignment
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.INFO)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 #Behavior -
 #A detection is either identified as part of an existing tracklet, or as a new track, depending on match score
@@ -142,6 +142,7 @@ class TrackerGyrus(ThreadedGyrus):
 
     def read_message(self,message):
         self.motion_corrector.read_message(message)
+        start_time=time.time()
         if "detections" in message and len(message["detections"])!=0:
             #offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
@@ -151,7 +152,9 @@ class TrackerGyrus(ThreadedGyrus):
                 time_lag=message["image_timestamp"]-self.motion_corrector.get_latest_timestamp()
                 self.last_report=time.time()
                 logger.info("Track Report")
-                logger.info("Time Lag : {}".format(time_lag))
+                logger.info("number of detections this frame {}".format(len(message["detections"])))
+                #logger.info("Time Lag : {}".format(time_lag))
+                logger.info("Time Lag : {}".format(time.time()-start_time))
                 for tracklet in self.tracklets:
                     logger.info("{} {}: {}  vx,vy ({},{})".format(tracklet.last_label,id_to_name(tracklet.id),tracklet.status,tracklet.vxvy[0],tracklet.vxvy[1]))
 
