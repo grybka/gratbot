@@ -230,11 +230,14 @@ class TrackerGyrus(ThreadedGyrus):
         #label
         label_correct_score=0.4 #80 percent likely
         label_incorrect_score=3.2 #20 percent likely
+        #Confidence
+        score+=self.min_confidence_for_new_track/(detection["confidence"]+0.05)
+
         if track.last_label==detection["label"]:
             score+=label_correct_score
         else:
             score+=label_incorrect_score
-        return score/3.0
+        return score/4.0
 
     def propose_new_track(self,timestamp,detection):
         if detection["confidence"]<self.min_confidence_for_new_track:

@@ -67,7 +67,7 @@ gyrii.append(ServoGyrusVelocity(broker))
 
 
 ### Processing ####
-gyrii.append(TrackerGyrus(broker,confidence_trigger=0.2,detection_name="detections"))
+gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detections"))
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="face_detections"))
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.7,detection_name="person_detections"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))

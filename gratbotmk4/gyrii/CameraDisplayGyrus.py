@@ -134,8 +134,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 if lag<self.max_detection_lag:
                     for d in self.detections[detection_type]["detections"]:
                         self.draw_detection_bbox(frame,d)
-                #else:
-                #    logger.debug("{} lag too great {} ms".format(detection_type,1000*lag))
+                else:
+                    logger.debug("{} lag too great {} ms".format(detection_type,1000*lag))
         elif self.mode=="show_tracks":
             for trackid in self.tracks:
                 self.draw_track_bbox(frame,self.tracks[trackid])
@@ -165,9 +165,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
         if "detections" in message:
             #print("detection timestamp {}".format(message["image_timestamp"]))
             #logger.debug("got detections {}".format(message))
+            self.detections[message["detection_name"]]=message
 
             if self.display_subimages and len(message["detections"])>0:
-                self.detections[message["detection_name"]]=message
                 if "subimage" in message["detections"][0] and self.mode=="show_detections":
                     self.display.update_image("detsubimage",message["detections"][0]["subimage"])
         if "tracks" in message and self.mode=="show_tracks":
