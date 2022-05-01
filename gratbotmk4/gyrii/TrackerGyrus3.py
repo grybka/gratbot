@@ -49,8 +49,8 @@ class Tracklet:
         self.kfy=kinematic_kf(dim=1, order=1, dt=dt, order_by_dim=False)
         self.kfx.P=1e9*np.eye(2) #covariance
         self.kfy.P=1e9*np.eye(2) #covariance
-        self.kfx.R=np.array( [[ (2/image.shape[1])**2 ]])
-        self.kfy.R=np.array( [[ (2/image.shape[0])**2 ]])
+        self.kfx.R=np.array( [[ (2/320)**2 ]])
+        self.kfy.R=np.array( [[ (2/320)**2 ]])
 
         self.last_spatial_array=None
         self.last_projection_timestamp=timestamp
@@ -59,8 +59,8 @@ class Tracklet:
 
     def update_kf_from_time(self,dt):
         #assume 1 pixel creep per second
-        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=1)
-        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=1)
+        self.kfx.Q=Q_discrete_white_noise(2,dt=dt,var=100)
+        self.kfy.Q=Q_discrete_white_noise(2,dt=dt,var=100)
         #assume 1 cm creep per second
         self.kfx.predict()
         self.kfy.predict()
@@ -83,13 +83,13 @@ class Tracklet:
         self.kfx.update(xywh[0])
         self.kfy.update(xywh[1])
         
-        self.xywh=[self.kfx.x[0],self.kfy.x[0],xywh[2],xywh[3]]
+        self.xywh=[self.kfx.x[0][0],self.kfy.x[0][0],xywh[2],xywh[3]]
 
 
 
         if "spatial_array" in detection:
             self.last_spatial_array=detection["spatial_array"]
-        self.last_timestamp=self.recent_measurements[-1][0]
+        self.last_timestamp=timestamp
         self.n_detections+=1
         #take it off probation if enough detection
         if self.status!="PROBATION" or self.n_detections>self.probation_detections:
@@ -174,16 +174,16 @@ class TrackerGyrus(ThreadedGyrus):
             track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
 
-        logger.info("project to time {} with {} tracks".format(time.time()-start_time,len(self.tracklets)))
-        start_time=time.time()
+        #logger.info("project to time {} with {} tracks".format(time.time()-start_time,len(self.tracklets)))
+        #start_time=time.time()
 
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):
             for j in range(len(self.tracklets)):
                 cost_matrix[i,j]=self.get_score(timestamp,detections[i],self.tracklets[j])
 
-        logger.info("cost stuff {}".format(time.time()-start_time))
-        start_time=time.time()
+        #logger.info("cost stuff {}".format(time.time()-start_time))
+        #start_time=time.time()
 
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         leftover_is=np.setdiff1d(np.arange(len(detections)),row_ind)
@@ -205,7 +205,7 @@ class TrackerGyrus(ThreadedGyrus):
             self.propose_new_track(timestamp,detection)
         self.mark_missed_tracks(timestamp,leftover_tracks)
 
-        logger.info("track stuff {}".format(time.time()-start_time))
+        #logger.info("track stuff {}".format(time.time()-start_time))
 
         track_message=[]
         for track in self.tracklets:

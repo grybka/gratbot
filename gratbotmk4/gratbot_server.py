@@ -17,7 +17,8 @@ from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
-from gyrii.TrackerGyrus2 import TrackerGyrus
+#from gyrii.TrackerGyrus2 import TrackerGyrus
+from gyrii.TrackerGyrus3 import TrackerGyrus
 from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 from gyrii.MicrophoneGyrus2 import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
