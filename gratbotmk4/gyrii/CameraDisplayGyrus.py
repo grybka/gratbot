@@ -96,11 +96,16 @@ class CameraDisplayGyrus(ThreadedGyrus):
                     cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
         else:
             color = (255, 0, 0)
-            x,y,w,h=t["recent_measurements"][0][1]
-            x1=int(width*(x-w/2))
-            x2=int(width*(x+w/2))
-            y1=int(height*(y-h/2))
-            y2=int(height*(y+h/2))
+            #x,y,w,h=t["recent_measurements"][0][1]
+            #x1=int(width*(x-w/2))
+            #x2=int(width*(x+w/2))
+            #y1=int(height*(y-h/2))
+            #y2=int(height*(y+h/2))
+            x1,x2,y1,y2=t["bbox_array"]
+            x1=int(width*x1)
+            x2=int(width*x2)
+            y1=int(height*y1)
+            y2=int(height*y2)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
             cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
@@ -154,9 +159,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
             for trackid in self.tracks:
                 self.draw_track_bbox(frame,self.tracks[trackid])
             #self.max_track_lag=0.5
-            for track_type in self.tracks:
-                lag=-self.track_timestamp+self.last_image_message["image_timestamp"]
-                logger.info("Camera Track Lag {} s".format(lag))
+            #for track_type in self.tracks:
+            #    lag=-self.track_timestamp+self.last_image_message["image_timestamp"]
+            #    logger.info("Camera Track Lag {} s".format(lag))
             #    if lag<self.max_track_lag:
             #        for t in self.tracks[track_type]["tracks"]:
             #            self.draw_track_bbox(frame,t)

@@ -69,6 +69,8 @@ class PointingErrorGyrus(ThreadedGyrus):
             expected_width_meters=0.1
         elif track["label"]=="person":
             expected_width_meters=0.55
+        elif track["label"]=="sports_ball":
+            expected_width_meters=0.1
         dist=expected_width_meters/np.tan(width*2*np.pi*72/360)
         #disterror=self.target_distance-dist
         disterror=dist-self.target_distance
@@ -99,10 +101,14 @@ class PointingErrorGyrus(ThreadedGyrus):
         for i in range(len(tracks)):
             closest_point=10000
             best_track={"id":None}
-            if tracks[i]["info"]=="DETECTED" or tracks[i]["info"]=="EXITED":
+            #if tracks[i]["info"]=="DETECTED" or tracks[i]["info"]=="EXITED":
+            if tracks[i]["info"]=="DETECTED":
                 dx=tracks[i]["center"][0]-0.5
                 dy=tracks[i]["center"][1]-0.5
                 dist=dx*dx+dy*dy
+                #preference for tracking things here
+                if tracks[i]["label"]=="sports_ball":
+                    dist-=0.4
                 if dist<closest_point:
                     best_track=tracks[i]
                     closest_point=dist
