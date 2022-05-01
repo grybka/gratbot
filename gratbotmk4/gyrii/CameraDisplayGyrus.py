@@ -28,6 +28,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         super().__init__(broker)
 
         self.tracks={}
+        self.track_timestamp=0
         self.detections={}
 
         self.last_detections_message={"detections": []}
@@ -80,17 +81,29 @@ class CameraDisplayGyrus(ThreadedGyrus):
     def draw_track_bbox(self,frame,t):
         height = frame.shape[0]
         width  = frame.shape[1]
-        for i in range(len(t["recent_measurements"])):
-            color = (255, 40*i, 0)
-            x,y,w,h=t["recent_measurements"][i][1]
+        draw_history=False
+        if draw_history:
+            for i in range(len(t["recent_measurements"])):
+                color = (255, 40*i, 0)
+                x,y,w,h=t["recent_measurements"][i][1]
+                x1=int(width*(x-w/2))
+                x2=int(width*(x+w/2))
+                y1=int(height*(y-h/2))
+                y2=int(height*(y+h/2))
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
+                if i==0:
+                    cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+                    cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+        else:
+            color = (255, 0, 0)
+            x,y,w,h=t["recent_measurements"][0][1]
             x1=int(width*(x-w/2))
             x2=int(width*(x+w/2))
             y1=int(height*(y-h/2))
             y2=int(height*(y+h/2))
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
-            if i==0:
-                cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+            cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
+            cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
 
     def old_draw_track_bbox(self,frame,t):
         color = (255, 0, 0)
@@ -120,6 +133,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
                     del self.tracks[track["id"]]
             else:
                 self.tracks[track["id"]]=track
+        self.track_timestamp=message["image_timestamp"]
 
     def update_display(self):
         if "image" not in self.last_image_message:
@@ -140,8 +154,9 @@ class CameraDisplayGyrus(ThreadedGyrus):
             for trackid in self.tracks:
                 self.draw_track_bbox(frame,self.tracks[trackid])
             #self.max_track_lag=0.5
-            #for track_type in self.tracks:
-            #    lag=-self.tracks[track_type]["image_timestamp"]+self.last_image_message["image_timestamp"]
+            for track_type in self.tracks:
+                lag=-self.track_timestamp+self.last_image_message["image_timestamp"]
+                logger.info("Camera Track Lag {} s".format(lag))
             #    if lag<self.max_track_lag:
             #        for t in self.tracks[track_type]["tracks"]:
             #            self.draw_track_bbox(frame,t)
