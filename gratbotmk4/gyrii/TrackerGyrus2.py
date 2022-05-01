@@ -144,6 +144,11 @@ class TrackerGyrus(ThreadedGyrus):
         self.motion_corrector.read_message(message)
         start_time=time.time()
         if "detections" in message and len(message["detections"])!=0:
+            #discard if I've gotten too behind
+            too_behind_seconds=0.05
+            if start_time-message["timestamp"]>too_behind_seconds:
+                return
+
             #offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
             offset_x,offset_y=self.motion_corrector.get_offset_and_update(message["image_timestamp"])
             #offset_x,offset_y=0,0
@@ -153,8 +158,8 @@ class TrackerGyrus(ThreadedGyrus):
                 self.last_report=time.time()
                 logger.info("Track Report")
                 logger.info("number of detections this frame {}".format(len(message["detections"])))
-                #logger.info("Time Lag : {}".format(time_lag))
-                logger.info("Time Lag : {}".format(time.time()-start_time))
+                logger.info("Time Lag : {}".format(start_time-message["timestamp"]))
+                logger.info("Processing Time : {}".format(time.time()-start_time))
                 for tracklet in self.tracklets:
                     logger.info("{} {}: {}  vx,vy ({},{})".format(tracklet.last_label,id_to_name(tracklet.id),tracklet.status,tracklet.vxvy[0],tracklet.vxvy[1]))
 
@@ -167,14 +172,23 @@ class TrackerGyrus(ThreadedGyrus):
         #offset x and y should be in radians
         #track positions are in vido full scale
         #camera is 69 x 55 degrees, allegedly (or is it 73?  it is different in different places)
+        start_time=time.time()
         for track in self.tracklets:
             #TODO include offset here
             track.account_for_offset(offset_x,offset_y)
             track.project_to_time(timestamp)
+
+        logger.info("project to time {} with {} tracks".format(time.time()-start_time,len(self.tracklets)))
+        start_time=time.time()
+
         cost_matrix=np.zeros( [len(detections),len(self.tracklets)])
         for i in range(len(detections)):
             for j in range(len(self.tracklets)):
                 cost_matrix[i,j]=self.get_score(timestamp,detections[i],self.tracklets[j])
+
+        logger.info("cost stuff {}".format(time.time()-start_time))
+        start_time=time.time()
+
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         leftover_is=np.setdiff1d(np.arange(len(detections)),row_ind)
         leftover_js=np.setdiff1d(np.arange(len(self.tracklets)),col_ind)
@@ -194,6 +208,8 @@ class TrackerGyrus(ThreadedGyrus):
             #propose new track
             self.propose_new_track(timestamp,detection)
         self.mark_missed_tracks(timestamp,leftover_tracks)
+
+        logger.info("track stuff {}".format(time.time()-start_time))
 
         track_message=[]
         for track in self.tracklets:
