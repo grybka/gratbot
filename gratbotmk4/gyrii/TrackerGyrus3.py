@@ -12,8 +12,8 @@ from filterpy.common import kinematic_kf,Q_discrete_white_noise
 
 logger=logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.INFO)
 
 #Behavior -
 #A detection is either identified as part of an existing tracklet, or as a new track, depending on match score

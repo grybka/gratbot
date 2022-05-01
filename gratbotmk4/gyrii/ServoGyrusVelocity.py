@@ -17,7 +17,7 @@ class ServoGyrusVelocity(ThreadedGyrus):
         self.kit = ServoKit(channels=self.servo_count)
         self.max_angle=165
         self.min_angle=60
-        self.max_vel=150
+        self.max_vel=400
         self.velocity_thread=None
         self.thread_sleep_time=0.005
         self.servo_velocities=np.zeros(self.servo_count)
@@ -27,6 +27,8 @@ class ServoGyrusVelocity(ThreadedGyrus):
             #self.servo_angles[i]=self.kit.servo[i].angle
         self.servo_angle_lock=threading.Lock()
         super().__init__(broker)
+        #for debugging
+        self.last_update=time.time()
 
     def get_keys(self):
         return ["servo_command"]
@@ -52,9 +54,9 @@ class ServoGyrusVelocity(ThreadedGyrus):
                 #logging.warning("min and max angle {} {}".format(self.min_angle,self.max_angle))
                 #logging.warning("servo angles {}".format(self.servo_angles))
                 #logging.warning("servo velocities {}".format(self.servo_velocities))
-                for i in range(self.servo_count):
-                    if self.servo_velocities[i]!=0:
-                        self.kit.servo[i].angle=self.servo_angles[i]
+            for i in range(self.servo_count):
+                #if self.servo_velocities[i]!=0:
+                self.kit.servo[i].angle=self.servo_angles[i]
 
     def set_servo_velocity(self,servo_num,vel):
         vel=np.clip(vel,-self.max_vel,self.max_vel)
@@ -78,6 +80,8 @@ class ServoGyrusVelocity(ThreadedGyrus):
             if "vel" in m:
                 vel=m["vel"]
                 self.set_servo_velocity(servo_num,vel)
+                #if time.time()>self.last_update+0.1:
+                #print("setting servo velocity to {}".format(vel))
             elif "report" in m:
                 with self.servo_angle_lock:
                     m={"servo_number": servo_num,"angle": self.kit.servo[servo_num].angle,"vel": self.servo_velocities[servo_num,"angle": self.servo_angles[servo_num]]}

@@ -23,8 +23,9 @@ def get_track_with_id(id,tracks):
 #Currently either picks an object to track, or keeps head level
 #I should separate out this from the thing that decides what to look at
 class PointingErrorGyrus(ThreadedGyrus):
-    def __init__(self,broker):
+    def __init__(self,broker,do_distance_corrections=True):
         super().__init__(broker)
+        self.tracked_labels=["sports ball"]
         self.tracked_object=None
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
@@ -34,7 +35,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.wait_time=2
         self.wait_start_time=time.time()
 
-        self.do_distance_corrections=True
+        self.do_distance_corrections=do_distance_corrections
         self.target_distance=1.0
         #for debug messages
         self.last_report_time=time.time()
@@ -69,7 +70,7 @@ class PointingErrorGyrus(ThreadedGyrus):
             expected_width_meters=0.1
         elif track["label"]=="person":
             expected_width_meters=0.55
-        elif track["label"]=="sports_ball":
+        elif track["label"]=="sports ball":
             expected_width_meters=0.1
         dist=expected_width_meters/np.tan(width*2*np.pi*72/360)
         #disterror=self.target_distance-dist
@@ -91,7 +92,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         #xerror and yerror should be roughly in degrees
         #disterror should be roughly in meters
         #logger.debug("Reporting error {} {}".format(xerror,yerror))
-        message_out={"timestamp": time.time(),"pointing_error_x": xerror,"pointing_error_y": yerror, "distance_error": disterror}
+        message_out={"timestamp": time.time(),"pointing_error_x": float(xerror),"pointing_error_y": float(yerror), "distance_error": float(disterror)}
         self.broker.publish(message_out,["pointing_error_x","pointing_error_y","distance_error"])
 
     def find_new_object(self,message):
@@ -102,13 +103,11 @@ class PointingErrorGyrus(ThreadedGyrus):
             closest_point=10000
             best_track={"id":None}
             #if tracks[i]["info"]=="DETECTED" or tracks[i]["info"]=="EXITED":
-            if tracks[i]["info"]=="DETECTED":
+            if tracks[i]["info"]=="DETECTED" and tracks[i]["label"] in self.tracked_labels:
                 dx=tracks[i]["center"][0]-0.5
                 dy=tracks[i]["center"][1]-0.5
                 dist=dx*dx+dy*dy
                 #preference for tracking things here
-                if tracks[i]["label"]=="sports_ball":
-                    dist-=0.4
                 if dist<closest_point:
                     best_track=tracks[i]
                     closest_point=dist
@@ -187,7 +186,8 @@ class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
         #self.tracked_object=None
         #Units are degrees per second per pixel
         #self.pid_controller=MyPID(-200.,0,0,output_clip=[-150,150])
-        self.pid_controller=MyPID(-100.,-10,-400,output_clip=[-150,150])
+        self.pid_controller=MyPID(-800.,-200.,0,output_clip=[-400,400])
+        #self.pid_controller=MyPID(-100.,-10,-400,output_clip=[-150,150])
         self.servo_num=0
         #self.motion_corrector=MotionCorrectionRecord()
         #self.last_track_time=0
@@ -215,14 +215,16 @@ class NeckPointingErrorCorrectionGyrus(ThreadedGyrus):
             error_signal=message["pointing_error_y"]
             self.pid_controller.observe(error_signal)
             vel=self.pid_controller.get_response()
-            servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": vel}}
+            #print("emitting servo vel {}".format(vel))
+            servo_command={"timestamp": time.time(),"servo_command": {"servo_number": self.servo_num,"vel": float(vel)}}
             self.broker.publish(servo_command,"servo_command")
 
 class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
     def __init__(self,broker,enabled=True):
         super().__init__(broker)
         #Units are throttle per radian
-        self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
+        #self.turn_pid_controller=MyPID(-0.20,-0.15,-0.2,output_clip=[-1,1])
+        self.turn_pid_controller=MyPID(-0.30,-0.30,-0.2,output_clip=[-1,1])
         #units are throttle per meter
         self.distance_pid_controller=MyPID(1.5,2.0,1.5,output_clip=[-1,1])
         self.enabled=enabled
@@ -269,6 +271,6 @@ class BodyPointingErrorCorrectionGyrus(ThreadedGyrus):
             #correction
             #dur=0.05 #at 20 fps
             dur=0.06 #there is lag intalking to the motor
-            motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":left_throttle,"right_throttle": right_throttle,"left_duration":dur,"right_duration": dur}}
+            motor_command={"timestamp": time.time(),"motor_command": {"left_throttle":float(left_throttle),"right_throttle": float(right_throttle),"left_duration":dur,"right_duration": dur}}
             #logger.info("publishing motor command")
             self.broker.publish(motor_command,"motor_command")
