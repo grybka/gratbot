@@ -30,13 +30,15 @@ class PointingErrorGyrus(ThreadedGyrus):
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
         self.track_time_declare_lost=2
-        self.resting_angle=30*(2*3.14/360)
+        #self.resting_angle=30*(2*3.14/360)
+        self.resting_angle=0
         self.state="WAITING" # or LOOKING_AT_SOMETHING or LEVELLING
         self.wait_time=2
         self.wait_start_time=time.time()
 
         self.do_distance_corrections=do_distance_corrections
-        self.target_distance=1.0
+        #self.target_distance=1.0
+        self.target_distance=0.25
         #for debug messages
         self.last_report_time=time.time()
         self.report_period=1
@@ -71,7 +73,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         elif track["label"]=="person":
             expected_width_meters=0.55
         elif track["label"]=="sports ball":
-            expected_width_meters=0.1
+            expected_width_meters=0.10
         dist=expected_width_meters/np.tan(width*2*np.pi*72/360)
         #disterror=self.target_distance-dist
         disterror=dist-self.target_distance
@@ -143,6 +145,8 @@ class PointingErrorGyrus(ThreadedGyrus):
 
         if "tracks" in message:
             if self.state=="LEVELLING":
+                if self.last_report_time+self.report_period<time.time():
+                    logger.info("looking for new object")
                 self.find_new_object(message)
             if self.state=="LOOKING_AT_SOMETHING":
                 xerror_signal,yerror_signal,disterror_signal=self.get_track_error(message)
