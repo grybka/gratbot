@@ -132,6 +132,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
 
     def update_tracks(self,message):
+        self.tracks={}
         for track in message["tracks"]:
             if track["info"]=="LOST":
                 if track["id"] in self.tracks:
