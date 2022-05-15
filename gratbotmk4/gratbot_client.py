@@ -14,25 +14,26 @@ from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
-from gyrii.FaceRecognizer import FaceRecognizer
+#from gyrii.FaceRecognizer import FaceRecognizer
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
 #from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
-from gyrii.XboxControllerGyrus import XboxControllerGyrus
+#from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
 from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion
 
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
 #from gyrii.HandTrackerGyrus import HandTrackerGyrus
-from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
-from gyrii.SoundRecordGyrus import SoundRecordGyrus
-from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
-from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
+#from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
+#from gyrii.SoundRecordGyrus import SoundRecordGyrus
+#from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
+#from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 from gyrii.StateAssesorGyrus import StateAssesorGyrus
+from gyrii.QuattestGyrus import QuattestGyrus
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
 #from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
 #from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
@@ -128,6 +129,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
+gyrii.append(QuattestGyrus(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))

@@ -27,8 +27,9 @@ labelMap = [
     "teddy bear",     "hair drier", "toothbrush"
 ]
 class OakDYoloDetections(OakDElement):
-    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels,confidence_threshold=0.3):
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels,confidence_threshold=0.3,spatial_x_scale=1.0):
         logger.info("Creating Spatial Detection Network")
+        self.spatial_x_scale=spatial_x_scale #for cases where I've squeezed the resolution
         self.streamname=streamname
         #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
         spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
@@ -67,7 +68,7 @@ class OakDYoloDetections(OakDElement):
                 det_item={}
                 bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
                 det_item["bbox_array"]=bbox_array
-                det_item["spatial_array"]=[detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                det_item["spatial_array"]=[self.spatial_x_scale*detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
                 det_item["label"] = self.model_labels[detection.label]
                 det_item["confidence"] = detection.confidence
                 detection_message.append(det_item)
