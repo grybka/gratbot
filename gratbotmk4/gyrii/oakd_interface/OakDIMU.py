@@ -47,7 +47,7 @@ class OakDIMU(OakDElement):
                 self.local_rotation+=np.array([gyroscope.x,gyroscope.y,gyroscope.z])*(gyroscopeTs.total_seconds()-self.last_gyro_Ts)
                 self.last_gyro_Ts=gyroscopeTs.total_seconds()
                 #rValues.accuracy didn't work
-                dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k,3],
+                dat.append({"rotation_vector": [rVvalues.real,rVvalues.i,rVvalues.j,rVvalues.k],
                             "rotation_vector_timestamp": rvTs.total_seconds(),
                             "acceleration": [acceleroValues.x,acceleroValues.y,acceleroValues.z],
                             "acceleration_timestamp": acceleroTs.total_seconds(),
