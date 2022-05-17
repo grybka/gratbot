@@ -9,7 +9,8 @@ import argparse
 from network.JSONBackAndForthServerPickle import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import ThreadedGyrus,GyrusList,VideoDisplay
-from gyrii.SocketGyrusLink import SocketGyrusLink
+#from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.SocketGyrusLinkPickle import SocketGyrusLink
 from gyrii.HeadTrackerGyrus import HeadTrackerGyrus
 from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus

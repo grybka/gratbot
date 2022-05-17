@@ -7,7 +7,8 @@ import logging
 from network.JSONBackAndForthServerPickle import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
-from gyrii.SocketGyrusLink import SocketGyrusLink
+#from gyrii.SocketGyrusLink import SocketGyrusLink
+from gyrii.SocketGyrusLinkPickle import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
 from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
