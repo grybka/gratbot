@@ -5,7 +5,8 @@ sys.path.append('network')
 import logging
 import cv2 as cv
 import argparse
-from network.JSONBackAndForthServer2 import JSONBackAndForth2
+#from network.JSONBackAndForthServer2 import JSONBackAndForth2
+from network.JSONBackAndForthServerPickle import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import ThreadedGyrus,GyrusList,VideoDisplay
 from gyrii.SocketGyrusLink import SocketGyrusLink
@@ -33,7 +34,8 @@ from gyrii.ClockGyrus import ClockGyrus
 #from gyrii.SpeechDetectorGyrus import SpeechDetectorGyrus
 #from gyrii.CommandWordRecognitionGyrus2 import CommandWordRecognitionGyrus
 from gyrii.StateAssesorGyrus import StateAssesorGyrus
-from gyrii.QuattestGyrus import QuattestGyrus
+#from gyrii.QuattestGyrus import QuattestGyrus
+from gyrii.ShortTermObjectMemory import ShortTermObjectMemory
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
 #from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
 #from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
@@ -54,6 +56,7 @@ args=argparser.parse_args()
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S',
     level=logging.DEBUG)
+logger=logging.getLogger(__name__)
 
 class TestGyrus(ThreadedGyrus):
     def __init__(self,broker,keys):
@@ -129,7 +132,8 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
-gyrii.append(QuattestGyrus(broker,display_loop))
+#gyrii.append(QuattestGyrus(broker,display_loop))
+gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
