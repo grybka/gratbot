@@ -3,7 +3,8 @@ import sys,os,traceback,time
 sys.path.append('gyrii')
 sys.path.append('network')
 import logging
-from network.JSONBackAndForthServer2 import JSONBackAndForth2
+#from network.JSONBackAndForthServer2 import JSONBackAndForth2
+from network.JSONBackAndForthServerPickle import JSONBackAndForth2
 from MessageBroker import MessageBroker
 from gyrii.Gyrus import GyrusList
 from gyrii.SocketGyrusLink import SocketGyrusLink

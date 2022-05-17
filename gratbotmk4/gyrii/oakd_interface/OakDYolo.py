@@ -11,6 +11,9 @@ from oakd_interface.OakDElement import OakDElement
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+#Lesson spatialdetectionnetwork will give me the wrong values when I'm squeezing or letterboxing
+#I have to do it on my own
+
 # Tiny yolo v3/4 label texts
 labelMap = [
     "person",         "bicycle",    "car",           "motorbike",     "aeroplane",   "bus",           "train",
