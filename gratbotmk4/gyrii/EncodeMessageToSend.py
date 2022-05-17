@@ -21,7 +21,7 @@ def encode_message_to_send(object):
         if object.dtype==np.uint8:
             _,encoded=cv2.imencode('.jpg',object)
             x=encoded.tobytes()
-            return {"_packed_type":"jpegimage","data":x.decode('utf-8')}
+            return {"_packed_type":"jpegimage","data":x}
         else:
             return object
     return object
@@ -30,7 +30,7 @@ def decode_message_received(object):
     if type(object)==dict: #walk through dicts
         if "_packed_type" in object:
             if object["_packed_type"]=="jpegimage":
-                x=bytes(object["data"],encoding='utf-8')
+                x=object["data"]
                 x=np.frombuffer(x,dtype=np.uint8)
                 return cv2.imdecode(x,cv2.IMREAD_COLOR)
             raise Exception("json_to_message doesn't understand type {}".format(object["_packed_type"]))
