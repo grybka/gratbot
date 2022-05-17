@@ -20,7 +20,7 @@ def encode_message_to_send(object):
     if type(object)==np.ndarray:
         if object.dtype==np.uint8:
             _,encoded=cv2.imencode('.jpg',object)
-            encoded=encoded.tobytes()
+            x=encoded.tobytes()
             return {"_packed_type":"jpegimage","data":x.decode('utf-8')}
         else:
             return object
