@@ -90,7 +90,7 @@ class OakDDepth(OakDElement):
 
     def build_queues(self,device):
         if self.streamname is not None:
-            self.depthQueue = device.getOutputQueue(name="depth", maxSize=4,blocking=False)
+            self.depthQueue = device.getOutputQueue(name=self.streamname, maxSize=4,blocking=False)
 
     def tryget(self,broker):
         #get depth from the depth queu
