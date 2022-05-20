@@ -56,7 +56,14 @@ network_server.start_server(test_port)
 logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 #gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
-gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","tracks","servo_response","logged_note","microphone_data","motor_report"])) #TODO define keys here
+keys_to_send=["rotation_vector",
+              "image",
+              "depth",
+              "tracks",
+              "logged_note",
+              "microphone_data",
+              "motor_report"]
+gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=keys_to_send))
 #gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","servo_response","logged_note","microphone_data"])) #TODO define keys here
 #### Hardware interface #####
 
