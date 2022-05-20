@@ -63,6 +63,7 @@ class MotorGyrus(ThreadedGyrus):
     def _motor_thread_loop(self):
         #this thread stops motors when they are supposed to stop
         then=time.time()
+        self.last_announcement=then
         left_integrated=0
         right_integrated=0
         while not self.should_quit:
