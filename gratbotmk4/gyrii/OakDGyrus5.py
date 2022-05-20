@@ -54,6 +54,7 @@ class OakDGyrus(ThreadedGyrus):
         stereo=OakDDepth(pipeline)
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
+        self.elements.append(stereo)
         #self.elements.append(stereo)
 
         #For faces
