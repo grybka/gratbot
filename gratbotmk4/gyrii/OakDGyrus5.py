@@ -51,7 +51,7 @@ class OakDGyrus(ThreadedGyrus):
         pipeline = dai.Pipeline()
         self.pipeline=pipeline
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
-        stereo=OakDDepth(pipeline)
+        stereo=OakDDepth(pipeline,streamname="depth_stream")
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
         self.elements.append(stereo)
