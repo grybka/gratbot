@@ -36,7 +36,7 @@ def decode_message_received(object):
             raise Exception("json_to_message doesn't understand type {}".format(object["_packed_type"]))
         ret={}
         for key in object:
-            ret[key]=json_to_message(object[key])
+            ret[key]=decode_message_received(object[key])
         return ret
     if type(object)==list: #walk through lists
         ret=[]

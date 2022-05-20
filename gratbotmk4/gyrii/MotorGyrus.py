@@ -18,6 +18,7 @@ class MotorGyrus(ThreadedGyrus):
 
         self.kit._pca.frequency=100
         self.thread_sleep_time=0.02
+        self.announce_period=0.1
         self.min_throttle=0.35
         #self.min_throttle=0.2
 
@@ -61,9 +62,13 @@ class MotorGyrus(ThreadedGyrus):
 
     def _motor_thread_loop(self):
         #this thread stops motors when they are supposed to stop
+        then=time.time()
+        left_integrated=0
+        right_integrated=0
         while not self.should_quit:
             time.sleep(self.thread_sleep_time)
             now=time.time()
+            delta_t=now-then
             #acquire most recent motor settings, set to zero if time out
             with self.motor_lock:
                 if now>self.left_run_until:
@@ -78,7 +83,15 @@ class MotorGyrus(ThreadedGyrus):
             #start_time=time.time()
             self.left_motor.throttle=left_motor_throttle
             self.right_motor.throttle=right_motor_throttle
+            left_integrated+=left_motor_throttle*delta_t
+            right_integrated+=right_motor_throttle*delta_t
             logger.debug("set motors to  {},{} with delay {}".format(left_motor_throttle,right_motor_throttle,now-message_time))
+            if now-self.last_announcement>self.announce_period:
+                self.broker.publish({"timestamp": now,"left_motor": left_integrated,"right_motor": right_integrated},["motor_report"])
+                left_integrated=0
+                right_integrated=0
+                self.last_announcement=now
+            then=now
         self.left_motor.throttle=0
         self.right_motor.throttle=0
 
