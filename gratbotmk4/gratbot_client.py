@@ -28,7 +28,7 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion,CalibrateMotionBehaviorFB
 
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
-from gyrii.behaviors.Behavior import DoOnce
+from gyrii.behaviors.Behavior import DoOnce,GratbotBehavior_Checklist,GratbotBehavior_Wait
 from gyrii.ClockGyrus import ClockGyrus
 #from gyrii.HandTrackerGyrus import HandTrackerGyrus
 #from gyrii.SoundDisplayGyrus import SoundDisplayGyrus

@@ -25,13 +25,15 @@ def get_track_with_id(id,tracks):
 class PointingErrorGyrus(ThreadedGyrus):
     def __init__(self,broker,do_distance_corrections=True):
         super().__init__(broker)
-        self.tracked_labels=["sports ball"]
+        #self.tracked_labels=["sports ball"]
+        self.tracked_labels=[]
         self.tracked_object=None
         self.motion_corrector=MotionCorrectionRecord()
         self.last_track_time=0
         self.track_time_declare_lost=2
         #self.resting_angle=30*(2*3.14/360)
-        self.resting_angle=0
+        #self.resting_angle=0
+        self.resting_angle=-10*(2*3.14/360)
         self.state="WAITING" # or LOOKING_AT_SOMETHING or LEVELLING
         self.wait_time=2
         self.wait_start_time=time.time()

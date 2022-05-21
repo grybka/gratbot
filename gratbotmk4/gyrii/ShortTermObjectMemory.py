@@ -49,7 +49,8 @@ class STMObject:
             self.seen_for_a_while=True
         self.position=self.position.updated(trackpos)
         #logger.debug("new pos {}".format(self.position))
-        self.position.min_covariance([0.01,0.01,0.01]) #10 cm covariance
+        #self.position.min_covariance([0.01,0.01,0.01]) #10 cm covariance
+        self.position.min_covariance([1,1,1]) #10 cm covariance
         self.last_seen=timestamp
         self.label=label
 
@@ -302,6 +303,7 @@ class ShortTermObjectMemory(ThreadedGyrus):
         if "clock_pulse" in message:
             if time.time()-self.last_update>self.recalc_period and self.n_track_messages_integrated>0:
                 self.last_update=time.time()
+                self.update_expectations_from_motion()
                 #logger.debug("{} track messages integrated".format(self.n_track_messages_integrated))
                 self.handle_tracks()
                 #Reset track info
@@ -313,6 +315,12 @@ class ShortTermObjectMemory(ThreadedGyrus):
                 self.update_focus()
                 #Draw to screen
                 self.draw_image()
+
+    def update_expectations_from_motion(self):
+        local_pos=self.position_log.offset
+        for objid in self.objects:
+            self.objects[objid].position-=local_pos
+        self.position_log.reset_offset()
 
     def clear_spurious_objects(self):
         prelim_persist_time=3 #seconds
