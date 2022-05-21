@@ -459,17 +459,17 @@ class ExerciseTurns(GratbotBehavior):
 class CalibrateMotionBehaviorFB(GratbotBehavior):
 
     def __init__(self):
-        nsteps=6
+        nsteps=4
         motion_list=[]
-        aheadmotion=np.linspace(0.5,1.0,nsteps)
-        aheaddur=[1.0]*nsteps
+        aheadmotion=np.linspace(0.25,1.0,nsteps)
+        aheaddur=[0.5]*nsteps
         for i in range(nsteps): #turn
             motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],aheadmotion[i],aheaddur[i])))
             motion_list.append(self.wrap_motion_act(RunMotors(-aheadmotion[i],-aheadmotion[i],aheaddur[i])))
         self.action_list=GratbotBehavior_Series(motion_list)
 
     def wrap_motion_act(self,motion_act):
-        return GratbotBehavior_Series([Announce("moving"),motion_act,GratbotBehavior_Wait(1.0)] )
+        return GratbotBehavior_Series([Announce("moving"),motion_act,GratbotBehavior_Wait(2.0)] )
 
     def act(self,**kwargs):
         return self.action_list.act(**kwargs)
