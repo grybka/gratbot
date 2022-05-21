@@ -132,6 +132,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_command","servo_response","logged_note"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
+gyrii.append(MessageLoggerGyrus(broker,keys=["motor_report","st_object_report"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
 #gyrii.append(QuattestGyrus(broker,display_loop))
 gyrii.append(ShortTermObjectMemory(broker,display_loop))
