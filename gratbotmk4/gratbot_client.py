@@ -28,6 +28,7 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion,CalibrateMotionBehaviorFB
 
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
+from gyrii.behaviors.Behavior import DoOnce
 from gyrii.ClockGyrus import ClockGyrus
 #from gyrii.HandTrackerGyrus import HandTrackerGyrus
 #from gyrii.SoundDisplayGyrus import SoundDisplayGyrus
@@ -146,7 +147,7 @@ gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 
-gyrii.append(BehaviorGyrus(broker,DoOnce(CalibrateMotionBehaviorFB())))
+gyrii.append(BehaviorGyrus(broker,DoOnce(GratbotBehavior_Checklist([GratbotBehavior_Wait(5),CalibrateMotionBehaviorFB()]))))
 
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))

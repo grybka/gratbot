@@ -81,7 +81,7 @@ class ShortTermObjectMemory(ThreadedGyrus):
         return "ShortTermObjectMemory"
 
     def update_focus(self):
-        if self.focus_object is not None and self.focus_object in self.objects:
+        if self.focus_object is not None:
             ...
             #if I'm already focused on something, why change?
             #TODO if I get bored with it
@@ -322,6 +322,9 @@ class ShortTermObjectMemory(ThreadedGyrus):
                 if time.time()-obj.last_seen>prelim_persist_time: #I haven't seen it, must have imagined it
                     logger.debug("Object {} the {} deemed to be my imagination".format(objid,obj.label))
                     del self.objects[objid]
+                    #if I was focused on it, remove
+                    if self.focus_object==objid:
+                        self.focus_object=None
 
     def draw_image(self):
         image=np.zeros((640,640,3),np.uint8)

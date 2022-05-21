@@ -466,10 +466,10 @@ class CalibrateMotionBehaviorFB(GratbotBehavior):
         for i in range(nsteps): #turn
             motion_list.append(self.wrap_motion_act(RunMotors(aheadmotion[i],aheadmotion[i],aheaddur[i])))
             motion_list.append(self.wrap_motion_act(RunMotors(-aheadmotion[i],-aheadmotion[i],aheaddur[i])))
-        self.action_list=GratbotBehavior_Series(motion_list)
+        self.action_list=GratbotBehavior_Checklist(motion_list)
 
     def wrap_motion_act(self,motion_act):
-        return GratbotBehavior_Series([Announce("moving"),motion_act,GratbotBehavior_Wait(2.0)] )
+        return GratbotBehavior_Checklist([Announce("moving"),motion_act,GratbotBehavior_Wait(2.0)] )
 
     def act(self,**kwargs):
         return self.action_list.act(**kwargs)
