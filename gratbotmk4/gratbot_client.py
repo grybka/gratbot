@@ -25,7 +25,7 @@ from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
 #from gyrii.XboxControllerGyrus import XboxControllerGyrus
 #from gyrii.behaviors.TextCommandBehavior import TextCommandBehavior
-from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion
+from gyrii.behaviors.CalibrateMotionBehavior import calibrate_neck_motion,CalibrateMotionBehaviorFB
 
 #from gyrii.behaviors.ChaseBehavior import TrackIfSeen
 from gyrii.ClockGyrus import ClockGyrus
@@ -145,6 +145,9 @@ gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,None))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
+
+#gyrii.append(BehaviorGyrus(broker,DoOnce(CalibrateMotionBehaviorFB())))
+
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
 #gyrii.append(TrackerGyrusNoCV(broker))
