@@ -3,6 +3,10 @@ import logging
 import uuid
 import time
 from Gyrus import ThreadedGyrus
+import logging
+import numpy as np
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def get_track_with_id(id,tracks):
     for track in tracks:
@@ -73,12 +77,13 @@ class PointingErrorGyrus(ThreadedGyrus):
             self.tracked_object_id=None
             return None,None
         else:
-            logger.debug("track status {}".format(track["info"]))
+            ...
+            #logger.debug("track status {}".format(track["info"]))
         yposition_at_image=track["center"][1]
         xposition_at_image=track["center"][0]
         bbox=track["last_detection_bbox"]
         ahp=bbox[3]-bbox[2]
-        height_ratio=tan((ahp)*(55/360)*(2*np.pi))
+        height_ratio=np.tan((ahp)*(55/360)*(2*np.pi))
         dist=self.track_height/height_ratio #estimate from height
 
         yerror_signal=(float(track["center"][1])-0.5)*(55/360)*(2*np.pi) #in radians

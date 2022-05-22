@@ -128,7 +128,7 @@ else:
     server_address="10.0.0.4"
     network_client=JSONBackAndForth2()
     network_client.start_client(server_address,test_port)
-    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","servo_command","behavior_request","command_received","led_command","gyrus_config"]))
+    gyrii.append(SocketGyrusLink(broker,network_client.input_queue,network_client.output_queue,keys=["motor_command","servo_command","behavior_request","command_received","led_command","gyrus_config","pointing_error_x"]))
 #gyrii.append(TestGyrus(broker,["image"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_response","logged_note"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["rotation_vector","detections","motor_command","motor_response","tracks","servo_command","servo_response","logged_note"]))
