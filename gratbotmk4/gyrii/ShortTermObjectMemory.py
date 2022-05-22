@@ -13,6 +13,7 @@ from underpinnings.BayesianArray import BayesianArray
 from underpinnings.id_to_name import id_to_name
 from scipy.optimize import linear_sum_assignment
 from underpinnings.LocalPositionLog import LocalPositionLog
+import random
 import cv2
 
 #takes a collection of tracks and infers the existance of objects that persist even when they leave the visual field
@@ -333,8 +334,25 @@ class ShortTermObjectMemory(ThreadedGyrus):
         #now deal with objects that don't have a match
         for objid in objects_to_see:
             logger.debug("{} the {} is missing".format(id_to_name(objid),self.objects[objid].label))
+            self.update_missing_object(self.objects[objid])
         #for trackid in self.track_id_object_map:
         #    logger.debug("Track {} matched to {}".format(id_to_name(trackid),id_to_name(objid)))
+
+    def update_missing_object(self,object):
+        #if I have an object that I can't see, I might have a bad track, or it might actually be gone
+        #let's resample it's location with a bias away from where I'm looking
+        n_samples=10
+        quat=Quaternion(self.position_log.pointing)
+        rot=quat.rotation_matrix
+        invrot=quat.conjugate.rotation_matrix
+        campos=object.position.applymatrix(invrot)
+        samples=campos.random_sample(n_samples)
+        #weight by distance from where I'm looking
+        weights=np.abs(samples.dot(np.array([1,1,0])))
+        newcenter=random.choices(samples,weights)[0]
+        campos.vals=newcenter
+        campos.covariance*=2
+        object.position=campos.applymatrix(rot)
 
     def read_message(self,message):
         self.position_log.read_message(message)
