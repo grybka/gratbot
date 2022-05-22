@@ -15,14 +15,7 @@ from scipy.optimize import linear_sum_assignment
 from underpinnings.LocalPositionLog import LocalPositionLog
 import cv2
 
-#What's missing:
-"""
-I need a representation of where I am on some internal map
-So something that takes in:
-imu values
-motor run times
-
-"""
+#takes a collection of tracks and infers the existance of objects that persist even when they leave the visual field
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,6 +26,8 @@ class STMObject:
     def __init__(self,position,track,timestamp):
         self.id=uuid.uuid4()
         self.position=position #BayesianArray
+        self.height=BayesianArray(ndim=1)
+        self.height.covariance*=100
         self.label=track["label"]
         #TODO I need some way to make an object preliminary until verified somehow
         #Options:
@@ -90,9 +85,17 @@ class ShortTermObjectMemory(ThreadedGyrus):
             for objid in self.objects:
                 #TODO have some reason
                 self.focus_object=objid
-        logger.debug("focus object is {}".format(self.focus_object))
+        #logger.debug("focus object is {}".format(self.focus_object))
         if self.focus_object is not None:
-            message={"object_relative_position": self.objects[self.focus_object].position.vals}
+            obj=self.objects[self.focus_object]
+            message={"object_relative_position": obj.position.vals} #on the map
+            quat=Quaternion(self.position_log.pointing)
+            invrot=quat.conjugate.rotation_matrix
+            message["object_pointing"]=invrot@obj.position.vals #relative to facing
+            message["object_height"]=obj.height.vals[0]
+            for trackid in self.track_id_object_map:
+                if self.track_id_object_map[trackid]==self.focus_object:
+                    message["track_id"]=trackid
             self.broker.publish(message,["st_object_report"])
             #logger.debug("message {}".format(message))
 
@@ -141,14 +144,59 @@ class ShortTermObjectMemory(ThreadedGyrus):
         nz=np.nonzero(in_bbox) #zero means no reading
         if len(nz)==0:
             return None
-        av_disp=np.mean(in_bbox[nz])
+        #av_disp=np.mean(in_bbox[nz])
+        av_disp=np.median(in_bbox[nz])
         st_disp=np.std(in_bbox[nz])
         depth=focal_length_in_pixels*baseline/av_disp
         deptherr=depth*st_disp/av_disp
         #logger.debug("depth is {} pm {}".format(depth,deptherr))
-        if depth<10 or depth>4000:
+        if depth<10 or depth>400:
             logger.warning("unusual depth given: {}".format(depth))
+            return ufloat(depth,400)/100
         return ufloat(depth,deptherr)/100
+
+    def get_track_position_knowing_size(self,track,timestamp,object):
+        angle_unc=4*np.pi/360 #flat 4 degree uncertainty.  Could think harder about this
+        udist=self.guess_depth(track) #estimate from depth perception
+        bbox=track["last_detection_bbox"]
+        ahp=bbox[3]-bbox[2]
+        height_ratio=tan((ahp)*(55/360)*(2*np.pi))
+        dist_from_height=object.height.get_as_ufloat()[0]/height_ratio #estimate from height
+        #now backwards
+        height_guess=udist*height_ratio
+        #update my thinging about height
+        #this doesn't belong in here...
+        object.height=object.height.updated(BayesianArray.from_ufloats([height_guess]))
+        object.height.min_covariance([ (object.height.vals[0]*0.1)**2 ]) #5 cm resolution
+        #resolvemy distance belief
+        u1=udist.n
+        u2=dist_from_height.n
+        w1=1/(udist.s**2)
+        w2=1/(dist_from_height.s**2)
+        new_u=(u1*w1+u2*w2)/(w1+w2)
+        new_s=1/sqrt(w1+w2)
+        udist=ufloat(new_u,new_s)
+
+
+
+        #camera FOV hardcoded.  Awkward
+        pitch=(float(track["center"][1])-0.5)*(55/360)*(2*np.pi)
+        upitch=ufloat(pitch,angle_unc)
+        yaw=-(float(track["center"][0])-0.5)*(69/360)*(2*np.pi)
+        uyaw=ufloat(yaw,angle_unc)
+
+        my_x=udist*cos(upitch)*sin(uyaw)
+        my_y=udist*cos(uyaw)*sin(upitch)
+        my_z=udist*cos(upitch)*cos(uyaw)
+
+        my_xyz=np.array([my_y,my_x,my_z])
+
+        #rotate into map frame
+        quat=Quaternion(self.position_log.pointing)
+        rot=quat.rotation_matrix
+        new_xyz=rot@my_xyz
+        #z is now up
+        return BayesianArray.from_ufloats(new_xyz)
 
 
     def get_track_position(self,track,timestamp):
@@ -167,7 +215,6 @@ class ShortTermObjectMemory(ThreadedGyrus):
         my_x=udist*cos(upitch)*sin(uyaw)
         my_y=udist*cos(uyaw)*sin(upitch)
         my_z=udist*cos(upitch)*cos(uyaw)
-
 
         my_xyz=np.array([my_y,my_x,my_z])
 
@@ -199,7 +246,7 @@ class ShortTermObjectMemory(ThreadedGyrus):
 
     def update_object_from_track(self,id,track,timestamp):
         #this is assuming it didn't move  maybe should fix this
-        trackpos=self.get_track_position(track,timestamp)
+        trackpos=self.get_track_position_knowing_size(track,timestamp,self.objects[id])
         if id not in self.objects:
             logger.warning("asking for object id that doesn't exist! {}".format(id))
             return

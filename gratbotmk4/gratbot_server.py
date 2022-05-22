@@ -14,7 +14,9 @@ from gyrii.ServoGyrus import ServoGyrus
 from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
 #from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
 #from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
-from gyrii.NeckGazeGyrus import  NeckPointingErrorCorrectionGyrus,PointingErrorGyrus,BodyPointingErrorCorrectionGyrus
+#from gyrii.NeckGazeGyrus import  NeckPointingErrorCorrectionGyrus,PointingErrorGyrus,BodyPointingErrorCorrectionGyrus
+from gyrii.NeckGazeGyrus import  NeckPointingErrorCorrectionGyrus,BodyPointingErrorCorrectionGyrus
+from gyrii.PointingErrorGyrus import PointingErrorGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.TailGyrus import TailGyrus
 #from gyrii.TrackerGyrus import TrackerGyrus
@@ -88,7 +90,7 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detectio
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(BehaviorGyrus(broker,ServoVelUpAndDown))
 
-gyrii.append(PointingErrorGyrus(broker,do_distance_corrections=True)) #figure out where I ought to point
+#gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(NeckPointingErrorCorrectionGyrus(broker,enabled=True)) #send servo commands to correct error
 #gyrii.append(BodyPointingErrorCorrectionGyrus(broker,enabled=True)) #send motors commands to correct error
 

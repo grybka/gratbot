@@ -16,6 +16,7 @@ from gyrii.ReplayGyrus import ReplayGyrus
 from gyrii.MessageLoggerGyrus import MessageLoggerGyrus
 from gyrii.CameraDisplayGyrus import CameraDisplayGyrus
 from gyrii.ObjectTaggerGyrus import ObjectTaggerGyrus
+from gyrii.PointingErrorGyrus import PointingErrorGyrus
 #from gyrii.FaceRecognizer import FaceRecognizer
 #from gyrii.TrackerGyrus import TrackerGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
@@ -147,7 +148,7 @@ gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_Turns(["sports ball","orange"])))
 #gyrii.append(BehaviorGyrus(broker,CalibrateMotionBehavior_WithTracking_FB(["sports ball","orange"])))
 
-gyrii.append(BehaviorGyrus(broker,DoOnce(GratbotBehavior_Checklist([GratbotBehavior_Wait(5),CalibrateMotionBehaviorFB()]))))
+#gyrii.append(BehaviorGyrus(broker,DoOnce(GratbotBehavior_Checklist([GratbotBehavior_Wait(5),CalibrateMotionBehaviorFB()]))))
 
 #gyrii.append(BehaviorGyrus(broker,calibrate_neck_motion()))
 #gyrii.append(HeadTrackerGyrus(broker))
@@ -157,6 +158,7 @@ gyrii.append(BehaviorGyrus(broker,DoOnce(GratbotBehavior_Checklist([GratbotBehav
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
 #gyrii.append(MotionGyrus(broker))
+gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(ClockGyrus(broker))
 gyrii.append(StateAssesorGyrus(broker))
 #gyrii.append(ObjectTaggerGyrus(broker))
