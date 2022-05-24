@@ -21,7 +21,8 @@ class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         self.broker=broker
-        self.preview_size=[320,240]
+        #self.preview_size=[320,240]
+        self.preview_size=[812,608]
         #self.preview_size=[416,416]
         self.fps=20
         self.elements=[]
