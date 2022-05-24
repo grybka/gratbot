@@ -103,6 +103,6 @@ class OakDDepth(OakDElement):
                 frame_message={"timestamp": time.time()}
                 image_timestamp=inDepth.getTimestamp().total_seconds()
                 frame_message["image_timestamp"]=image_timestamp
-                frame_message["depth_image"]=cv2.resize(frame,(160,100) )
+                frame_message["depth_image"]=cv2.resize(frame,(160,100),cv2.INTER_NEAREST )
                 frame_message["keys"]=["depth"]
                 broker.publish(frame_message,frame_message["keys"])
