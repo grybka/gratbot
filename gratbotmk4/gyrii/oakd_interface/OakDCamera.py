@@ -52,7 +52,7 @@ class OakDCamera(OakDElement):
                 broker.publish(frame_message,frame_message["keys"])
 
 class OakDManip(OakDElement):
-    def __init__(self,pipeline,new_size,camRgb):
+    def __init__(self,pipeline,new_size,image_in):
         #create a manipulation that resizes the camera preview
         #camRgb is a ColorCamera object
         #new_size is an array [new_x,new_y]
@@ -61,7 +61,7 @@ class OakDManip(OakDElement):
         manip.initialConfig.setResize(new_size[0], new_size[1])
         manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888p)
         manip.initialConfig.setKeepAspectRatio(False)
-        camRgb.preview.link(manip.inputImage)
+        image_in.link(manip.inputImage)
         self.manip=manip
     #TODO this doesn't necessarily need a tryget, but you could imagine one
 
@@ -86,7 +86,7 @@ class OakDDepth(OakDElement):
         if streamname is not None:
             depthout=pipeline.createXLinkOut()
             depthout.setStreamName(streamname)
-            stereo.disparity.link(depthout.input)
+            stereo.depth.link(depthout.input)
         self.stereo=stereo
 
     def build_queues(self,device):

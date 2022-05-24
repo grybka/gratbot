@@ -56,7 +56,7 @@ class OakDYoloDetections(OakDElement):
         xoutNN.setStreamName(streamname)
         spatialDetectionNetwork.out.link(xoutNN.input)
         camera.link(spatialDetectionNetwork.input)
-        stereo.depth.link(spatialDetectionNetwork.inputDepth)
+        stereo.link(spatialDetectionNetwork.inputDepth)
         self.spatialDetectionNetwork=spatialDetectionNetwork
         self.model_labels=labelMap
 

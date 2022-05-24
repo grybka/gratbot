@@ -62,9 +62,10 @@ class OakDGyrus(ThreadedGyrus):
         #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
 
         #For Yolo
-        manip=OakDManip(pipeline,[416,416],camera.camRgb)
+        manip=OakDManip(pipeline,[416,416],camera.camRgb.preview)
+        depth_manip=OakDManip(pipeline,[416,416],stereo.depth)
         xscale=self.preview_size[1]/self.preview_size[0]
-        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,stereo.stereo,"detections",None,confidence_threshold=0.1,spatial_x_scale =xscale))
+        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",None,confidence_threshold=0.1,spatial_x_scale =xscale))
 
         #For tracking (doesn't work)
         #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
