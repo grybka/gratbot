@@ -22,7 +22,7 @@ class OakDGyrus(ThreadedGyrus):
         self.oak_comm_thread=None
         self.broker=broker
         #self.preview_size=[320,240]
-        self.preview_size=[812,608]
+        self.preview_size=[480,270]
         #self.preview_size=[416,416]
         self.fps=20
         self.elements=[]
@@ -57,7 +57,7 @@ class OakDGyrus(ThreadedGyrus):
         #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
 
         #Yolo letterbox
-        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb",resolution=dai.ColorCameraProperties.SensorResolution.THE_12_MP)
+        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline,streamname="depth_stream")
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
