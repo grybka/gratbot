@@ -63,7 +63,7 @@ class OakDGyrus(ThreadedGyrus):
 
         #For Yolo
         manip=OakDManip(pipeline,[416,416],camera.camRgb.preview)
-        depth_manip=OakDManip(pipeline,[416,416],stereo.depth)
+        depth_manip=OakDManip(pipeline,[416,416],stereo.stereo.depth)
         xscale=self.preview_size[1]/self.preview_size[0]
         self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",None,confidence_threshold=0.1,spatial_x_scale =xscale))
 
