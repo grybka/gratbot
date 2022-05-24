@@ -75,6 +75,11 @@ class OakDGyrus(ThreadedGyrus):
     def _oak_comm_thread_loop(self):
         self.init_oakd()
         with dai.Device(self.pipeline) as device:
+            #print out some calibration data.  Could be useful
+            calibData = device.readCalibration()
+            logging.debug("##OAKD Device Calibration Info")
+            logging.debug("MONO FOV (degrees): {}".format(calibData.getFov(dai.CameraBoardSocket.LEFT)))
+            logging.debug("##")
             for element in self.elements:
                 element.build_queues(device)
             while not self.should_quit:

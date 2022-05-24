@@ -39,12 +39,15 @@ class PointingErrorGyrus(ThreadedGyrus):
             if "track_id" in message:
                 self.tracked_track_id=message["track_id"]
                 self.track_height=message["object_height"]
+                logger.debug("follow track {}".format(message["track_id"]))
             else:
                 #object is off screen or track lost
                 p=message["object_pointing"]
                 plen=np.linalg.norm(p)
-                yaw_error=-np.asin(p[1]/plen)
-                pitch_error=-np.asin(p[0]/plen)
+                yaw_error=np.arcsin(p[1]/plen)
+                pitch_error=-np.arcsin(p[0]/plen)
+                logger.debug("yaw error {}".format(yaw_error))
+                logger.debug("pitch error {}".format(yaw_error))
                 #TODO, if I can't see it, should I really be moving forward?
                 #probably not, so report no distance error
                 self.report_error(float(yaw_error),float(pitch_error),0)
@@ -71,11 +74,11 @@ class PointingErrorGyrus(ThreadedGyrus):
     def get_track_error(self,message):
         track=get_track_with_id(self.tracked_track_id,message["tracks"])
         if track is None:
-            return None,None
+            return None,None,None
         if track["info"]=="LOST":
             logger.info("Track lost")
             self.tracked_object_id=None
-            return None,None
+            return None,None,None
         else:
             ...
             #logger.debug("track status {}".format(track["info"]))
@@ -87,7 +90,7 @@ class PointingErrorGyrus(ThreadedGyrus):
         dist=self.track_height/height_ratio #estimate from height
 
         yerror_signal=(float(track["center"][1])-0.5)*(55/360)*(2*np.pi) #in radians
-        xerror_signal=-(float(track["center"][0])-0.5)*(69/360)*(2*np.pi) #in radians
+        xerror_signal=(float(track["center"][0])-0.5)*(69/360)*(2*np.pi) #in radians
         disterror=dist-self.target_distance
 
         return -xerror_signal,-yerror_signal,disterror

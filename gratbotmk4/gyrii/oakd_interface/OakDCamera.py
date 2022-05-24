@@ -86,7 +86,7 @@ class OakDDepth(OakDElement):
         if streamname is not None:
             depthout=pipeline.createXLinkOut()
             depthout.setStreamName(streamname)
-            stereo.disparity.link(depthout.input)
+            stereo.depth.link(depthout.input)
         self.stereo=stereo
 
     def build_queues(self,device):

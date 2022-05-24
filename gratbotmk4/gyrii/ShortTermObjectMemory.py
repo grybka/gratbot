@@ -46,7 +46,7 @@ class STMObject:
         self.position=self.position.updated(trackpos)
         #logger.debug("new pos {}".format(self.position))
         #self.position.min_covariance([0.01,0.01,0.01]) #10 cm covariance
-        self.position.min_covariance([1,1,1]) #10 cm covariance
+        self.position.min_covariance([0.01,0.01,0.01]) #10 cm covariance
         self.last_seen=timestamp
         self.label=label
 
@@ -98,6 +98,8 @@ class ShortTermObjectMemory(ThreadedGyrus):
                 if self.track_id_object_map[trackid]==self.focus_object:
                     message["track_id"]=trackid
             self.broker.publish(message,["st_object_report"])
+            #logger.debug("focus object position {}".format(obj.position.get_as_ufloat()))
+            #logger.debug("focus object camera position {}".format( (obj.position.applymatrix(invrot)).get_as_ufloat()))
             #logger.debug("message {}".format(message))
 
     def is_object_in_frustrum(self,obj):
@@ -152,7 +154,7 @@ class ShortTermObjectMemory(ThreadedGyrus):
         deptherr=depth*st_disp/av_disp
         #logger.debug("depth is {} pm {}".format(depth,deptherr))
         if depth<10 or depth>400:
-            logger.warning("unusual depth given: {}".format(depth))
+            logger.warning("unusual depth given: {} cm".format(depth))
             return ufloat(depth,400)/100
         return ufloat(depth,deptherr)/100
 
@@ -295,13 +297,21 @@ class ShortTermObjectMemory(ThreadedGyrus):
             if self.is_object_in_frustrum(self.objects[objid]):
                 objects_to_see.append(objid)
         tracks_to_match=[ self.track_info[x]["id"] for x in self.track_info]
+        #remove tracks from my map that are gone
+        tracks_todel=[]
+        for trackid in self.track_id_object_map:
+            if trackid not in self.track_info:
+                tracks_todel.append(trackid)
+        for trackid in tracks_todel:
+            del self.track_id_object_map[trackid]
         #first exclude tracks I have already mateched
         for trackid in self.track_id_object_map:
             if trackid in unmatched_tracks:
                 track=self.track_info[trackid]
                 timestamp=track["timestamp"]
                 objid=self.track_id_object_map[trackid]
-                self.update_object_from_track(objid,track,timestamp)
+                if objid in self.objects: #I could have maybe lost it
+                    self.update_object_from_track(objid,track,timestamp)
                 assigned_objects.append(objid)
                 if objid in objects_to_see:
                     objects_to_see.remove(objid)
@@ -351,7 +361,6 @@ class ShortTermObjectMemory(ThreadedGyrus):
         weights=np.abs(samples.dot(np.array([1,1,0])))
         newcenter=random.choices(samples,weights)[0]
         campos.vals=newcenter
-        campos.covariance*=2
         object.position=campos.applymatrix(rot)
 
     def read_message(self,message):
@@ -366,7 +375,8 @@ class ShortTermObjectMemory(ThreadedGyrus):
         if "depth_image" in message:
             self.last_depth=message
         if "clock_pulse" in message:
-            if time.time()-self.last_update>self.recalc_period and self.n_track_messages_integrated>0:
+            if time.time()-self.last_update>self.recalc_period:
+                #and self.n_track_messages_integrated>0:
                 self.last_update=time.time()
                 self.update_expectations_from_motion()
                 #logger.debug("{} track messages integrated".format(self.n_track_messages_integrated))
@@ -393,7 +403,7 @@ class ShortTermObjectMemory(ThreadedGyrus):
             obj=self.objects[objid]
             if obj.is_preliminary():
                 if time.time()-obj.last_seen>prelim_persist_time: #I haven't seen it, must have imagined it
-                    logger.debug("Object {} the {} deemed to be my imagination".format(objid,obj.label))
+                    logger.debug("Object {} the {} deemed to be my imagination".format(id_to_name(objid),obj.label))
                     del self.objects[objid]
                     #if I was focused on it, remove
                     if self.focus_object==objid:
