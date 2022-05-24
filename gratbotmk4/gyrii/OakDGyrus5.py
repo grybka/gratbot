@@ -50,7 +50,6 @@ class OakDGyrus(ThreadedGyrus):
     def init_oakd(self):
         pipeline = dai.Pipeline()
         self.pipeline=pipeline
-                #self.elements.append(stereo)
 
         #For faces
         #manip=OakDManip(pipeline,[256,256],camera.camRgb)
@@ -62,7 +61,7 @@ class OakDGyrus(ThreadedGyrus):
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
         self.elements.append(stereo)
-        manip=OakDManipLetterbox(pipline,[416,416,camera.camRgb.preview])
+        manip=OakDManipLetterbox(pipeline,[416,416,camera.camRgb.preview])
         self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
 
         #For Yolo squeezed
