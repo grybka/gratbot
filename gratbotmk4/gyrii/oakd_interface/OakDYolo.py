@@ -35,7 +35,8 @@ class OakDYoloDetections(OakDElement):
         logger.info("Creating Detection Network")
         #TODO I should have info about how to map my bounding boxes here
         #right now it's assuming that I've squeezed
-        self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball")]
+        #self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball")]
+        self.ok_labels=[]
         self.streamname=streamname
         #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
         spatialDetectionNetwork = pipeline.create(dai.node.YoloDetectionNetwork)
@@ -67,7 +68,7 @@ class OakDYoloDetections(OakDElement):
             device_timestamp=inDet.getTimestamp().total_seconds()
             detection_message=[]
             for detection in inDet.detections:
-                if detection.label not in self.ok_labels:
+                if len(self.ok_labels)!=0 and detection.label not in self.ok_labels:
                     continue
                 det_item={}
                 bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
