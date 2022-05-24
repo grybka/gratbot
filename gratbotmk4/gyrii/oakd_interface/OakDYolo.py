@@ -43,9 +43,6 @@ class OakDYoloDetections(OakDElement):
         #spatialDetectionNetwork.setBlobPath(nnBlobPath)
         spatialDetectionNetwork.setConfidenceThreshold(confidence_threshold)
         spatialDetectionNetwork.input.setBlocking(False)
-        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
-        spatialDetectionNetwork.setDepthLowerThreshold(100)
-        spatialDetectionNetwork.setDepthUpperThreshold(5000)
 
         # Yolo specific parameters
         spatialDetectionNetwork.setNumClasses(80)
