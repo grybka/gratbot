@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class HostSpatialsCalc:
     # We need device object to get calibration data
@@ -36,6 +37,10 @@ class HostSpatialsCalc:
         #roi = self._check_input(roi, depthFrame) # If point was passed, convert it to ROI
 
         xmin, ymin, xmax, ymax = roi
+        xmin=int(depthFrame.shape[1]*(xmin+0.5))
+        xmax=int(depthFrame.shape[1]*(xmax+0.5))
+        ymin=int(depthFrame.shape[0]*(ymin+0.5))
+        ymax=int(depthFrame.shape[0]*(ymax+0.5))
 
         # Calculate the average depth in the ROI.
         depthROI = depthFrame[ymin:ymax, xmin:xmax]
