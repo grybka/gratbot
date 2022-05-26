@@ -14,7 +14,7 @@ import blobconverter
 from oakd_interface.OakDIMU import OakDIMU
 from oakd_interface.OakDCamera import OakDCamera,OakDDepth,OakDManip,OakDManipLetterbox
 from oakd_interface.OakDMobileNet import OakDMobileNetDetections
-from oakd_interface.OakDYolo import OakDYoloDetections
+from oakd_interface.OakDYolo import OakDYoloDetections,OakDYoloDetectionsSpatial
 from oakd_interface.OakDTracker import OakDTracker
 
 class OakDGyrus(ThreadedGyrus):

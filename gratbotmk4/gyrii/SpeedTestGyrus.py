@@ -34,3 +34,4 @@ class SpeedTestGyrus(ThreadedGyrus):
                 depth=self.spatial_calc.calc_spatials( self.depthFrame, bbox_array, averaging_method=np.mean)
                 logging.debug("time to calculate depth {}".format(start-time.time()))
                 logging.debug("spatials are is {}".format(depth))
+                logging.debug("onboard spatials are {}".format(detections[i]["spatial_array"]))
