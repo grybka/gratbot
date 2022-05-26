@@ -3,7 +3,7 @@ import numpy as np
 class HostSpatialsCalc:
     # We need device object to get calibration data
     def __init__(self, fov_degrees):
-        calibData = device.readCalibration()
+        #calibData = device.readCalibration()
         # Required information for calculating spatial coordinates on the host
         self.monoHFOV = np.deg2rad(fov_degrees)
 
