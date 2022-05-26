@@ -13,7 +13,7 @@ logger=logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class OakDCamera(OakDElement):
-    def __init__(self,pipeline,preview_size,fps,preview_streamname="rgb"):
+    def __init__(self,pipeline,preview_size,fps,preview_streamname="rgb",resolution=dai.ColorCameraProperties.SensorResolution.THE_1080_P):
         self.preview_streamname=preview_streamname
         self.preview_size=preview_size
         self.fps=fps
@@ -22,7 +22,7 @@ class OakDCamera(OakDElement):
         camRgb = pipeline.createColorCamera()
         camRgb.setFps(fps)
         camRgb.setPreviewSize(preview_size[0], preview_size[1])
-        camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+        camRgb.setResolution(resolution)
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
         #setup the preview output stream
@@ -52,7 +52,7 @@ class OakDCamera(OakDElement):
                 broker.publish(frame_message,frame_message["keys"])
 
 class OakDManip(OakDElement):
-    def __init__(self,pipeline,new_size,camRgb):
+    def __init__(self,pipeline,new_size,image_in):
         #create a manipulation that resizes the camera preview
         #camRgb is a ColorCamera object
         #new_size is an array [new_x,new_y]
@@ -61,7 +61,22 @@ class OakDManip(OakDElement):
         manip.initialConfig.setResize(new_size[0], new_size[1])
         manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888p)
         manip.initialConfig.setKeepAspectRatio(False)
-        camRgb.preview.link(manip.inputImage)
+        image_in.link(manip.inputImage)
+        self.manip=manip
+    #TODO this doesn't necessarily need a tryget, but you could imagine one
+
+
+class OakDManipLetterbox(OakDElement):
+    def __init__(self,pipeline,new_size,image_in):
+        #create a manipulation that resizes the camera preview
+        #camRgb is a ColorCamera object
+        #new_size is an array [new_x,new_y]
+        #the presumption is that the aspect ratio can be squeezed
+        manip = pipeline.create(dai.node.ImageManip)
+        manip.setMaxOutputFrameSize(new_size[0]*new_size[1]*3) # 300x300x3
+        manip.initialConfig.setResizeThumbnail(new_size[0], new_size[1])
+        manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888p)
+        image_in.link(manip.inputImage)
         self.manip=manip
     #TODO this doesn't necessarily need a tryget, but you could imagine one
 
@@ -103,6 +118,7 @@ class OakDDepth(OakDElement):
                 frame_message={"timestamp": time.time()}
                 image_timestamp=inDepth.getTimestamp().total_seconds()
                 frame_message["image_timestamp"]=image_timestamp
-                frame_message["depth_image"]=cv2.resize(frame,(160,100) )
+                frame_message["depth_image"]=cv2.resize(frame,(160,100),cv2.INTER_NEAREST )
+                #frame_message["depth_image"]=frame
                 frame_message["keys"]=["depth"]
                 broker.publish(frame_message,frame_message["keys"])

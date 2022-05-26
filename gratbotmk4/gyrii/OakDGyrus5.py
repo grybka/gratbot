@@ -12,7 +12,7 @@ from pathlib import Path
 import blobconverter
 
 from oakd_interface.OakDIMU import OakDIMU
-from oakd_interface.OakDCamera import OakDCamera,OakDDepth,OakDManip
+from oakd_interface.OakDCamera import OakDCamera,OakDDepth,OakDManip,OakDManipLetterbox
 from oakd_interface.OakDMobileNet import OakDMobileNetDetections
 from oakd_interface.OakDYolo import OakDYoloDetections
 from oakd_interface.OakDTracker import OakDTracker
@@ -21,7 +21,8 @@ class OakDGyrus(ThreadedGyrus):
     def __init__(self,broker):
         self.oak_comm_thread=None
         self.broker=broker
-        self.preview_size=[320,240]
+        #self.preview_size=[320,240]
+        self.preview_size=[480,270]
         #self.preview_size=[416,416]
         self.fps=20
         self.elements=[]
@@ -50,21 +51,29 @@ class OakDGyrus(ThreadedGyrus):
     def init_oakd(self):
         pipeline = dai.Pipeline()
         self.pipeline=pipeline
-        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
-        stereo=OakDDepth(pipeline,streamname="depth_stream")
-        self.elements.append(OakDIMU(pipeline))
-        self.elements.append(camera)
-        self.elements.append(stereo)
-        #self.elements.append(stereo)
 
         #For faces
         #manip=OakDManip(pipeline,[256,256],camera.camRgb)
         #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
 
-        #For Yolo
-        manip=OakDManip(pipeline,[416,416],camera.camRgb)
-        xscale=self.preview_size[1]/self.preview_size[0]
-        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,stereo.stereo,"detections",None,confidence_threshold=0.1,spatial_x_scale =xscale))
+        #Yolo letterbox
+        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        stereo=OakDDepth(pipeline,streamname="depth_stream")
+        self.elements.append(OakDIMU(pipeline))
+        self.elements.append(camera)
+        self.elements.append(stereo)
+        manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
+        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
+
+        #For Yolo squeezed
+        #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        #stereo=OakDDepth(pipeline,streamname="depth_stream")
+        #self.elements.append(OakDIMU(pipeline))
+        #self.elements.append(camera)
+        #self.elements.append(stereo)
+        #manip=OakDManip(pipeline,[416,416],camera.camRgb.preview)
+        ##xscale=self.preview_size[1]/self.preview_size[0]
+        #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
 
         #For tracking (doesn't work)
         #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
