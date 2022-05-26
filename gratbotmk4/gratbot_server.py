@@ -28,6 +28,7 @@ from gyrii.MicrophoneGyrus2 import MicrophoneGyrus
 from gyrii.BehaviorGyrus import BehaviorGyrus
 from gyrii.behaviors.Behavior import Announce
 from gyrii.behaviors.CalibrateMotionBehavior import ServoVelUpAndDown,ServoUpAndDown,calibrate_neck_motion,calibrate_turn_motion,calibrate_turn_motion_motors_only
+from gyrii.SpeedTestGyrus import SpeedTestGyrus
 
 from gyrii.behaviors.FollowBehavior import find_and_follow, tail_test, look_around
 from gyrii.SoundRecordGyrus import SoundRecordGyrus
@@ -93,6 +94,7 @@ gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detectio
 #gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(NeckPointingErrorCorrectionGyrus(broker,enabled=True)) #send servo commands to correct error
 gyrii.append(BodyPointingErrorCorrectionGyrus(broker,enabled=True)) #send motors commands to correct error
+gyrii.apped(SpeedTestGyrus(broker))
 
 #gyrii.append(NeckGazeGyrus(broker))
 
