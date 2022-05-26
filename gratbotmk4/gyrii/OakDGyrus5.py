@@ -57,13 +57,23 @@ class OakDGyrus(ThreadedGyrus):
         #self.elements.append(OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,"face_detections",["face"]))
 
         #Yolo letterbox
+        #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        #stereo=OakDDepth(pipeline,streamname="depth_stream")
+        #self.elements.append(OakDIMU(pipeline))
+        #self.elements.append(camera)
+        #self.elements.append(stereo)
+        #manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
+        #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
+
+        #Yolo letterbox with spatial coordinates onboard
         camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
         stereo=OakDDepth(pipeline,streamname="depth_stream")
         self.elements.append(OakDIMU(pipeline))
         self.elements.append(camera)
         self.elements.append(stereo)
         manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
-        self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
+        depth_manip=OakDManipLetterbox(pipeline,[640,640],stereo.stereo.depth)
+        self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",confidence_threshold=0.1))
 
         #For Yolo squeezed
         #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")

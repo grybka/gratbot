@@ -83,7 +83,7 @@ class OakDYoloDetections(OakDElement):
             broker.publish(frame_message,["detections",self.streamname])
 
 class OakDYoloDetectionsSpatial(OakDElement):
-    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,model_labels,confidence_threshold=0.3,spatial_x_scale=1.0):
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,confidence_threshold=0.3,spatial_x_scale=1.0):
         logger.info("Creating Spatial Detection Network")
         self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball")]
         self.spatial_x_scale=spatial_x_scale #for cases where I've squeezed the resolution
