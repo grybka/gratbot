@@ -126,7 +126,10 @@ class OakDYoloDetectionsSpatial(OakDElement):
                 if detection.label not in self.ok_labels:
                     continue
                 det_item={}
-                bbox_array=[detection.xmin,detection.xmax,detection.ymin*self.spatial_y_scale,detection.ymax*self.spatial_y_scale]
+
+                yoffset=0.5*(1-self.spatial_y_scale-1)
+
+                bbox_array=[detection.xmin,detection.xmax,detection.ymin*self.spatial_y_scale+yoffset,detection.ymax*self.spatial_y_scale+yoffset]
                 det_item["bbox_array"]=bbox_array
                 det_item["spatial_array"]=[self.spatial_x_scale*detection.spatialCoordinates.x,self.spatial_y_scale*detection.spatialCoordinates.y,detection.spatialCoordinates.z]
                 det_item["label"] = self.model_labels[detection.label]
