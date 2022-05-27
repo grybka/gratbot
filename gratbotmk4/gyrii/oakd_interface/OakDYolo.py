@@ -127,7 +127,8 @@ class OakDYoloDetectionsSpatial(OakDElement):
                     continue
                 det_item={}
 
-                yoffset=0.5*(1-self.spatial_y_scale-1)
+
+                yoffset=0.5*(1-self.spatial_y_scale)
 
                 bbox_array=[detection.xmin,detection.xmax,detection.ymin*self.spatial_y_scale+yoffset,detection.ymax*self.spatial_y_scale+yoffset]
                 det_item["bbox_array"]=bbox_array
