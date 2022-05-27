@@ -73,7 +73,7 @@ class OakDGyrus(ThreadedGyrus):
         self.elements.append(stereo)
         manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
         depth_manip=OakDManipLetterbox(pipeline,[640,640],stereo.stereo.depth)
-        self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",confidence_threshold=0.1))
+        self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",confidence_threshold=0.1,spatial_y_scale=480/270))
 
         #For Yolo squeezed
         #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")

@@ -83,10 +83,11 @@ class OakDYoloDetections(OakDElement):
             broker.publish(frame_message,["detections",self.streamname])
 
 class OakDYoloDetectionsSpatial(OakDElement):
-    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,confidence_threshold=0.3,spatial_x_scale=1.0):
+    def __init__(self,pipeline,model_name,shaves,camera,stereo,streamname,confidence_threshold=0.3,spatial_x_scale=1.0,spatial_y_scale=1.0):
         logger.info("Creating Spatial Detection Network")
         self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball")]
         self.spatial_x_scale=spatial_x_scale #for cases where I've squeezed the resolution
+        self.spatial_y_scale=spatial_y_scale
         self.streamname=streamname
         #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
         spatialDetectionNetwork = pipeline.create(dai.node.YoloSpatialDetectionNetwork)
@@ -125,9 +126,9 @@ class OakDYoloDetectionsSpatial(OakDElement):
                 if detection.label not in self.ok_labels:
                     continue
                 det_item={}
-                bbox_array=[detection.xmin,detection.xmax,detection.ymin,detection.ymax]
+                bbox_array=[detection.xmin,detection.xmax,detection.ymin*self.spatial_y_scale,detection.ymax*self.spatial_y_scale]
                 det_item["bbox_array"]=bbox_array
-                det_item["spatial_array"]=[self.spatial_x_scale*detection.spatialCoordinates.x,detection.spatialCoordinates.y,detection.spatialCoordinates.z]
+                det_item["spatial_array"]=[self.spatial_x_scale*detection.spatialCoordinates.x,self.spatial_y_scale*detection.spatialCoordinates.y,detection.spatialCoordinates.z]
                 det_item["label"] = self.model_labels[detection.label]
                 det_item["confidence"] = detection.confidence
                 detection_message.append(det_item)
