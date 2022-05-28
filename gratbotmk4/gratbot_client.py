@@ -22,6 +22,7 @@ from gyrii.PointingErrorGyrus import PointingErrorGyrus
 from gyrii.TrackerGyrus2 import TrackerGyrus
 #from gyrii.FastBadTrackerGyrus import FastBadTrackerGyrus
 #from gyrii.TrackerGyrusNoCV import TrackerGyrusNoCV
+from gyrii.TrackerGyrus3d import TrackerGyrus3d
 from gyrii.BehaviorGyrus import BehaviorGyrus
 #from gyrii.MotionGyrus import MotionGyrus
 #from gyrii.XboxControllerGyrus import XboxControllerGyrus
@@ -135,9 +136,9 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["ServoTrackerState","ServoTrackerAgentNewWeights"]))
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(MessageLoggerGyrus(broker,keys=["motor_report","st_object_report"]))
-gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
+gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(QuattestGyrus(broker,display_loop))
-gyrii.append(ShortTermObjectMemory(broker,display_loop))
+#gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
 #gyrii.append(FaceRecognizer(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
@@ -157,8 +158,8 @@ gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
-#gyrii.append(MotionGyrus(broker))
-gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
+gyrii.append(TrackerGyrus3d(broker))
+#gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(ClockGyrus(broker))
 gyrii.append(StateAssesorGyrus(broker))
 #gyrii.append(ObjectTaggerGyrus(broker))

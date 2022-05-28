@@ -22,8 +22,8 @@ class OakDGyrus(ThreadedGyrus):
         self.oak_comm_thread=None
         self.broker=broker
         #self.preview_size=[320,240]
-        self.preview_size=[480,270]
-        #self.preview_size=[416,416]
+        #self.preview_size=[480,270]
+        self.preview_size=[416,416]
         self.fps=20
         self.elements=[]
         super().__init__(broker)
@@ -66,14 +66,14 @@ class OakDGyrus(ThreadedGyrus):
         #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
 
         #Yolo letterbox with spatial coordinates onboard
-        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
-        stereo=OakDDepth(pipeline,streamname="depth_stream")
-        self.elements.append(OakDIMU(pipeline))
-        self.elements.append(camera)
-        self.elements.append(stereo)
-        manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
-        depth_manip=OakDManipLetterbox(pipeline,[640,640],stereo.stereo.depth)
-        self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",confidence_threshold=0.1,spatial_y_scale=480/270))
+        #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        #stereo=OakDDepth(pipeline,streamname="depth_stream")
+        #self.elements.append(OakDIMU(pipeline))
+        #self.elements.append(camera)
+        #self.elements.append(stereo)
+        #manip=OakDManipLetterbox(pipeline,[416,416],camera.camRgb.preview)
+        #depth_manip=OakDManipLetterbox(pipeline,[640,640],stereo.stereo.depth)
+        #self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,depth_manip.manip.out,"detections",confidence_threshold=0.1,spatial_y_scale=480/270))
 
         #For Yolo squeezed
         #camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
@@ -84,6 +84,14 @@ class OakDGyrus(ThreadedGyrus):
         #manip=OakDManip(pipeline,[416,416],camera.camRgb.preview)
         ##xscale=self.preview_size[1]/self.preview_size[0]
         #self.elements.append(OakDYoloDetections(pipeline,"yolov4_tiny_coco_416x416",6,manip.manip.out,"detections",None,confidence_threshold=0.1))
+
+        #Yolo limited view range
+        camera=OakDCamera(pipeline,self.preview_size,self.fps,preview_streamname="rgb")
+        stereo=OakDDepth(pipeline,streamname="depth_stream")
+        self.elements.append(OakDIMU(pipeline))
+        self.elements.append(camera)
+        self.elements.append(stereo)
+        self.elements.append(OakDYoloDetectionsSpatial(pipeline,"yolov4_tiny_coco_416x416",6,camera.camRgb.preview,stereo.stereo.depth,"detections",confidence_threshold=0.1,spatial_y_scale=1))
 
         #For tracking (doesn't work)
         #detector=OakDMobileNetDetections(pipeline,"face-detection-0200",6,manip.manip.out,stereo.stereo,None,["face"])
