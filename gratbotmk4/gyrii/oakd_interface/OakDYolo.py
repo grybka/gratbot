@@ -35,8 +35,8 @@ class OakDYoloDetections(OakDElement):
         logger.info("Creating Detection Network")
         #TODO I should have info about how to map my bounding boxes here
         #right now it's assuming that I've squeezed
-        self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball"),labelMap.index("stop sign")]
-        #self.ok_labels=[]
+        #self.ok_labels=[labelMap.index("person"),labelMap.index("sports ball"),labelMap.index("stop sign")]
+        self.ok_labels=[]
         self.streamname=streamname
         #spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
         spatialDetectionNetwork = pipeline.create(dai.node.YoloDetectionNetwork)

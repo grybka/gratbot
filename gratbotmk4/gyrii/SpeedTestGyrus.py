@@ -6,6 +6,7 @@ import uuid
 from Gyrus import ThreadedGyrus
 from oakd_interface.OakDCalculations import HostSpatialsCalc
 from underpinnings.LocalPositionLog import LocalPositionLog
+from pyquaternion import Quaternion
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -33,7 +34,7 @@ class SpeedTestGyrus(ThreadedGyrus):
             rot=quat.rotation_matrix
             for i in range(len(detections)):
                 yxz=detections[i]["spatial_array"]
-                xyz=np.array(yxz[1],yxz[0],yzx[2])
+                xyz=np.array([yxz[1],yxz[0],yxz[2]])
                 new_xyz=rot@xyz
             logging.debug("time to calculate rotation {}".format(start-time.time()))
 

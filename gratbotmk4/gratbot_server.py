@@ -60,6 +60,7 @@ logging.debug("Creating Gyrus List")
 gyrii=GyrusList()
 #gyrii.append(SocketGyrusLink(broker,network_server.input_queue,network_server.output_queue,keys=["rotation_vector","image","detections","motor_response","tracks","servo_response","logged_note","microphone_data"])) #TODO define keys here
 keys_to_send=["rotation_vector",
+              "detections",
               "image",
               "depth",
               "tracks",
@@ -82,7 +83,7 @@ gyrii.append(ServoGyrusVelocity(broker))
 
 ### Processing ####
 #For Yolo
-gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detections"))
+#gyrii.append(TrackerGyrus(broker,confidence_trigger=0.3,detection_name="detections"))
 
 #For Faces
 #gyrii.append(TrackerGyrus(broker,confidence_trigger=0.9,detection_name="face_detections"))
