@@ -93,7 +93,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
                 if i==0:
                     cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-                    cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+                    #cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
         else:
             color = (255, 0, 0)
             #x,y,w,h=t["recent_measurements"][0][1]
@@ -102,13 +102,14 @@ class CameraDisplayGyrus(ThreadedGyrus):
             #y1=int(height*(y-h/2))
             #y2=int(height*(y+h/2))
             x1,x2,y1,y2=t["bbox_array"]
+            #logger.debug("bbox to draw {}".format(t["bbox_array"]))
             x1=int(width*x1)
             x2=int(width*x2)
             y1=int(height*y1)
             y2=int(height*y2)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, cv2.FONT_HERSHEY_SIMPLEX)
             cv2.putText(frame, "{} ({})".format(id_to_name(t["id"]),t["label"]), (x1 + 10, y1 + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
-            cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
+            #cv2.putText(frame, "{}".format(t["info"]), (x1+10,y1+35),cv2.FONT_HERSHEY_TRIPLEX,0.5,255)
 
     def old_draw_track_bbox(self,frame,t):
         color = (255, 0, 0)
@@ -134,11 +135,13 @@ class CameraDisplayGyrus(ThreadedGyrus):
     def update_tracks(self,message):
         self.tracks={}
         for track in message["tracks"]:
-            if track["info"]=="LOST":
-                if track["id"] in self.tracks:
-                    del self.tracks[track["id"]]
-            else:
-                self.tracks[track["id"]]=track
+            #if track["info"]=="LOST":
+            #    logger.debug("there")
+            #    if track["id"] in self.tracks:
+            #        del self.tracks[track["id"]]
+            #else:
+            #    logger.debug("where")
+            self.tracks[track["id"]]=track
         self.track_timestamp=message["image_timestamp"]
 
     def update_display(self):
