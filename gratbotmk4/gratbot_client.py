@@ -41,6 +41,7 @@ from gyrii.StateAssesorGyrus import StateAssesorGyrus
 #from gyrii.QuattestGyrus import QuattestGyrus
 from gyrii.ShortTermObjectMemory import ShortTermObjectMemory
 #from gyrii.ObjectMapGyrus import ObjectMapGyrus
+from gyrii.MapDisplayGyrus import MapDisplayGyrus
 #from gyrii.PeripersonalSpaceGyrus import PeripersonalSpaceGyrus
 #from gyrii.HeadingManagementGyrus import HeadingManagementGyrus
 #from gyrii.PitchManagementGyrus import PitchManagementGyrus
@@ -137,6 +138,7 @@ else:
 #gyrii.append(MessageLoggerGyrus(broker,keys=["tracks"]))
 gyrii.append(MessageLoggerGyrus(broker,keys=["motor_report","st_object_report"]))
 gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
+gyrii.append(MapDisplayGyrus(broker,display_loop,mode="show_tracks"))
 #gyrii.append(QuattestGyrus(broker,display_loop))
 #gyrii.append(ShortTermObjectMemory(broker,display_loop))
 #gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_detections"))
@@ -158,7 +160,7 @@ gyrii.append(CameraDisplayGyrus(broker,display_loop,mode="show_tracks"))
 #gyrii.append(FastBadTrackerGyrus(broker,confidence_trigger=0.2))
 #gyrii.append(TrackerGyrus(broker,detection_name="detections_software",confidence_trigger=0.3))
 #gyrii.append(XboxControllerGyrus(broker))
-gyrii.append(TrackerGyrus3d(broker))
+#gyrii.append(TrackerGyrus3d(broker))
 #gyrii.append(PointingErrorGyrus(broker)) #figure out where I ought to point
 gyrii.append(ClockGyrus(broker))
 gyrii.append(StateAssesorGyrus(broker))

@@ -17,6 +17,7 @@ class CameraDisplayGyrus(ThreadedGyrus):
         self.fps_count=11
         self.fps_count_reset=10
         self.fps_start_time=0
+        self.show_depth=False
 
         self.display_subimages=False
 
@@ -203,7 +204,8 @@ class CameraDisplayGyrus(ThreadedGyrus):
 
         if "depth_image" in message:
             self.last_depth_message=message
-            self.update_depth()
+            if self.show_depth:
+                self.update_depth()
         if "test_image" in message:
             frame=message["test_image"]
             self.display.update_image("test",frame)

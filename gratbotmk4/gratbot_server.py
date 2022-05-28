@@ -12,6 +12,7 @@ from gyrii.SocketGyrusLinkPickle import SocketGyrusLink
 from gyrii.MotorGyrus import MotorGyrus
 from gyrii.ServoGyrus import ServoGyrus
 from gyrii.ServoGyrusVelocity import ServoGyrusVelocity
+from gyrii.TrackerGyrus3d import TrackerGyrus3d
 #from gyrii.HeadTrackerGyrus import HeadTrackerGyrus,FollowerGyrus
 #from gyrii.HeadTrackerGyrus import TurnTrackerGyrus
 #from gyrii.NeckGazeGyrus import  NeckPointingErrorCorrectionGyrus,PointingErrorGyrus,BodyPointingErrorCorrectionGyrus
@@ -80,6 +81,7 @@ gyrii.append(ServoGyrusVelocity(broker))
 #gyrii.append(LEDDisplayGyrus(broker))
 #gyrii.append(MicrophoneGyrus(broker))
 
+gyrii.append(TrackerGyrus3d(broker))
 
 ### Processing ####
 #For Yolo
